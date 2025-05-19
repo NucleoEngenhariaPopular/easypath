@@ -16,8 +16,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-# Isso também é utilizado pelo SvelteKit
-# lib/
+lib/
 lib64/
 parts/
 sdist/
@@ -203,6 +202,7 @@ yarn.lock
 
 # === SvelteKit ===
 
+!./apps/platform/frontend/src/lib/
 test-results/
 package-lock.json
 vite.config.js.timestamp-*
