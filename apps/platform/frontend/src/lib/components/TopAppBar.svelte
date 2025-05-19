@@ -1,17 +1,23 @@
 <script lang="ts">
 	import { Navbar, NavBrand, NavUl, NavLi, DarkMode } from 'flowbite-svelte';
 	import { CogOutline } from 'flowbite-svelte-icons';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
-	// Reactive variable to check if we're on the create-pathway page
-	$: isCreatePathway = $page.url.pathname === '/create-pathway';
+	// Use $state and $derived for reactive values
+	let isCreatePathway = $derived(page.url.pathname === '/create-pathway');
 
-	// Computed class values
-	$: navPadding = isCreatePathway ? 'py-1' : 'py-2.5';
-	$: logoSize = isCreatePathway ? 'h-5 sm:h-7' : 'h-6 sm:h-9';
-	$: textSize = isCreatePathway ? 'text-lg' : 'text-xl';
-	$: settingsPadding = isCreatePathway ? 'p-2' : 'p-2.5';
-	$: iconSize = isCreatePathway ? 'h-4 w-4' : 'h-5 w-5';
+	// Use $derived for computed values
+	let navPadding = $derived(isCreatePathway ? 'py-1' : 'py-2.5');
+	let logoSize = $derived(isCreatePathway ? 'h-5 sm:h-7' : 'h-6 sm:h-9');
+	let textSize = $derived(isCreatePathway ? 'text-lg' : 'text-xl');
+	let settingsPadding = $derived(isCreatePathway ? 'p-2' : 'p-2.5');
+	let iconSize = $derived(isCreatePathway ? 'h-4 w-4' : 'h-5 w-5');
+
+	// Add an effect to ensure updates
+	$effect(() => {
+		// This will run whenever page.url.pathname changes
+		isCreatePathway = page.url.pathname === '/create-pathway';
+	});
 </script>
 
 <Navbar
