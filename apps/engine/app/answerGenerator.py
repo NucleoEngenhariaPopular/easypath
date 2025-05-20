@@ -4,9 +4,18 @@ from typing import Any, Dict
 from dotenv import load_dotenv
 import os
 from time import perf_counter
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
+
+import argparse
+
+def setup_logging(log_level=logging.INFO):
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
 
 def getAnswer(globalPrompt: str, nodePrompt: str, lastMessage: str, chatHistory: list) -> str:
     url = "https://api.deepseek.com/chat/completions"
@@ -34,11 +43,11 @@ def getAnswer(globalPrompt: str, nodePrompt: str, lastMessage: str, chatHistory:
         "logprobs": False,
         "top_logprobs": None
     }
-    print(f'\n-----------------------------------------------------------\nHeaders: \n {json.dumps(headers, indent=4)}\n')
-    print(f'\n\nBody : \n {json.dumps(data, indent=4)}\n')
+    logging.info(f'\nHeaders: \n {json.dumps(headers, indent=4)}\n')
+    logging.info(f'\n\nBody : \n {json.dumps(data, indent=4)}\n')
     responseTime = perf_counter()
     response = requests.post(url, headers=headers, data=json.dumps(data))
-    print(f'\n-----------------------------------------------------------\nResponse: {perf_counter()-responseTime}s \n {json.dumps(response.json(), indent=4)}\n')
+    logging.info(f'\n\nResponse: {perf_counter()-responseTime}s \n {json.dumps(response.json(), indent=4)}\n')
     
     if response.status_code == 200:
         return response.json().get("choices", [{}])[0].get("message", {}).get("content", "")
@@ -47,5 +56,13 @@ def getAnswer(globalPrompt: str, nodePrompt: str, lastMessage: str, chatHistory:
 
 
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--log-level', default='INFO',
+                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'])
+    args = parser.parse_args()
+    
+    setup_logging(getattr(logging, args.log_level))
+    
     print(getAnswer("Você é um agente virtual, conversando com um usuário no Whatsapp. Mantenha um tom de conversa leve, despojado e altivo. Não use emojis, a menos que explicitamente solicitado, e algumas gírias, se sentir que faz sentido. Tente ao máximo parecer com um ser humando real utilizando o Whatsapp", 
                     "Seu objetivo nesse ponto da conversa é descobrir o nome do usuário.","",[]))
