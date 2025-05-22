@@ -200,22 +200,9 @@ yarn.lock
 # API keys and secrets
 .env
 
-# === SvelteKit ===
-
-!./apps/platform/frontend/src/lib/
-test-results/
-package-lock.json
-vite.config.js.timestamp-*
-/packages/create-svelte/template/CHANGELOG.md
-/packages/package/test/**/package
-/documentation/types.js
-.vercel_build_output
-.svelte-kit
-.cloudflare
-.pnpm-debug.log
-.netlify
-.turbo
-.vercel
-.test-tmp
-symlink-from
-.idea/
+# === Vite ===
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
