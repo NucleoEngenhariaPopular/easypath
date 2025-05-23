@@ -34,103 +34,23 @@ import {
   Typography,
 } from '@mui/material';
 import EasyPathAppBar from '../components/AppBar';
+import type { CustomNodeData } from '../components/canvas/CustomNodes';
+import { nodeTypes } from '../components/canvas/CustomNodes';
 
-interface CustomNodeData {
-  name: string;
-  prompt?: string;
-  url?: string;
-  method?: string;
-  [key: string]: unknown;
-}
-
-const nodeTypes = {
-  start: (props: any) => (
-    <div
-      style={{
-        backgroundColor: '#4CAF50', // Green
-        color: 'white',
-        borderRadius: '50%',
-        width: 80,
-        height: 80,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 'bold',
-        border: '2px solid #388E3C',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        cursor: 'pointer',
-      }}
-    >
-      <Typography variant="caption" sx={{ userSelect: 'none' }}>
-        START
-      </Typography>
-      <Handle type="source" position={Position.Bottom} />
-    </div>
-  ),
-  normal: (props: any) => (
-    <div
-      style={{
-        backgroundColor: '#2196F3', // Blue
-        color: 'white',
-        borderRadius: '8px',
-        padding: '10px 20px',
-        border: '2px solid #1976D2',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        cursor: 'pointer',
-      }}
-    >
-      <Typography variant="body2" sx={{ userSelect: 'none' }}>
-        {props.data.name || 'Normal Node'}
-      </Typography>
-      <Handle type="target" position={Position.Top} />
-      <Handle type="source" position={Position.Bottom} />
-    </div>
-  ),
-  end: (props: any) => (
-    <div
-      style={{
-        backgroundColor: '#F44336', // Red
-        color: 'white',
-        borderRadius: '50%',
-        width: 80,
-        height: 80,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 'bold',
-        border: '2px solid #D32F2F',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        cursor: 'pointer',
-      }}
-    >
-      <Typography variant="caption" sx={{ userSelect: 'none' }}>
-        END
-      </Typography>
-      {/* <Handle type="target" position={Position.Top} /> */}
-    </div>
-  ),
-  request: (props: any) => (
-    <div
-      style={{
-        backgroundColor: '#FF9800', // Orange
-        color: 'white',
-        borderRadius: '8px',
-        padding: '10px 20px',
-        border: '2px solid #FB8C00',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        cursor: 'pointer',
-      }}
-    >
-      <Typography variant="body2" sx={{ userSelect: 'none' }}>
-        {props.data.name || 'Request Node'}
-      </Typography>
-      {/* <Handle type="target" position={Position.Top} />
-      <Handle type="source" position={Position.Bottom} /> */}
-    </div>
-  ),
-};
-
-const initialNodes: Node<CustomNodeData>[] = [];
+const initialNodes: Node<CustomNodeData>[] = [
+  {
+    id: 'start-node', // id único para o nó de inicio
+    type: 'start',
+    position: { x: 0, y: 0 },
+    data: { name: 'Start Node' },
+  },
+  {
+    id: 'end-node',
+    type: 'end',
+    position: { x: 0, y: 100 },
+    data: { name: 'End Node' },
+  },
+];
 const initialEdges: Edge[] = [];
 
 const CanvasPage: React.FC = () => {

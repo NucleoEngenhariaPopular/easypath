@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
       <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Paper elevation={3} sx={{ padding: 4, maxWidth: 400, width: '100%', borderRadius: 3 }}>
           <Typography variant="h4" component="h1" gutterBottom align="center" color="text.primary">
-            Welcome to EasyPath
+            EasyPath
           </Typography>
           <Typography variant="h6" component="h2" gutterBottom align="center" color="text.secondary">
             Login
