@@ -1,7 +1,10 @@
+import { ClearAllOutlined } from '@mui/icons-material';
 import HttpIcon from '@mui/icons-material/Http';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import {
   Box,
+  Button,
+  Divider,
   IconButton,
   Paper,
   Tooltip,
@@ -10,13 +13,10 @@ import React from 'react';
 
 interface CanvasToolbarProps {
   onAddNode: (nodeType: string) => void;
+  onClearIntermediateNodes: () => void;
 }
 
-const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode }) => {
-
-  const handleToolClick = (tool: string) => {
-    onAddNode(tool);
-  };
+const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearIntermediateNodes }) => {
 
   return (
     <Paper
@@ -45,7 +45,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode }) => {
                 color: 'primary.main'
               },
             }}
-            onClick={() => handleToolClick('normal')}
+            onClick={() => onAddNode('normal')}
           >
             <TextFieldsIcon />
           </IconButton>
@@ -60,10 +60,24 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode }) => {
                 color: 'primary.main'
               },
             }}
-            onClick={() => handleToolClick('request')}
+            onClick={() => onAddNode('request')}
           >
             <HttpIcon />
           </IconButton>
+        </Tooltip>
+
+        <Divider orientation='vertical' flexItem sx={{ mx: 0.5 }} />
+
+        <Tooltip title="Clear Added Icons">
+          <Button
+            variant='outlined'
+            color={'warning'}
+            startIcon={<ClearAllOutlined />}
+            size='small'
+            onClick={onClearIntermediateNodes}
+          >
+            Clear
+          </Button>
         </Tooltip>
       </Box>
     </Paper>
