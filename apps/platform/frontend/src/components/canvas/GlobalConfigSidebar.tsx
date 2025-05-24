@@ -18,7 +18,7 @@ interface GlobalConfigSidebarProps {
   onConfigChange: (fieldName: keyof GlobalCanvasConfig, value: string) => void;
 }
 
-export const drawerWidth = 360; // You can adjust the width
+export const drawerWidth = 400;
 
 const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
   open,
@@ -33,7 +33,7 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
 
   return (
     <Drawer
-      anchor="left" // ou "right"
+      anchor="left"
       open={open}
       onClose={onClose}
       sx={{
@@ -47,7 +47,7 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
     >
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h6" noWrap component="div">
-          Global Configuration
+          Configurações Globais
         </Typography>
         <IconButton onClick={onClose}>
           <CloseIcon />
@@ -59,27 +59,74 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
           label="Global Prompt"
           name="globalPrompt"
           multiline
-          rows={10}
+          rows={6}
           fullWidth
           variant="outlined"
-          value={config.globalPrompt}
+          value={config.globalPrompt || ''}
           onChange={handleInputChange}
           margin="normal"
-          helperText="This prompt will be applied globally to the canvas operations."
+          helperText="This prompt will be applied globally."
         />
-        {/* Add more fields here for other global settings as they arise */}
-        {/* Example:
         <TextField
-          label="Default Temperature"
-          name="defaultTemperature" // Assuming you add this to GlobalCanvasConfig
-          type="number"
+          label="Role & Objective"
+          name="roleAndObjective"
+          multiline
+          rows={4}
           fullWidth
           variant="outlined"
-          value={config.defaultTemperature || 0.7}
+          value={config.roleAndObjective || ''}
           onChange={handleInputChange}
           margin="normal"
+          helperText="Define the AI's role and primary goal."
         />
-        */}
+        <TextField
+          label="Tone & Style"
+          name="toneAndStyle"
+          multiline
+          rows={4}
+          fullWidth
+          variant="outlined"
+          value={config.toneAndStyle || ''}
+          onChange={handleInputChange}
+          margin="normal"
+          helperText="Describe the desired tone and communication style."
+        />
+        <TextField
+          label="Language & Format Rules"
+          name="languageAndFormatRules"
+          multiline
+          rows={4}
+          fullWidth
+          variant="outlined"
+          value={config.languageAndFormatRules || ''}
+          onChange={handleInputChange}
+          margin="normal"
+          helperText="Specify language rules and formatting."
+        />
+        <TextField
+          label="Behavior & Fallbacks"
+          name="behaviorAndFallbacks"
+          multiline
+          rows={4}
+          fullWidth
+          variant="outlined"
+          value={config.behaviorAndFallbacks || ''}
+          onChange={handleInputChange}
+          margin="normal"
+          helperText="Outline AI behavior in different scenarios and fallback responses."
+        />
+        <TextField
+          label="Placeholders & Variables"
+          name="placeholdersAndVariables"
+          multiline
+          rows={4}
+          fullWidth
+          variant="outlined"
+          value={config.placeholdersAndVariables || ''}
+          onChange={handleInputChange}
+          margin="normal"
+          helperText="List available placeholders and variables."
+        />
       </Box>
     </Drawer>
   );

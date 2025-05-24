@@ -14,18 +14,21 @@ import '@xyflow/react/dist/style.css';
 import React, { useCallback, useState } from 'react';
 
 import SettingsIcon from '@mui/icons-material/Settings';
-import { Box, Fab, Tooltip } from '@mui/material';
+import { Box, Fab, Tooltip, Typography } from '@mui/material';
 import EasyPathAppBar from '../components/AppBar';
 import CanvasToolbar from '../components/canvas/CanvasToolbar';
 import GlobalConfigSidebar, { drawerWidth } from '../components/canvas/GlobalConfigSidebar';
-import { nodeTypes, type CustomNodeData } from '../components/canvas/CustomNodes';
-import type { GlobalCanvasConfig } from '../types/canvasTypes';
+import { nodeTypes } from '../components/canvas/CustomNodes';
+import type { GlobalCanvasConfig, CustomNodeData, ModelOptions, ExtractVarItem } from '../types/canvasTypes';
 import NodeModal from '../components/canvas/NodeModal';
 
-// Default initial global configuration
 const initialGlobalConfig: GlobalCanvasConfig = {
   globalPrompt: 'Default global prompt: Be helpful and concise.',
-  // Initialize other global settings here
+  roleAndObjective: '',
+  toneAndStyle: '',
+  languageAndFormatRules: '',
+  behaviorAndFallbacks: '',
+  placeholdersAndVariables: '',
 };
 
 const initialNodes: Node<CustomNodeData>[] = [
@@ -33,11 +36,11 @@ const initialNodes: Node<CustomNodeData>[] = [
     id: 'start-node',
     type: 'start',
     position: { x: 100, y: 100 },
-    data: { name: 'Start Node' },
+    data: { name: 'Start Node', isStart: true }, // Mark as start
   },
   {
     id: 'end-node',
-    type: 'end',
+    type: 'end', // Or your new 'EndCall' if it's intended as the default end
     position: { x: 400, y: 100 },
     data: { name: 'End Node' },
   },
@@ -50,7 +53,6 @@ const CanvasPage: React.FC = () => {
   const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // State for Global Config Sidebar
   const [isGlobalConfigSidebarOpen, setIsGlobalConfigSidebarOpen] = useState(false);
   const [globalConfig, setGlobalConfig] = useState<GlobalCanvasConfig>(initialGlobalConfig);
 
@@ -60,15 +62,34 @@ const CanvasPage: React.FC = () => {
   );
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node<CustomNodeData>) => {
-    setSelectedNode(node);
+    const nodeData = {
+      ...node.data,
+      modelOptions: node.data.modelOptions || {},
+      extractVars: node.data.extractVars || [],
+      pathwayExamples: node.data.pathwayExamples || [],
+      extractVarSettings: node.data.extractVarSettings || {},
+    };
+    setSelectedNode({ ...node, data: nodeData });
     setIsModalOpen(true);
   }, []);
 
   const handleAddNode = (type: string) => {
+    const newNodeData: CustomNodeData = {
+      name: `${type.charAt(0).toUpperCase() + type.slice(1)} Node`,
+    };
+    // Initialize specific fields for new nodes if needed
+    if (type === 'normal' || type === 'request' || type === 'EndCall') {
+      newNodeData.modelOptions = { modelType: 'smart', temperature: 0.2 }; // Default modelOptions
+      newNodeData.prompt = '';
+    }
+    if (type === 'start') {
+      newNodeData.isStart = true;
+    }
+
     const newNode: Node<CustomNodeData> = {
-      id: `${Date.now()}`,
+      id: `${type}-${Date.now()}`, // Ensure unique IDs
       position: { x: Math.random() * 300 + 150, y: Math.random() * 150 + 50 },
-      data: { name: `${type.charAt(0).toUpperCase() + type.slice(1)} Node` },
+      data: newNodeData,
       type: type,
     };
     setNodes((nds) => nds.concat(newNode));
@@ -79,9 +100,44 @@ const CanvasPage: React.FC = () => {
     setSelectedNode(null);
   };
 
-  const handleNodeDataChange = (field: keyof CustomNodeData, value: string) => {
+  const handleNodeDataChange = (
+    fieldWithPath: keyof CustomNodeData | `modelOptions.${keyof ModelOptions}` | `extractVars.${number}.${keyof ExtractVarItem}`,
+    value: any
+  ) => {
     if (selectedNode) {
-      const updatedNodeData = { ...selectedNode.data, [field]: value };
+      let updatedNodeData = { ...selectedNode.data };
+
+      fieldWithPath = fieldWithPath.toString()
+
+      if (fieldWithPath.startsWith('modelOptions.')) {
+        const subField = fieldWithPath.split('.')[1] as keyof ModelOptions;
+        updatedNodeData.modelOptions = {
+          ...(updatedNodeData.modelOptions || {}),
+          [subField]: value,
+        };
+      } else if (fieldWithPath.startsWith('extractVars.')) {
+        // Placeholder for more complex array updates needed for extractVars
+        // For now, this assumes 'value' is the entire updated array if you implement it
+        // Or, if handling individual items, the path would be like 'extractVars.0.varName'
+        // For simplicity, let's assume 'fieldWithPath' is just 'extractVars' and 'value' is the whole array for now
+        if (fieldWithPath === 'extractVars') {
+          updatedNodeData.extractVars = value as ExtractVarItem[];
+        }
+        // A proper implementation would parse the index and sub-field:
+        // const parts = fieldWithPath.split('.');
+        // const index = parseInt(parts[1]);
+        // const subField = parts[2] as keyof ExtractVarItem;
+        // if (updatedNodeData.extractVars && updatedNodeData.extractVars[index]) {
+        //   updatedNodeData.extractVars[index] = { ...updatedNodeData.extractVars[index], [subField]: value };
+        //   updatedNodeData.extractVars = [...updatedNodeData.extractVars]; // Ensure re-render
+        // }
+      } else {
+        updatedNodeData = {
+          ...updatedNodeData,
+          [fieldWithPath as keyof CustomNodeData]: value,
+        };
+      }
+
       setNodes((nds) =>
         nds.map((node) =>
           node.id === selectedNode.id
@@ -93,9 +149,10 @@ const CanvasPage: React.FC = () => {
     }
   };
 
+
   const handleClearIntermediateNodes = () => {
     setNodes((currentNodes) =>
-      currentNodes.filter((node) => node.id === 'start-node' || node.id === 'end-node')
+      currentNodes.filter((node) => node.type === 'start' || node.type === 'end' || node.type === 'EndCall') // Keep all types of end nodes
     );
     setEdges([]);
     setSelectedNode(null);
@@ -116,9 +173,42 @@ const CanvasPage: React.FC = () => {
     }));
   };
 
+  const handleExportToJson = () => {
+    const flowData = {
+      nodes: nodes.map(node => ({
+        id: node.id,
+        data: node.data,
+        type: node.type,
+        position: node.position,
+      })),
+      edges: edges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: edge.type,
+        data: edge.data,
+      })),
+      globalConfig: {
+        ...globalConfig
+      }
+    };
+    const jsonString = JSON.stringify(flowData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'canvas-state.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log(jsonString);
+  };
+
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'background.default' }}>
-      <EasyPathAppBar appBarHeight="small" /> {/* CanvasPage.tsx already has AppBar */}
+      <EasyPathAppBar appBarHeight="small" />
       <GlobalConfigSidebar
         open={isGlobalConfigSidebarOpen}
         onClose={() => setIsGlobalConfigSidebarOpen(false)}
@@ -129,7 +219,6 @@ const CanvasPage: React.FC = () => {
         sx={{
           flexGrow: 1,
           position: 'relative',
-          // Optional: Add transition for main content when sidebar opens/closes
           transition: (theme) => theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
@@ -164,15 +253,29 @@ const CanvasPage: React.FC = () => {
               <SettingsIcon />
             </Fab>
           </Tooltip>
+          {/* Export Button */}
+          <Tooltip title="Export to JSON">
+            <Fab
+              color="primary"
+              size="small"
+              sx={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}
+              onClick={handleExportToJson}
+            >
+              {/* You can use an appropriate icon like DownloadIcon */}
+              <Typography sx={{ color: "common.white", fontSize: "0.7rem", p: 0.5 }}>Export</Typography>
+            </Fab>
+          </Tooltip>
         </ReactFlow>
       </Box>
 
-      <NodeModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        selectedNode={selectedNode}
-        onNodeDataChange={handleNodeDataChange}
-      />
+      {selectedNode && (
+        <NodeModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          selectedNode={selectedNode}
+          onNodeDataChange={handleNodeDataChange}
+        />
+      )}
     </Box>
   );
 };

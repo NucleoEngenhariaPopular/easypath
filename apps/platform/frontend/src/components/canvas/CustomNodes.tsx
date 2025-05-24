@@ -1,14 +1,8 @@
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import Typography from '@mui/material/Typography';
 import { type CSSProperties } from 'react';
+import type { CustomNodeData } from '../../types/canvasTypes';
 
-export interface CustomNodeData {
-  name: string;
-  prompt?: string;
-  url?: string;
-  method?: string;
-  [key: string]: unknown;
-}
 
 const nodeBaseStyle: CSSProperties = {
   color: 'white',
@@ -23,6 +17,7 @@ const nodeBaseStyle: CSSProperties = {
   justifyContent: 'center',
   fontWeight: 'bold',
   textAlign: 'center',
+  minWidth: 120,
 };
 
 const circleNodeStyle: CSSProperties = {
@@ -43,7 +38,6 @@ export const nodeTypes = {
       }}
     >
       <Typography variant="caption" sx={{ userSelect: 'none', wordBreak: 'break-word' }}>
-        {/* Using props.data.name for Start node */}
         {props.data.name || 'Start'}
       </Typography>
       <Handle type="source" position={Position.Bottom} />
@@ -57,7 +51,7 @@ export const nodeTypes = {
         borderColor: '#1976D2',
       }}
     >
-      <Typography variant="body2" sx={{ userSelect: 'none' }}>
+      <Typography variant="body2" sx={{ userSelect: 'none', wordBreak: 'break-all' }}>
         {props.data.name || 'Normal Node'}
       </Typography>
       <Handle type="target" position={Position.Top} />
@@ -73,7 +67,6 @@ export const nodeTypes = {
       }}
     >
       <Typography variant="caption" sx={{ userSelect: 'none', wordBreak: 'break-word' }}>
-        {/* Using props.data.name for End node */}
         {props.data.name || 'End'}
       </Typography>
       <Handle type="target" position={Position.Top} />
@@ -87,7 +80,7 @@ export const nodeTypes = {
         borderColor: '#FB8C00',
       }}
     >
-      <Typography variant="body2" sx={{ userSelect: 'none' }}>
+      <Typography variant="body2" sx={{ userSelect: 'none', wordBreak: 'break-all' }}>
         {props.data.name || 'Request Node'}
       </Typography>
       <Handle type="target" position={Position.Top} />
