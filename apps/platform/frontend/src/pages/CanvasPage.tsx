@@ -2,23 +2,17 @@ import {
   addEdge,
   Background,
   Controls,
-  Handle,
   MiniMap,
-  Position,
   ReactFlow,
   useEdgesState,
   useNodesState,
   type Connection,
   type Edge,
-  type Node,
+  type Node
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import React, { useCallback, useState } from 'react';
 
-import HttpIcon from '@mui/icons-material/Http';
-import StartIcon from '@mui/icons-material/PlayArrow';
-import StopIcon from '@mui/icons-material/Stop';
-import TextFieldsIcon from '@mui/icons-material/TextFields';
 import {
   Box,
   Button,
@@ -26,14 +20,12 @@ import {
   InputLabel,
   MenuItem,
   Modal,
-  Paper,
   Select,
   TextField,
-  Toolbar,
-  Tooltip,
-  Typography,
+  Typography
 } from '@mui/material';
 import EasyPathAppBar from '../components/AppBar';
+import CanvasToolbar from '../components/canvas/CanvasToolbar';
 import type { CustomNodeData } from '../components/canvas/CustomNodes';
 import { nodeTypes } from '../components/canvas/CustomNodes';
 
@@ -64,7 +56,7 @@ const CanvasPage: React.FC = () => {
     [setEdges]
   );
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node<CustomNodeData>) => {
+  const onNodeClick = useCallback((_: React.MouseEvent, node: Node<CustomNodeData>) => {
     setSelectedNode(node);
     setIsModalOpen(true);
   }, []);
@@ -115,44 +107,8 @@ const CanvasPage: React.FC = () => {
           <Controls />
           <Background color="#aaa" gap={16} />
 
-          {/* Centered Top Toolbar */}
-          <Paper
-            sx={{
-              position: 'absolute',
-              top: 10,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 10,
-              display: 'flex',
-              gap: 1,
-              p: 1,
-              borderRadius: 2,
-              boxShadow: 3,
-            }}
-          >
-            <Toolbar disableGutters>
-              <Tooltip title="Add Start Node">
-                <Button variant="outlined" startIcon={<StartIcon />} onClick={() => handleAddNode('start')}>
-                  Start
-                </Button>
-              </Tooltip>
-              <Tooltip title="Add Normal Node">
-                <Button variant="outlined" startIcon={<TextFieldsIcon />} onClick={() => handleAddNode('normal')}>
-                  Normal
-                </Button>
-              </Tooltip>
-              <Tooltip title="Add End Node">
-                <Button variant="outlined" startIcon={<StopIcon />} onClick={() => handleAddNode('end')}>
-                  End
-                </Button>
-              </Tooltip>
-              <Tooltip title="Add Request Node">
-                <Button variant="outlined" startIcon={<HttpIcon />} onClick={() => handleAddNode('request')}>
-                  Request
-                </Button>
-              </Tooltip>
-            </Toolbar>
-          </Paper>
+          <CanvasToolbar onAddNode={handleAddNode} />
+
         </ReactFlow>
       </Box>
 
