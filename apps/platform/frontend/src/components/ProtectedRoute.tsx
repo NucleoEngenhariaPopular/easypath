@@ -1,4 +1,4 @@
-import React, { useEffect, useState, type FC } from 'react';
+import { useEffect, useState, type FC } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import type { Session } from '@supabase/supabase-js'; // Import Session type

@@ -1,38 +1,38 @@
-import React, { useState, useMemo, type FC } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Button,
-  Tabs,
-  Tab,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  useTheme,
-  alpha,
-  Paper,
-  Divider,
-  Tooltip,
-} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import FolderIcon from '@mui/icons-material/Folder';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import GridViewIcon from '@mui/icons-material/GridView';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import SearchIcon from '@mui/icons-material/Search';
 import ViewListIcon from '@mui/icons-material/ViewList';
+import {
+  alpha,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Divider,
+  FormControl,
+  Grid,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Tab,
+  Tabs,
+  TextField,
+  Tooltip,
+  Typography,
+  useTheme,
+} from '@mui/material';
+import { useMemo, useState, type FC } from 'react';
 
-import EasyPathAppBar from '../components/AppBar';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import EasyPathAppBar from '../components/AppBar';
 
 // New mock data for folders
 const folders = [

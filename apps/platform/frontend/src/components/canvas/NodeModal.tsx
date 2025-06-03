@@ -1,15 +1,24 @@
 // src/components/canvas/NodeModal.tsx
-import type { Node } from "@xyflow/react";
-import type { CustomNodeData, ModelOptions, ExtractVarItem, PathwayExample } from "../../types/canvasTypes";
-import type { FC } from "react";
-import {
-  Box, Button, Checkbox, FormControl, FormControlLabel, InputLabel,
-  MenuItem, Modal, Select, TextField, Typography, Paper, Grid, Switch,
-  IconButton, Divider, Accordion, AccordionSummary, AccordionDetails
-} from "@mui/material";
 import { Close as CloseIcon, ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box, Button, Checkbox, FormControl, FormControlLabel,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem, Modal,
+  Paper,
+  Select,
+  Switch,
+  TextField, Typography
+} from "@mui/material";
+import type { Node } from "@xyflow/react";
+import type { FC } from "react";
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect } from 'react';
+import type { CustomNodeData, ExtractVarItem, ModelOptions } from "../../types/canvasTypes";
 
 interface NodeModalProps {
   isOpen: boolean;
