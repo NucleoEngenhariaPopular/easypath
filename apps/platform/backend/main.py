@@ -7,7 +7,7 @@ app = FastAPI()
 
 # Define the path to your frontend build directory
 # This assumes your FastAPI app is in 'backend/' and your React build ('dist') is in 'frontend/dist'
-FRONTEND_DIST_PATH = Path("../frontend/dist")
+FRONTEND_DIST_PATH = Path("dist")
 
 # 1. Serve static files from the frontend build
 # Make sure this mount is done BEFORE any catch-all routes like the index.html fallback
