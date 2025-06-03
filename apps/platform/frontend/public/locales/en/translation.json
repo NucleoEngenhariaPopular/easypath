@@ -1,10 +1,14 @@
 {
   "loginPage": {
-    "title": "EasyPath",
-    "subtitle": "Login",
-    "usernameLabel": "Username",
+    "title": "Welcome to EasyPath",
+    "subtitle": "Sign in to continue",
+    "emailLabel": "Email",
     "passwordLabel": "Password",
-    "loginButton": "Login"
+    "loginButton": "Sign In",
+    "signUpButton": "Sign Up",
+    "loginSuccess": "Logged in successfully! Redirecting...",
+    "signUpSuccess": "Sign up successful! Please check your email for verification.",
+    "loadingButton": "Loading..."
   },
   "dashboardPage": {
     "allPaths": "All Paths",
@@ -105,7 +109,8 @@
     "exportButtonText": "Export"
   },
   "appBar": {
-    "logoText": "EP"
+    "logoText": "EP",
+    "logoutButton": "Logout"
   },
   "themeToggleButton": {
     "switchToLight": "Switch to Light Theme",

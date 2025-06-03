@@ -1,10 +1,14 @@
 {
   "loginPage": {
-    "title": "EasyPath",
-    "subtitle": "Entrar",
-    "usernameLabel": "Usuário",
+    "title": "Bem-vindo ao EasyPath",
+    "subtitle": "Entre para continuar",
+    "emailLabel": "Email",
     "passwordLabel": "Senha",
-    "loginButton": "Entrar"
+    "loginButton": "Entrar",
+    "signUpButton": "Cadastrar",
+    "loginSuccess": "Login realizado com sucesso! Redirecionando...",
+    "signUpSuccess": "Cadastro realizado com sucesso! Por favor, verifique seu email para confirmação.",
+    "loadingButton": "Carregando..."
   },
   "dashboardPage": {
     "allPaths": "Todos os Caminhos",
@@ -103,7 +107,8 @@
     "exportButtonText": "Exportar"
   },
   "appBar": {
-    "logoText": "EP"
+    "logoText": "EP",
+    "logoutButton": "Sair"
   },
   "themeToggleButton": {
     "switchToLight": "Mudar para Tema Claro",
