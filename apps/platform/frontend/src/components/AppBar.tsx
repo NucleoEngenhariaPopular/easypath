@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import ThemeToggleButton from './ThemeToggleButton';
 import { styled } from '@mui/material/styles';
+import LanguageSwitcherButton from './LanguageSwtichButton';
 
 // TODO: Placeholder para a logo. Substituir com a logo de verdade no futuro.
 const LogoPlaceholder = styled(Box)(({ theme }) => ({
@@ -41,10 +42,12 @@ const EasyPathAppBar: React.FC<EasyPathAppBarProps> = ({ appBarHeight }) => {
     >
       <Toolbar>
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-          <LogoPlaceholder>
-            {/* Adicionar imagem aqui no futuro? */}
-            EP
-          </LogoPlaceholder>
+          <a href='/dashboard'>
+            <LogoPlaceholder>
+              {/* Adicionar imagem aqui no futuro? */}
+              EP
+            </LogoPlaceholder>
+          </a>
           <Typography
             variant="h6"
             component="div"
@@ -58,6 +61,7 @@ const EasyPathAppBar: React.FC<EasyPathAppBarProps> = ({ appBarHeight }) => {
             EasyPath
           </Typography>
         </Box>
+        <LanguageSwitcherButton />
         <ThemeToggleButton />
       </Toolbar>
     </MuiAppBar>

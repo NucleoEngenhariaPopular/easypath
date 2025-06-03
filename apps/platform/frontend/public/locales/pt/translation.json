@@ -1,0 +1,112 @@
+{
+  "loginPage": {
+    "title": "EasyPath",
+    "subtitle": "Entrar",
+    "usernameLabel": "Usuário",
+    "passwordLabel": "Senha",
+    "loginButton": "Entrar"
+  },
+  "dashboardPage": {
+    "allPaths": "Todos os Caminhos",
+    "createPathButton": "Criar Caminho",
+    "searchPlaceholder": "Buscar caminhos...",
+    "sortByLabel": "Ordenar Por",
+    "filterLabel": "Filtrar",
+    "foldersTitle": "Pastas",
+    "addFolderButton": "Adicionar",
+    "addFolderTooltip": "Adicionar nova pasta",
+    "viewGrid": "Visão em Grade",
+    "viewList": "Visão em Lista",
+    "viewModeAriaLabel": "Modo de visualização",
+    "sortByNameAsc": "Nome (A-Z)",
+    "sortByNameDesc": "Nome (Z-A)",
+    "sortByDateNewest": "Data (Mais Recente)",
+    "sortByDateOldest": "Data (Mais Antigo)",
+    "filterStatusAll": "Todos os Status",
+    "filterStatusActive": "Ativo",
+    "filterStatusDraft": "Rascunho",
+    "filterStatusArchived": "Arquivado",
+    "status": {
+      "active": "Ativo",
+      "draft": "Rascunho",
+      "archived": "Arquivado"
+    },
+    "pathCard": {
+      "nodes": "{{count}} nós",
+      "created": "Criado em: {{date}}"
+    }
+  },
+  "nodeModal": {
+    "editNodeTitle": "Editar Nó {{nodeName}}",
+    "nodeNameLabel": "Nome do Nó",
+    "promptLabel": "Prompt",
+    "promptHelperText": "Insira o prompt para interação com a IA.",
+    "staticTextLabel": "Texto Estático",
+    "staticTextHelperText": "Insira o texto estático a ser exibido ou usado.",
+    "requestUrlLabel": "URL da Requisição",
+    "methodLabel": "Método",
+    "modelOptionsTitle": "Opções do Modelo",
+    "modelConfigurationTitle": "Configuração do Modelo",
+    "conditionSectionTitle": "Controle de Fluxo / Condição de Repetição",
+    "extractVarsJsonLabel": "Extrair Variáveis (Array JSON)",
+    "basicInformationTitle": "Informações Básicas",
+    "contentTitle": "Conteúdo",
+    "requestConfigurationTitle": "Configuração da Requisição",
+    "advancedConfigurationTitle": "Configuração Avançada",
+    "cancelButton": "Cancelar",
+    "modelTypeLabel": "Tipo de Modelo",
+    "temperatureLabel": "Temperatura",
+    "newTemperatureLabel": "Nova Temp. (substituir)",
+    "newTemperatureHelper": "Substituição opcional",
+    "isSMSReturnNodeLabel": "Nó de Retorno SMS",
+    "skipUserResponseLabel": "Pular Resposta do Usuário",
+    "disableEndCallToolLabel": "Desabilitar Ferramenta de Encerrar Chamada",
+    "blockInterruptionsLabel": "Bloquear Interrupções",
+    "disableSilenceRepeatLabel": "Desabilitar Repetição por Silêncio",
+    "conditionOverridesPathwayLabel": "Condição Substitui Caminho Global",
+    "conditionLabel": "Condição (Descrição textual)",
+    "conditionHelperText": "Quando este nó deve ser ativado/avaliado.",
+    "extractVarsTitle": "Extrair Variáveis",
+    "extractVarsHelper": "Editar como JSON. Ex: [{ varName: 'nome', varType: 'string', description: 'Nome do usuário' }]",
+    "extractVarSettingsTitle": "Configurações de Extração de Variáveis",
+    "extractVarSettingsHelper": "Editar como JSON. Ex: { config: 'valor' }",
+    "pathwayExamplesTitle": "Exemplos de Caminho",
+    "pathwayExamplesHelper": "Editar como JSON. Estrutura complexa, veja definição de tipo.",
+    "doneButton": "Concluído"
+  },
+  "globalConfigSidebar": {
+    "title": "Configuração Global",
+    "globalPromptLabel": "Prompt Global",
+    "globalPromptHelper": "Este prompt será aplicado globalmente.",
+    "roleAndObjectiveLabel": "Papel & Objetivo",
+    "roleAndObjectiveHelper": "Defina o papel e o objetivo principal da IA.",
+    "toneAndStyleLabel": "Tom & Estilo",
+    "toneAndStyleHelper": "Descreva o tom e o estilo de comunicação desejados.",
+    "languageAndFormatRulesLabel": "Regras de Linguagem & Formato",
+    "languageAndFormatRulesHelper": "Especifique regras de linguagem e formatação.",
+    "behaviorAndFallbacksLabel": "Comportamento & Fallbacks",
+    "behaviorAndFallbacksHelper": "Descreva o comportamento da IA em diferentes cenários e respostas de fallback.",
+    "placeholdersAndVariablesLabel": "Placeholders & Variáveis",
+    "placeholdersAndVariablesHelper": "Liste placeholders e variáveis disponíveis."
+  },
+  "canvasToolbar": {
+    "addNormalNode": "Adicionar Nó Normal",
+    "addRequestNode": "Adicionar Nó de Requisição",
+    "clearAddedIcons": "Limpar Ícones Adicionados",
+    "clearButton": "Limpar"
+  },
+  "canvasPage": {
+    "initialGlobalPrompt": "Prompt global padrão: Seja útil e conciso.",
+    "exportFileName": "estado-canvas.json",
+    "globalSettingsTooltip": "Configurações Globais",
+    "exportTooltip": "Exportar para JSON",
+    "exportButtonText": "Exportar"
+  },
+  "appBar": {
+    "logoText": "EP"
+  },
+  "themeToggleButton": {
+    "switchToLight": "Mudar para Tema Claro",
+    "switchToDark": "Mudar para Tema Escuro"
+  }
+}

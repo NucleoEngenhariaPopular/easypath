@@ -21,6 +21,7 @@ import GlobalConfigSidebar, { drawerWidth } from '../components/canvas/GlobalCon
 import { nodeTypes } from '../components/canvas/CustomNodes';
 import type { GlobalCanvasConfig, CustomNodeData, ModelOptions, ExtractVarItem } from '../types/canvasTypes';
 import NodeModal from '../components/canvas/NodeModal';
+import { useTranslation } from 'react-i18next';
 
 const initialGlobalConfig: GlobalCanvasConfig = {
   globalPrompt: 'Default global prompt: Be helpful and concise.',
@@ -35,19 +36,20 @@ const initialNodes: Node<CustomNodeData>[] = [
   {
     id: 'start-node',
     type: 'start',
-    position: { x: 100, y: 100 },
+    position: { x: 0, y: 0 },
     data: { name: 'Start Node', isStart: true }, // Mark as start
   },
   {
     id: 'end-node',
-    type: 'end', // Or your new 'EndCall' if it's intended as the default end
-    position: { x: 400, y: 100 },
+    type: 'end',
+    position: { x: 0, y: 100 },
     data: { name: 'End Node' },
   },
 ];
 const initialEdges: Edge[] = [];
 
 const CanvasPage: React.FC = () => {
+  const { t } = useTranslation();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
@@ -197,7 +199,7 @@ const CanvasPage: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'canvas-state.json';
+    a.download = t('canvasPage.exportFileName');
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -243,7 +245,7 @@ const CanvasPage: React.FC = () => {
             onAddNode={handleAddNode}
             onClearIntermediateNodes={handleClearIntermediateNodes}
           />
-          <Tooltip title="Global Settings">
+          <Tooltip title={t('canvasPage.globalSettingsTooltip')}>
             <Fab
               color="secondary"
               size="small"
@@ -254,7 +256,7 @@ const CanvasPage: React.FC = () => {
             </Fab>
           </Tooltip>
           {/* Export Button */}
-          <Tooltip title="Export to JSON">
+          <Tooltip title={t('canvasPage.exportTooltip')}>
             <Fab
               color="primary"
               size="small"

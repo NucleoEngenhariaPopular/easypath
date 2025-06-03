@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import React from 'react';
+import { useTranslation } from 'react-i18next'; // <<<< IMPORT
 
 interface CanvasToolbarProps {
   onAddNode: (nodeType: string) => void;
@@ -17,6 +18,7 @@ interface CanvasToolbarProps {
 }
 
 const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearIntermediateNodes }) => {
+  const { t } = useTranslation(); // <<<< USE HOOK
 
   return (
     <Paper
@@ -36,7 +38,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearInterme
     >
       <Box display="flex" alignItems="center" gap={0.5}>
 
-        <Tooltip title="Add Normal Node">
+        <Tooltip title={t('canvasToolbar.addNormalNode')}>
           <IconButton
             color={'default'}
             sx={{
@@ -51,7 +53,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearInterme
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Add Request Node">
+        <Tooltip title={t('canvasToolbar.addRequestNode')}>
           <IconButton
             color={'default'}
             sx={{
@@ -68,7 +70,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearInterme
 
         <Divider orientation='vertical' flexItem sx={{ mx: 0.5 }} />
 
-        <Tooltip title="Clear Added Icons">
+        <Tooltip title={t('canvasToolbar.clearAddedIcons')}>
           <Button
             variant='outlined'
             color={'warning'}
@@ -76,7 +78,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearInterme
             size='small'
             onClick={onClearIntermediateNodes}
           >
-            Clear
+            {t('canvasToolbar.clearButton')}
           </Button>
         </Tooltip>
       </Box>

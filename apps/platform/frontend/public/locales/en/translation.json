@@ -1,0 +1,114 @@
+{
+  "loginPage": {
+    "title": "EasyPath",
+    "subtitle": "Login",
+    "usernameLabel": "Username",
+    "passwordLabel": "Password",
+    "loginButton": "Login"
+  },
+  "dashboardPage": {
+    "allPaths": "All Paths",
+    "createPathButton": "Create Path",
+    "searchPlaceholder": "Search paths...",
+    "sortByLabel": "Sort By",
+    "filterLabel": "Filter",
+    "foldersTitle": "Folders",
+    "addFolderButton": "Add",
+    "addFolderTooltip": "Add new folder",
+    "viewGrid": "Grid View",
+    "viewList": "List View",
+    "viewModeAriaLabel": "View mode",
+    "sortByNameAsc": "Name (A-Z)",
+    "sortByNameDesc": "Name (Z-A)",
+    "sortByDateNewest": "Date (Newest)",
+    "sortByDateOldest": "Date (Oldest)",
+    "filterStatusAll": "All Statuses",
+    "filterStatusActive": "Active",
+    "filterStatusDraft": "Draft",
+    "filterStatusArchived": "Archived",
+    "status": {
+      "active": "Active",
+      "draft": "Draft",
+      "archived": "Archived"
+    },
+    "pathCard": {
+      "nodes": "{{count}} nodes",
+      "created": "Created: {{date}}"
+    }
+  },
+  "nodeModal": {
+    "editNodeTitle": "Edit {{nodeName}}",
+    "nodeNameLabel": "Node Name",
+    "promptLabel": "Prompt",
+    "promptHelperText": "Enter the prompt for AI interaction.",
+    "staticTextLabel": "Static Text",
+    "staticTextHelperText": "Enter the static text to be displayed or used.",
+    "requestUrlLabel": "Request URL",
+    "methodLabel": "Method",
+    "modelOptionsTitle": "Model Options",
+    "modelConfigurationTitle": "Model Configuration",
+    "modelTypeLabel": "Model Type",
+    "temperatureLabel": "Temperature",
+    "skipUserResponseLabel": "Skip User Response",
+    "conditionOverridesPathwayLabel": "Condition Overrides Global Pathway",
+    "conditionLabel": "Condition",
+    "conditionHelperText": "Enter a condition for this node (e.g., {{variable}} == 'value').",
+    "conditionSectionTitle": "Flow Control / Repetition Condition",
+    "extractVarsTitle": "Extract Variables",
+    "extractVarsJsonLabel": "Extract Variables (JSON Array)",
+    "extractVarsHelper": "Define variables to extract from user input, in JSON format.",
+    "pathwayExamplesTitle": "Pathway Examples",
+    "pathwayExamplesJsonLabel": "Pathway Examples (JSON Array)",
+    "pathwayExamplesHelper": "Provide examples of conversation flows, in JSON format.",
+    "doneButton": "Done",
+    "basicInformationTitle": "Basic Information",
+    "contentTitle": "Content",
+    "requestConfigurationTitle": "Request Configuration",
+    "advancedConfigurationTitle": "Advanced Configuration",
+    "cancelButton": "Cancel",
+    "newTemperatureLabel": "New Temp (override)",
+    "newTemperatureHelper": "Optional override",
+    "isSMSReturnNodeLabel": "SMS Return Node",
+    "disableEndCallToolLabel": "Disable EndCall Tool",
+    "blockInterruptionsLabel": "Block Interruptions",
+    "disableSilenceRepeatLabel": "Disable Silence Repeat",
+    "contitionTitle": "text",
+    "extractVarSettingsTitle": "Extract Variable Settings",
+    "extractVarSettingsHelper": "Edit as JSON. E.g., { setting: 'value' }"
+  },
+  "globalConfigSidebar": {
+    "title": "Global Configuration",
+    "globalPromptLabel": "Global Prompt",
+    "globalPromptHelper": "This prompt will be applied globally.",
+    "roleAndObjectiveLabel": "Role & Objective",
+    "roleAndObjectiveHelper": "Define the AI's role and primary goal.",
+    "toneAndStyleLabel": "Tone & Style",
+    "toneAndStyleHelper": "Describe the desired tone and communication style.",
+    "languageAndFormatRulesLabel": "Language & Format Rules",
+    "languageAndFormatRulesHelper": "Specify language rules and formatting.",
+    "behaviorAndFallbacksLabel": "Behavior & Fallbacks",
+    "behaviorAndFallbacksHelper": "Outline AI behavior in different scenarios and fallback responses.",
+    "placeholdersAndVariablesLabel": "Placeholders & Variables",
+    "placeholdersAndVariablesHelper": "List available placeholders and variables."
+  },
+  "canvasToolbar": {
+    "addNormalNode": "Add Normal Node",
+    "addRequestNode": "Add Request Node",
+    "clearAddedIcons": "Clear Added Icons",
+    "clearButton": "Clear"
+  },
+  "canvasPage": {
+    "initialGlobalPrompt": "Default global prompt: Be helpful and concise.",
+    "exportFileName": "canvas-state.json",
+    "globalSettingsTooltip": "Global Settings",
+    "exportTooltip": "Export to JSON",
+    "exportButtonText": "Export"
+  },
+  "appBar": {
+    "logoText": "EP"
+  },
+  "themeToggleButton": {
+    "switchToLight": "Switch to Light Theme",
+    "switchToDark": "Switch to Dark Theme"
+  }
+}

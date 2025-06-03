@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, type FC } from 'react';
 import {
   Box,
   Typography,
   Grid,
   Card,
   CardContent,
-  Fab,
   TextField,
   InputAdornment,
   IconButton,
@@ -20,20 +19,20 @@ import {
   alpha,
   Paper,
   Divider,
+  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
-import SortIcon from '@mui/icons-material/Sort';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import FolderIcon from '@mui/icons-material/Folder';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline'; // For MessageSquare equivalent
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import GridViewIcon from '@mui/icons-material/GridView';
 import ViewListIcon from '@mui/icons-material/ViewList';
 
 import EasyPathAppBar from '../components/AppBar';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 // New mock data for folders
 const folders = [
@@ -110,7 +109,8 @@ const mockPaths = [
   },
 ];
 
-const DashboardPage: React.FC = () => {
+const DashboardPage: FC = () => {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate();
   const theme = useTheme();
 
@@ -130,7 +130,7 @@ const DashboardPage: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    return new Date(dateString).toLocaleDateString(i18n.language, options);
   };
 
   const filteredAndSortedPaths = useMemo(() => {
@@ -180,13 +180,13 @@ const DashboardPage: React.FC = () => {
         sx={{
           flexGrow: 1,
           display: 'flex',
-          p: 3, // Global padding
-          maxWidth: '1400px', // Max width for content
-          mx: 'auto', // Center content
+          p: 3,
+          maxWidth: '1400px',
+          mx: 'auto',
           width: '100%',
           gap: 3,
           [theme.breakpoints.down('md')]: {
-            flexDirection: 'column', // Stack sidebar and main content on small screens
+            flexDirection: 'column',
           },
         }}
       >
@@ -201,7 +201,7 @@ const DashboardPage: React.FC = () => {
             minHeight: '200px',
             [theme.breakpoints.down('md')]: {
               width: '100%',
-              order: 2, // Put sidebar below main content on small screens
+              order: 2,
             },
             transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
             transform: 'translateX(0)',
@@ -213,11 +213,13 @@ const DashboardPage: React.FC = () => {
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
-              Folders
+              {t('dashboardPage.foldersTitle')}
             </Typography>
-            <IconButton size="small">
-              <AddIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title={t('dashboardPage.addFolderTooltip')}>
+              <IconButton size="small">
+                <AddIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Button
@@ -227,7 +229,7 @@ const DashboardPage: React.FC = () => {
               sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2 }}
             >
               <FolderIcon sx={{ mr: 1 }} />
-              All Paths
+              {t('dashboardPage.allPaths')}
               <Typography
                 variant="caption"
                 sx={{
@@ -277,7 +279,7 @@ const DashboardPage: React.FC = () => {
           sx={{
             flex: 1,
             [theme.breakpoints.down('md')]: {
-              order: 1, // Put main content above sidebar on small screens
+              order: 1,
             },
             transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
             transform: 'translateY(0)',
@@ -289,7 +291,7 @@ const DashboardPage: React.FC = () => {
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h4" component="h1" sx={{ fontWeight: 700, color: 'text.primary' }}>
-              {selectedFolder ? selectedFolder : 'All Paths'}
+              {selectedFolder ? selectedFolder : t('dashboardPage.allPaths')}
             </Typography>
             <Button
               variant="contained"
@@ -298,7 +300,7 @@ const DashboardPage: React.FC = () => {
               onClick={handleCreatePath}
               sx={{ borderRadius: 2 }}
             >
-              Create Path
+              {t('dashboardPage.createPathButton')}
             </Button>
           </Box>
 
@@ -313,7 +315,7 @@ const DashboardPage: React.FC = () => {
           >
             <TextField
               fullWidth
-              placeholder="Search paths..."
+              placeholder={t('dashboardPage.searchPlaceholder')}
               variant="outlined"
               size="small"
               value={searchQuery}
@@ -333,7 +335,7 @@ const DashboardPage: React.FC = () => {
             />
             <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
               <FormControl sx={{ minWidth: 120 }} size="small">
-                <InputLabel id="sort-by-label">Sort By</InputLabel>
+                <InputLabel id="sort-by-label">{t('dashboardPage.sortByLabel')}</InputLabel>
                 <Select
                   labelId="sort-by-label"
                   id="sort-by-select"
@@ -343,15 +345,16 @@ const DashboardPage: React.FC = () => {
                     setSortBy(e.target.value as 'title-asc' | 'title-desc' | 'date-newest' | 'date-oldest')
                   }
                 >
-                  <MenuItem value="title-asc">Name (A-Z)</MenuItem>
-                  <MenuItem value="title-desc">Name (Z-A)</MenuItem>
-                  <MenuItem value="date-newest">Date (Newest)</MenuItem>
-                  <MenuItem value="date-oldest">Date (Oldest)</MenuItem>
+                  <MenuItem value="title-asc">{t('dashboardPage.sortByNameAsc')}</MenuItem>
+                  <MenuItem value="title-desc">{t('dashboardPage.sortByNameDesc')}</MenuItem>
+                  <MenuItem value="date-newest">{t('dashboardPage.sortByDateNewest')}</MenuItem>
+                  <MenuItem value="date-oldest">{t('dashboardPage.sortByDateOldest')}</MenuItem>
+
                 </Select>
               </FormControl>
 
               <FormControl sx={{ minWidth: 120 }} size="small">
-                <InputLabel id="filter-status-label">Filter</InputLabel>
+                <InputLabel id="filter-status-label">{t('dashboardPage.filterLabel')}</InputLabel>
                 <Select
                   labelId="filter-status-label"
                   id="filter-status-select"
@@ -361,17 +364,18 @@ const DashboardPage: React.FC = () => {
                     setFilterStatus(e.target.value as 'all' | 'active' | 'draft' | 'archived')
                   }
                 >
-                  <MenuItem value="all">All Statuses</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="draft">Draft</MenuItem>
-                  <MenuItem value="archived">Archived</MenuItem>
+                  <MenuItem value="all">{t('dashboardPage.filterStatusAll')}</MenuItem>
+                  <MenuItem value="active">{t('dashboardPage.filterStatusActive')}</MenuItem>
+                  <MenuItem value="draft">{t('dashboardPage.filterStatusDraft')}</MenuItem>
+                  <MenuItem value="archived">{t('dashboardPage.filterStatusArchived')}</MenuItem>
+
                 </Select>
               </FormControl>
 
               <Tabs
                 value={viewMode}
                 onChange={(_event, newValue) => setViewMode(newValue)}
-                aria-label="view mode tabs"
+                aria-label={t('dashboardPage.viewModeAriaLabel')}
                 sx={{
                   minHeight: 0,
                   '& .MuiTab-root': { minHeight: 0, py: 1, px: 1.5, borderRadius: 1 },
@@ -388,13 +392,13 @@ const DashboardPage: React.FC = () => {
                 <Tab
                   icon={<GridViewIcon fontSize="small" />}
                   value="grid"
-                  aria-label="grid view"
+                  aria-label={t('dashboardPage.viewGrid')}
                   sx={{ minWidth: 'unset', px: 1.5 }}
                 />
                 <Tab
                   icon={<ViewListIcon fontSize="small" />}
                   value="list"
-                  aria-label="list view"
+                  aria-label={t('dashboardPage.viewList')}
                   sx={{ minWidth: 'unset', px: 1.5 }}
                 />
               </Tabs>
@@ -454,14 +458,14 @@ const DashboardPage: React.FC = () => {
                       >
                         <ChatBubbleOutlineIcon sx={{ fontSize: 40, mb: 1 }} />
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {path.nodes} nodes
+                          {t('dashboardPage.pathCard.nodes', { count: path.nodes })}
                         </Typography>
                       </Box>
                     </CardContent>
                     <Divider />
                     <CardContent sx={{ pt: 1.5, pb: '16px !important', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="caption" color="text.disabled">
-                        Created: {formatDate(path.createdAt)}
+                        {t('dashboardPage.pathCard.created', { date: formatDate(path.createdAt) })}
                       </Typography>
                       <Box
                         sx={{

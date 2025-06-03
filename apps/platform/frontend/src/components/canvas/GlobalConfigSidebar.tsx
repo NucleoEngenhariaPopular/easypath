@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import type { GlobalCanvasConfig } from '../../types/canvasTypes';
+import { useTranslation } from 'react-i18next';
 
 interface GlobalConfigSidebarProps {
   open: boolean;
@@ -26,6 +27,8 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
   config,
   onConfigChange,
 }) => {
+  const { t } = useTranslation();
+
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     onConfigChange(name as keyof GlobalCanvasConfig, value);
@@ -47,7 +50,7 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
     >
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h6" noWrap component="div">
-          Configurações Globais
+          {t('globalConfigSidebar.title')}
         </Typography>
         <IconButton onClick={onClose}>
           <CloseIcon />
@@ -56,7 +59,7 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
       <Divider />
       <Box sx={{ p: 2, overflowY: 'auto' }}>
         <TextField
-          label="Global Prompt"
+          label={t('globalConfigSidebar.globalPromptLabel')}
           name="globalPrompt"
           multiline
           rows={6}
@@ -65,10 +68,10 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
           value={config.globalPrompt || ''}
           onChange={handleInputChange}
           margin="normal"
-          helperText="This prompt will be applied globally."
+          helperText={t('globalConfigSidebar.globalPromptHelper')}
         />
         <TextField
-          label="Role & Objective"
+          label={t('globalConfigSidebar.roleAndObjectiveLabel')}
           name="roleAndObjective"
           multiline
           rows={4}
@@ -77,10 +80,10 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
           value={config.roleAndObjective || ''}
           onChange={handleInputChange}
           margin="normal"
-          helperText="Define the AI's role and primary goal."
+          helperText={t('globalConfigSidebar.roleAndObjectiveHelper')}
         />
         <TextField
-          label="Tone & Style"
+          label={t('globalConfigSidebar.toneAndStyleLabel')}
           name="toneAndStyle"
           multiline
           rows={4}
@@ -89,10 +92,10 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
           value={config.toneAndStyle || ''}
           onChange={handleInputChange}
           margin="normal"
-          helperText="Describe the desired tone and communication style."
+          helperText={t('globalConfigSidebar.toneAndStyleHelper')}
         />
         <TextField
-          label="Language & Format Rules"
+          label={t('globalConfigSidebar.languageAndFormatRulesLabel')}
           name="languageAndFormatRules"
           multiline
           rows={4}
@@ -101,10 +104,10 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
           value={config.languageAndFormatRules || ''}
           onChange={handleInputChange}
           margin="normal"
-          helperText="Specify language rules and formatting."
+          helperText={t('globalConfigSidebar.languageAndFormatRulesHelper')}
         />
         <TextField
-          label="Behavior & Fallbacks"
+          label={t('globalConfigSidebar.behaviorAndFallbacksLabel')}
           name="behaviorAndFallbacks"
           multiline
           rows={4}
@@ -113,10 +116,10 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
           value={config.behaviorAndFallbacks || ''}
           onChange={handleInputChange}
           margin="normal"
-          helperText="Outline AI behavior in different scenarios and fallback responses."
+          helperText={t('globalConfigSidebar.behaviorAndFallbacksHelper')}
         />
         <TextField
-          label="Placeholders & Variables"
+          label={t('globalConfigSidebar.placeholdersAndVariablesLabel')}
           name="placeholdersAndVariables"
           multiline
           rows={4}
@@ -125,7 +128,7 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
           value={config.placeholdersAndVariables || ''}
           onChange={handleInputChange}
           margin="normal"
-          helperText="List available placeholders and variables."
+          helperText={t('globalConfigSidebar.placeholdersAndVariablesHelper')}
         />
       </Box>
     </Drawer>
