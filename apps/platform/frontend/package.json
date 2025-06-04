@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node node_modules/typescript/lib/tsc.js --project tsconfig.json && node node_modules/vite/bin/vite.js build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -18,7 +18,6 @@
     "@xyflow/react": "^12.6.4",
     "i18next": "^25.2.0",
     "i18next-browser-languagedetector": "^8.1.0",
-    "typescript": "~5.8.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^15.5.2",
