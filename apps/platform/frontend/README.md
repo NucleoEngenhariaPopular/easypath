@@ -52,3 +52,19 @@ export default tseslint.config({
   },
 })
 ```
+
+---
+
+cd frontend/
+npm run build
+cd ..
+
+gcloud auth login
+gcloud config set project easypath-461813
+
+gcloud run deploy easypath-frontend \
+  --source . \
+  --region southamerica-east1 \
+  --allow-unauthenticated \
+  --platform managed \
+  --port 8080
