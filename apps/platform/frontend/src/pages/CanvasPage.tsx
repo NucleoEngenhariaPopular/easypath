@@ -48,8 +48,13 @@ const initialNodes: Node<CustomNodeData>[] = [
 ];
 const initialEdges: Edge[] = [];
 
+import { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
+
 const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
+  const { id: flowId } = useParams<{ id: string }>();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
@@ -57,6 +62,31 @@ const CanvasPage: React.FC = () => {
 
   const [isGlobalConfigSidebarOpen, setIsGlobalConfigSidebarOpen] = useState(false);
   const [globalConfig, setGlobalConfig] = useState<GlobalCanvasConfig>(initialGlobalConfig);
+
+  useEffect(() => {
+    const fetchFlow = async () => {
+      if (flowId && flowId !== 'new') {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const response = await fetch(`/api/flows/${flowId}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+            });
+          if (response.ok) {
+            const data = await response.json();
+            const flowData = data.flow_data;
+            if (flowData.nodes) setNodes(flowData.nodes);
+            if (flowData.edges) setEdges(flowData.edges);
+            if (flowData.globalConfig) setGlobalConfig(flowData.globalConfig);
+          }
+        }
+      }
+    };
+
+    fetchFlow();
+  }, [flowId, setNodes, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),
@@ -207,6 +237,64 @@ const CanvasPage: React.FC = () => {
     console.log(jsonString);
   };
 
+  const handleImportFromJson = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const importedData = JSON.parse(e.target?.result as string);
+            if (importedData.nodes) setNodes(importedData.nodes);
+            if (importedData.edges) setEdges(importedData.edges);
+            if (importedData.globalConfig) setGlobalConfig(importedData.globalConfig);
+          } catch (error) {
+            console.error("Error parsing JSON file:", error);
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  };
+
+  const handleSaveFlow = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const flowData = {
+        name: "My Flow", // You might want to get this from a user input
+        description: "A description of my flow", // You might want to get this from a user input
+        flow_data: { nodes, edges, globalConfig },
+      };
+
+      const url = flowId === 'new' ? '/api/flows/' : `/api/flows/${flowId}`;
+      const method = flowId === 'new' ? 'POST' : 'PUT';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(flowData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (flowId === 'new') {
+          // redirect to the new flow's page
+          window.history.replaceState(null, '', `/canvas/${data.id}`)
+        }
+        console.log("Flow saved successfully");
+      } else {
+        console.error("Failed to save flow");
+      }
+    }
+  };
+
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'background.default' }}>
@@ -244,6 +332,8 @@ const CanvasPage: React.FC = () => {
           <CanvasToolbar
             onAddNode={handleAddNode}
             onClearIntermediateNodes={handleClearIntermediateNodes}
+            onImport={handleImportFromJson}
+            onExport={handleExportToJson}
           />
           <Tooltip title={t('canvasPage.globalSettingsTooltip')}>
             <Fab
@@ -256,15 +346,15 @@ const CanvasPage: React.FC = () => {
             </Fab>
           </Tooltip>
           {/* Export Button */}
-          <Tooltip title={t('canvasPage.exportTooltip')}>
+          <Tooltip title={t('canvasPage.saveTooltip')}>
             <Fab
               color="primary"
               size="small"
               sx={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}
-              onClick={handleExportToJson}
+              onClick={handleSaveFlow}
             >
-              {/* You can use an appropriate icon like DownloadIcon */}
-              <Typography sx={{ color: "common.white", fontSize: "0.7rem", p: 0.5 }}>Export</Typography>
+              {/* You can use an appropriate icon like SaveIcon */}
+              <Typography sx={{ color: "common.white", fontSize: "0.7rem", p: 0.5 }}>Save</Typography>
             </Fab>
           </Tooltip>
         </ReactFlow>

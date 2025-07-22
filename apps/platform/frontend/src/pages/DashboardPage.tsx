@@ -28,97 +28,56 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { useMemo, useState, type FC } from 'react';
 
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import EasyPathAppBar from '../components/AppBar';
 
-// New mock data for folders
-const folders = [
-  { id: '1', name: 'Customer Support', count: 5 },
-  { id: '2', name: 'Sales', count: 3 },
-  { id: '3', name: 'Marketing', count: 2 },
-  { id: '4', name: 'Product', count: 1 },
-];
+import { useEffect, useState, useMemo, type FC } from 'react';
+import { supabase } from '../supabaseClient';
 
-// Updated mock data for paths with additional fields
-const mockPaths = [
-  {
-    id: '1',
-    title: 'Customer Onboarding',
-    description: 'Guide new customers through the onboarding process',
-    createdAt: '2023-10-15T00:00:00Z', // Use ISO string for dates
-    folder: 'Customer Support',
-    nodes: 12,
-    status: 'active',
-  },
-  {
-    id: '2',
-    title: 'Product Inquiry',
-    description: 'Handle product-related questions and inquiries',
-    createdAt: '2023-09-22T00:00:00Z',
-    folder: 'Sales',
-    nodes: 8,
-    status: 'active',
-  },
-  {
-    id: '3',
-    title: 'Feedback Collection',
-    description: 'Collect customer feedback about products and services',
-    createdAt: '2023-11-05T00:00:00Z',
-    folder: 'Marketing',
-    nodes: 6,
-    status: 'draft',
-  },
-  {
-    id: '4',
-    title: 'Order Status',
-    description: 'Check and update customers on their order status',
-    createdAt: '2023-10-30T00:00:00Z',
-    folder: 'Customer Support',
-    nodes: 10,
-    status: 'active',
-  },
-  {
-    id: '5',
-    title: 'Technical Support',
-    description: 'Provide technical assistance to customers',
-    createdAt: '2023-11-12T00:00:00Z',
-    folder: 'Customer Support',
-    nodes: 15,
-    status: 'active',
-  },
-  {
-    id: '6',
-    title: 'Refund Process',
-    description: 'Automated flow for processing customer refunds.',
-    createdAt: '2024-01-20T00:00:00Z',
-    folder: 'Customer Support',
-    nodes: 7,
-    status: 'draft',
-  },
-  {
-    id: '7',
-    title: 'New Feature Announcement',
-    description: 'Announce and explain new product features to users.',
-    createdAt: '2024-02-01T00:00:00Z',
-    folder: 'Marketing',
-    nodes: 9,
-    status: 'active',
-  },
-];
+
 
 const DashboardPage: FC = () => {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate();
   const theme = useTheme();
 
+  const [flows, setFlows] = useState<any[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'title-asc' | 'title-desc' | 'date-newest' | 'date-oldest'>('date-newest');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'draft' | 'archived'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  useEffect(() => {
+    const fetchFlows = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const response = await fetch('/api/flows/', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setFlows(data);
+        }
+      }
+    };
+
+    fetchFlows();
+  }, []);
+
+  const folders = useMemo(() => {
+    const folderMap: { [key: string]: number } = {};
+    flows.forEach(flow => {
+      if (flow.folder) {
+        folderMap[flow.folder] = (folderMap[flow.folder] || 0) + 1;
+      }
+    });
+    return Object.keys(folderMap).map(name => ({ id: name, name, count: folderMap[name] }));
+  }, [flows]);
 
   const handleCreatePath = () => {
     navigate('/canvas/new');
@@ -134,10 +93,10 @@ const DashboardPage: FC = () => {
   };
 
   const filteredAndSortedPaths = useMemo(() => {
-    let currentPaths = mockPaths.filter((path) => {
+    let currentPaths = flows.filter((path) => {
       const matchesFolder = selectedFolder ? path.folder === selectedFolder : true;
       const matchesSearch =
-        path.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        path.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         path.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = filterStatus === 'all' || path.status === filterStatus;
       return matchesFolder && matchesSearch && matchesStatus;
@@ -146,19 +105,19 @@ const DashboardPage: FC = () => {
     // Sort logic
     currentPaths.sort((a, b) => {
       if (sortBy === 'title-asc') {
-        return a.title.localeCompare(b.title);
+        return a.name.localeCompare(b.name);
       } else if (sortBy === 'title-desc') {
-        return b.title.localeCompare(a.title);
+        return b.name.localeCompare(a.name);
       } else if (sortBy === 'date-newest') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       } else if (sortBy === 'date-oldest') {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
       return 0;
     });
 
     return currentPaths;
-  }, [selectedFolder, searchQuery, sortBy, filterStatus]);
+  }, [selectedFolder, searchQuery, sortBy, filterStatus, flows]);
 
   const getStatusBadgeColor = (status: string): string => {
     switch (status) {
@@ -242,7 +201,7 @@ const DashboardPage: FC = () => {
                   fontWeight: 600,
                 }}
               >
-                {mockPaths.length}
+                {folders.length}
               </Typography>
             </Button>
             {folders.map((folder) => (
@@ -427,7 +386,7 @@ const DashboardPage: FC = () => {
                     <CardContent sx={{ pb: 0 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                         <Typography variant="h6" component="h3" sx={{ fontSize: '1.1rem', fontWeight: 600, flexGrow: 1 }}>
-                          {path.title}
+                          {path.name}
                         </Typography>
                         <IconButton
                           size="small"
@@ -458,14 +417,14 @@ const DashboardPage: FC = () => {
                       >
                         <ChatBubbleOutlineIcon sx={{ fontSize: 40, mb: 1 }} />
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {t('dashboardPage.pathCard.nodes', { count: path.nodes })}
+                          {t('dashboardPage.pathCard.nodes', { count: path.flow_data.nodes?.length || 0 })}
                         </Typography>
                       </Box>
                     </CardContent>
                     <Divider />
                     <CardContent sx={{ pt: 1.5, pb: '16px !important', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="caption" color="text.disabled">
-                        {t('dashboardPage.pathCard.created', { date: formatDate(path.createdAt) })}
+                        {t('dashboardPage.pathCard.created', { date: formatDate(path.created_at) })}
                       </Typography>
                       <Box
                         sx={{

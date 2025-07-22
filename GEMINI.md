@@ -82,3 +82,26 @@ The frontend is a modern, single-page application (SPA) designed for a rich user
 -   `apps/engine`: The LLM Orchestration and conversation execution service.
 -   `docker-compose.yml`: Defines how the services are orchestrated for local development.
 -   `package.json`: Manages top-level project scripts and dependencies.
+
+## 6. Current Project State & Next Steps
+
+### 6.1. Current State
+
+-   **Backend (Flow Management Service):**
+    -   Successfully set up with FastAPI and PostgreSQL.
+    -   Integrated with Supabase for user authentication (JWT validation).
+    -   `Flow` model updated to include `created_at`, `status`, and `folder` fields.
+    -   CRUD operations for flows are protected by Supabase JWT.
+    -   API documentation for testing with `curl` is available in `apps/platform/backend/README.md`.
+
+-   **Frontend (`apps/platform/frontend`):**
+    -   `DashboardPage` has been updated to fetch and display actual flow data from the backend, replacing mock data.
+    -   `CanvasPage` now supports saving flows to the backend, as well as importing and exporting flow definitions via JSON files.
+    -   `vite.config.ts` is configured to proxy API requests to the backend.
+
+### 6.2. Next Steps & Reminders
+
+-   **Canvas Page Improvement:** Implement a mechanism (e.g., a modal or form) to allow users to provide a `name` and `description` for a new flow *before* navigating to the `CanvasPage`.
+-   **Testing and Verification:** Thoroughly test the flow creation, saving, and loading functionalities to ensure that flows are correctly associated with the authenticated user and persist in the database as expected.
+-   **Dynamic Folder Counts:** Update the Dashboard to dynamically calculate and display folder counts based on the actual flows fetched from the backend.
+-   **List View Update:** Ensure the list view on the Dashboard correctly displays flow details (name, description, created_at, status) from the backend data.

@@ -1,24 +1,19 @@
-import { ClearAllOutlined } from '@mui/icons-material';
+import { ClearAllOutlined, FileUploadOutlined, FileDownloadOutlined } from '@mui/icons-material';
 import HttpIcon from '@mui/icons-material/Http';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
-import {
-  Box,
-  Button,
-  Divider,
-  IconButton,
-  Paper,
-  Tooltip,
-} from '@mui/material';
+import { Box, Button, Divider, IconButton, Paper, Tooltip } from '@mui/material';
 import React from 'react';
-import { useTranslation } from 'react-i18next'; // <<<< IMPORT
+import { useTranslation } from 'react-i18next';
 
 interface CanvasToolbarProps {
   onAddNode: (nodeType: string) => void;
   onClearIntermediateNodes: () => void;
+  onImport: () => void;
+  onExport: () => void;
 }
 
-const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearIntermediateNodes }) => {
-  const { t } = useTranslation(); // <<<< USE HOOK
+const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearIntermediateNodes, onImport, onExport }) => {
+  const { t } = useTranslation();
 
   return (
     <Paper
@@ -65,6 +60,38 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearInterme
             onClick={() => onAddNode('request')}
           >
             <HttpIcon />
+          </IconButton>
+        </Tooltip>
+
+        <Divider orientation='vertical' flexItem sx={{ mx: 0.5 }} />
+
+        <Tooltip title={t('canvasToolbar.importFlow')}>
+          <IconButton
+            color={'default'}
+            sx={{
+              borderRadius: 2,
+              '&:hover': {
+                color: 'primary.main'
+              },
+            }}
+            onClick={onImport}
+          >
+            <FileUploadOutlined />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title={t('canvasToolbar.exportFlow')}>
+          <IconButton
+            color={'default'}
+            sx={{
+              borderRadius: 2,
+              '&:hover': {
+                color: 'primary.main'
+              },
+            }}
+            onClick={onExport}
+          >
+            <FileDownloadOutlined />
           </IconButton>
         </Tooltip>
 
