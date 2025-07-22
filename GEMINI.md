@@ -53,7 +53,29 @@ The frontend is a modern, single-page application (SPA) designed for a rich user
 -   **Frontend:** TypeScript, React, Vite, Material UI, `@xyflow/react`
 -   **Containerization:** Docker (as indicated by `docker-compose.yml` and `Dockerfile`s)
 
-## 4. Project Structure
+## 4. Frontend Codebase Analysis
+
+-   **Routing:** The application uses `react-router-dom` for navigation. Key routes are defined in `App.tsx`, which includes a `ProtectedRoute` component to secure routes that require authentication.
+
+-   **State Management:**
+    -   **Theme:** A custom `ThemeContext` manages the application's light/dark mode, persisting the user's choice in `localStorage`.
+    -   **Canvas:** The state of the visual flow builder (nodes and edges) is managed locally within the `CanvasPage` component using hooks from `@xyflow/react` (`useNodesState`, `useEdgesState`).
+    -   **Local State:** Component-level state is handled using React's `useState` hook.
+
+-   **UI and Styling:**
+    -   **Component Library:** The UI is built with **Material-UI (MUI)**. A custom theme is defined in `theme/theme.ts`, providing distinct color palettes and styles for both light and dark modes.
+    -   **Custom Components:** The project features a well-organized component structure, including a reusable `EasyPathAppBar`, a `CanvasToolbar` for the flow builder, a `GlobalConfigSidebar` for path-wide settings, and a `NodeModal` for configuring individual nodes.
+    -   **Styling:** Styling is primarily handled through MUI's `sx` prop and `styled()` utility, promoting a consistent design system.
+
+-   **Authentication:** User authentication is implemented using **Supabase**. The `LoginPage` handles user sign-in, and a `supabaseClient` is configured for communication with the Supabase backend.
+
+-   **Internationalization (i18n):** The application supports multiple languages using the `i18next` and `react-i18next` libraries, with translation files stored for English (`en`) and Portuguese (`pt`).
+
+-   **Data:** The `DashboardPage` currently uses mock data for displaying paths and folders. The presence of the `supabaseClient` indicates that this will be replaced with live data from the backend.
+
+-   **Code Structure:** The frontend source code in `src` is logically organized into directories for `components`, `pages`, `context`, `theme`, and `types`, following common React best practices.
+
+## 5. Project Structure
 
 -   `apps/platform/backend`: The Flow Management web service.
 -   `apps/platform/frontend`: The React-based user interface.
