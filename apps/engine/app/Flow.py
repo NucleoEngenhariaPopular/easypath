@@ -79,6 +79,9 @@ class Flow:
         self.global_behaviour: str = ""
         self.global_values: str = ""
 
+    def getNodeByID(self, id:str = "")->Node:
+        return next(node for node in self.nodes if node.id == id)
+    
     def loadFromFile(self, filePath: str = "flow.json") -> None:
         """Load flow data from a JSON file and populate the Flow object.
 
