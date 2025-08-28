@@ -1,0 +1,37 @@
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: easypath_postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: easypath
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d easypath"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./apps/platform/backend
+    container_name: easypath_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/platform/backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://user:password@postgres/easypath"
+      SUPABASE_URL: "https://cmuywtxasjmrbodvagiv.supabase.co"
+      SUPABASE_JWT_SECRET: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtdXl3dHhhc2ptcmJvZHZhZ2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NDk5NTUsImV4cCI6MjA2NDUyNTk1NX0.LtlSdhMqlsXEOg4VdjtTZh3tFtikQo1Hbj5F-5v2kaQ"
+
+volumes:
+  postgres_data:

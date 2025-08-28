@@ -1,46 +1,43 @@
-# Stage 1: Build the React Frontend
-FROM node:20-alpine as frontend-builder
+# Stage 1: Frontend build
+# Use a non-Alpine Node.js image for better compatibility with TypeScript
+FROM node:20 as frontend-builder
 
+# Set working directory for the frontend application
 WORKDIR /app/frontend
 
-# Copy only package files first for better caching
+# Copy package.json and package-lock.json first to leverage Docker caching
 COPY ./frontend/package.json ./frontend/package-lock.json ./
 
-# Install dependencies, including dev dependencies, using npm ci
-# npm ci is better for CI/CD as it uses package-lock.json
+# Install frontend dependencies using npm ci for clean and consistent installs
 RUN npm ci
-
-# --- TEMPORARY DEBUGGING STEP (KEEP FOR NOW IF YOU WANT TO VERIFY) ---
-RUN ls -l /app/frontend/node_modules/.bin/
-# --- END TEMPORARY DEBUGGING STEP ---
 
 # Copy the rest of the frontend source code
 COPY ./frontend/ .
 
-# Ensure node_modules/.bin is in PATH for npm scripts
-ENV PATH="/app/frontend/node_modules/.bin:$PATH"
-
-# Build the React app
+# Build the frontend application
 RUN npm run build
 
-# Stage 2: Build the FastAPI Backend and serve the frontend
-FROM python:3.10-slim as backend-server
+# Stage 2: Backend and final application
+# Use a slim Python image for the backend
+FROM python:3.10-slim-buster as backend-and-runner
 
-WORKDIR /app
+# Set working directory for the backend application
+WORKDIR /app/backend
+
+# Copy backend requirements
+COPY ./backend/requirements.txt .
 
 # Install backend dependencies
-COPY ./backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend source code
 COPY ./backend/ .
 
-# Copy built frontend static files from previous stage
+# Copy built frontend assets from the frontend-builder stage to the backend's dist directory
 COPY --from=frontend-builder /app/frontend/dist ./dist
 
-# Expose the port
-ENV PORT=8080
+# Expose the port your FastAPI application listens on
 EXPOSE 8080
 
-# Run the FastAPI app
+# Command to run the application using uvicorn
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
