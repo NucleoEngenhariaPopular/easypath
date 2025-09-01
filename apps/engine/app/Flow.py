@@ -37,7 +37,7 @@ class Node:
                  loop_condition: str = "") -> None:
 
         self.id: str = id
-        self.node_type: str = type
+        self.node_type: str = node_type
         self.prompt: Prompt = prompt
         self.is_start: bool = is_start
         self.is_end: bool = is_end
@@ -106,7 +106,7 @@ class Flow:
                 self.global_values = flow_data["global_values"]
                 self.nodes = []
                 for node in flow_data["nodes"]:
-                    node_prompt = Node(node["context_prompt"],
+                    node_prompt = Prompt(node["context_prompt"],
                                        node["objective_prompt"],
                                        node["notes_prompt"],
                                        node["examples_prompt"])
@@ -131,7 +131,7 @@ class Flow:
                 self.connections = []
                 for connection in flow_data["connections"]: 
                     self.connections.append(Connection(id = connection["id"],
-                                                       label = connection["data"["label"]],
+                                                       label = connection["data"]["label"],
                                                        description = connection["data"]["description"],
                                                        else_option = connection["else"],
                                                        source = connection["source"],
