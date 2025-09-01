@@ -24,27 +24,27 @@ class VariableExtraction:
 class Node:
     def __init__(self,
                  id: str = "",
-                 type: str = "",
+                 node_type: str = "",
                  prompt: Prompt = Prompt(),
                  is_start: bool = False,
                  is_end: bool = False,
                  use_llm: bool = True,
                  is_global: bool = False,
-                 extract_vars: VariableExtraction = VariableExtraction(),
+                 extract_vars: list[VariableExtraction] = [VariableExtraction()],
                  temperature: float = 0.2,
                  skip_user_response: bool = False,
                  overrides_global_pathway: bool = True,
                  loop_condition: str = "") -> None:
 
         self.id: str = id
-        self.type: str = type
+        self.node_type: str = type
         self.prompt: Prompt = prompt
         self.is_start: bool = is_start
         self.is_end: bool = is_end
         self.use_llm: bool = use_llm
         self.is_global: bool = is_global
         # TODO implement global node condition (how to evaluate with connections?)
-        self.extract_vars: VariableExtraction = extract_vars
+        self.extract_vars: list[VariableExtraction] = extract_vars
         self.temperature: float = temperature
         self.skip_user_response: bool = skip_user_response
         self.overrides_global_pathway: bool = overrides_global_pathway
@@ -99,14 +99,44 @@ class Flow:
             with open(filePath, "r") as flowFile:
                 flow_data = json.load(flowFile)
 
-                self.global_objective = flow_data.get("global_objective", "")
-                self.global_tone = flow_data.get("global_tone", "")
-                self.global_language = flow_data.get("global_language", "")
-                self.global_behaviour = flow_data.get("global_behaviour", "")
-                self.global_values = flow_data.get("global_values", "")
+                self.global_objective = flow_data["global_objective"]
+                self.global_tone = flow_data["global_tone"]
+                self.global_language = flow_data["global_language"]
+                self.global_behaviour = flow_data["global_behaviour"]
+                self.global_values = flow_data["global_values"]
+                self.nodes = []
+                for node in flow_data["nodes"]:
+                    node_prompt = Node(node["context_prompt"],
+                                       node["objective_prompt"],
+                                       node["notes_prompt"],
+                                       node["examples_prompt"])
+                    
+                    variables_extraction_prompts = []
+                    for variable_extraction_prompt in node["extract_vars"]:
+                        variables_extraction_prompts.append(VariableExtraction(variable_extraction_prompt["name"],
+                                                                               variable_extraction_prompt["var_type"],
+                                                                               variable_extraction_prompt["prompt"]))
 
-                # TODO load nodes, connections, extract_vars, and model_options
-
+                    self.nodes.append(Node(id = node["id"], 
+                                           node_type = node["type"],
+                                           prompt = node_prompt,
+                                           is_start = node["is_start"],
+                                           is_end = node["is_end"],
+                                           use_llm = node["use_llm"],
+                                           is_global = node["is_global"],
+                                           extract_vars = variable_extraction_prompt,
+                                           temperature = node["model"]["temperature"],
+                                           overrides_global_pathway = node["model"]["overrides_global_pathway"],
+                                           loop_condition = node["loop_condition"]))
+                self.connections = []
+                for connection in flow_data["connections"]: 
+                    self.connections.append(Connection(id = connection["id"],
+                                                       label = connection["data"["label"]],
+                                                       description = connection["data"]["description"],
+                                                       else_option = connection["else"],
+                                                       source = connection["source"],
+                                                       target = connection["target"]))
+                    
         except FileNotFoundError:
             raise FileNotFoundError(f"The file {filePath} does not exist.")
         except json.JSONDecodeError:
