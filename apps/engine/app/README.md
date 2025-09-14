@@ -5,9 +5,10 @@ FastAPI service that executes conversational flows defined in JSON, choosing the
 ## Run locally
 
 1. Create `.env` from `.env.example` and set your API key.
-2. Install deps:
+2. Install deps (and optional dev deps for tests):
    ```bash
    pip install -r ../requirements.txt
+   pip install -r ../requirements-dev.txt  # for running tests
    ```
 3. Run:
    ```bash
@@ -18,5 +19,16 @@ FastAPI service that executes conversational flows defined in JSON, choosing the
 
 - `GET /health/` → health status
 - `GET /health/ping` → pong
+
+## Run tests
+
+From `apps/engine` directory:
+
+```bash
+pytest -q
+```
+
+This will run unit tests under `tests/unit` and integration tests under `tests/integration`.
+
 
 
