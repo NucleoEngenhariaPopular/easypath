@@ -206,3 +206,7 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# === VSCode/Cursor ===
+.cursorignore
+.vscode/settings.json
