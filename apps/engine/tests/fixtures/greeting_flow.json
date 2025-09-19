@@ -1,0 +1,58 @@
+{
+  "first_node_id": "start-node",
+  "nodes": [
+    {
+      "id": "start-node",
+      "node_type": "start",
+      "prompt": {"context": "Início da conversa", "objective": "Decidir próximo passo", "notes": "", "examples": ""},
+      "is_start": true,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.0,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": ""
+    },
+    {
+      "id": "ask-name",
+      "node_type": "message",
+      "prompt": {"context": "Saudação inicial", "objective": "Cumprimente e pergunte o nome do usuário", "notes": "Seja breve e simpático.", "examples": "Olá! Qual é o seu nome?"},
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.2,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": "Insistir até que o nome seja coletado"
+    },
+    {
+      "id": "end-node",
+      "node_type": "end",
+      "prompt": {"context": "", "objective": "", "notes": "", "examples": ""},
+      "is_start": false,
+      "is_end": true,
+      "use_llm": false,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.0,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": ""
+    }
+  ],
+  "connections": [
+    {"id": "c1", "label": "to-ask-name", "description": "Ir para perguntar o nome", "else_option": false, "source": "start-node", "target": "ask-name"},
+    {"id": "c2", "label": "to-end", "description": "Encerrar conversa", "else_option": false, "source": "ask-name", "target": "end-node"}
+  ],
+  "global_objective": "Cumprimentar o usuário e coletar seu nome",
+  "global_tone": "amigável",
+  "global_language": "pt-BR",
+  "global_behaviour": "prestativo e educado",
+  "global_values": "clareza e brevidade"
+}
+
+
