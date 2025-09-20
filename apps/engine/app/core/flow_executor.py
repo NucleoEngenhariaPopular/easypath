@@ -1,3 +1,4 @@
+import logging
 from ..models.flow import Flow
 from ..models.session import ChatSession
 from ..llm.providers import get_llm
@@ -34,6 +35,12 @@ def generate_response(flow: Flow, session: ChatSession, current_node_id: str) ->
     )
     if llm_answer.success and isinstance(llm_answer.response, str):
         return llm_answer.response
+    # Loga falhas/ausências de resposta para facilitar diagnóstico
+    logging.warning(
+        "LLM response failure: success=%s, error=%s",
+        llm_answer.success,
+        getattr(llm_answer, "error_message", None),
+    )
     return ""
 
 

@@ -1,3 +1,4 @@
+import logging
 from ..models.flow import Flow, Connection
 from ..models.session import ChatSession
 from ..llm.providers import get_llm
@@ -35,15 +36,43 @@ def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> str:
     llm_answer = llm.chat(messages=session.to_llm_messages() + [{"content": prompt, "role": "system"}])
 
     if llm_answer.success and isinstance(llm_answer.response, str):
-        best_match, score = process.extractOne(
+        labels = [connection.label for connection in connection_list]
+        if not labels:
+            logging.warning("Pathway selection: sem conexoes saindo de %s", current_node_id)
+            return current_node_id
+
+        result = process.extractOne(
             llm_answer.response,
-            [connection.label for connection in connection_list],
+            labels,
             scorer=fuzz.ratio,
         )
+
+        if not result:
+            logging.warning(
+                "Pathway selection: extractOne retornou None para resposta='%s'",
+                llm_answer.response,
+            )
+            return current_node_id
+
+        best_match = result[0]
+        score = result[1] if len(result) > 1 else 0
+
         if score >= FUZZY_THRESHOLD:
             for connection in connection_list:
                 if connection.label == best_match:
                     return connection.target
+        logging.warning(
+            "Pathway selection: baixa confianca (score=%s < %s) para resposta='%s'",
+            score,
+            FUZZY_THRESHOLD,
+            llm_answer.response,
+        )
+    else:
+        logging.warning(
+            "Pathway selection: LLM falhou ou sem resposta. success=%s, error=%s",
+            llm_answer.success,
+            getattr(llm_answer, "error_message", None),
+        )
 
     return current_node_id
 
