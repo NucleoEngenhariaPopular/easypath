@@ -36,6 +36,8 @@ class GeminiClient(LLMClient):
 
     def chat(self, messages: List[Dict[str, Any]], temperature: float = 0.2) -> LLMResult:
         try:
+            import time
+            t0 = time.perf_counter()
             contents: List[Dict[str, Any]] = []
             system_chunks: List[str] = []
 
@@ -65,14 +67,19 @@ class GeminiClient(LLMClient):
             if system_instruction:
                 gen_config["system_instruction"] = {"text": system_instruction}
 
+            t_prep = time.perf_counter() - t0
+
+            t1 = time.perf_counter()
             resp = self.client.models.generate_content(
                 model=self.model,
                 contents=contents,
                 config=gen_config,
             )
+            t_llm = time.perf_counter() - t1
 
             text = getattr(resp, "text", None)
             if isinstance(text, str):
+                logging.info("Gemini timings: prep=%.3fs llm=%.3fs", t_prep, t_llm)
                 return LLMResult(success=True, response=text)
             return LLMResult(success=False, response=None, error_message="Empty Gemini response")
         except Exception as exc:  # noqa: BLE001
