@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+# Carrega variáveis de ambiente do arquivo .env (se existir)
+load_dotenv()
 
 
 class Settings:
