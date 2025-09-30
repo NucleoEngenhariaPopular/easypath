@@ -1,0 +1,243 @@
+{
+  "first_node_id": "welcome",
+  "nodes": [
+    {
+      "id": "welcome",
+      "node_type": "start", 
+      "prompt": {
+        "context": "Início da conversa para coletar endereço",
+        "objective": "Dar boas-vindas e explicar que vamos ajudar a encontrar lugares interessantes na região",
+        "notes": "Seja caloroso e entusiasmado",
+        "examples": "Olá! Sou seu assistente para descobrir lugares incríveis na sua região. Vou te ajudar a encontrar restaurantes, pontos turísticos e atividades próximas ao seu endereço!"
+      },
+      "is_start": true,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.3,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": ""
+    },
+    {
+      "id": "ask-address",
+      "node_type": "message",
+      "prompt": {
+        "context": "Solicitação de endereço do usuário",
+        "objective": "Perguntar o endereço completo da casa do usuário de forma amigável",
+        "notes": "Explicar que precisamos do endereço para dar sugestões personalizadas. Pedir endereço completo com rua, número, bairro e cidade.",
+        "examples": "Para te dar as melhores sugestões, preciso saber onde você mora. Pode me contar seu endereço completo? (rua, número, bairro e cidade)"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.2,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": ""
+    },
+    {
+      "id": "extract-address",
+      "node_type": "extraction",
+      "prompt": {
+        "context": "Extração de informações de endereço",
+        "objective": "Extrair e validar o endereço fornecido pelo usuário",
+        "notes": "Extrair: rua completa, número, bairro, cidade, CEP (se fornecido). Se algo estiver faltando, perguntar especificamente o que falta.",
+        "examples": "Entendi! Você mora na [endereço extraído]. Vou guardar essa informação para te dar sugestões personalizadas."
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [
+        {
+          "name": "user_street",
+          "description": "Nome da rua/avenida completa",
+          "required": true
+        },
+        {
+          "name": "user_number", 
+          "description": "Número da casa/apartamento",
+          "required": true
+        },
+        {
+          "name": "user_neighborhood",
+          "description": "Nome do bairro",
+          "required": true
+        },
+        {
+          "name": "user_city",
+          "description": "Nome da cidade",
+          "required": true
+        },
+        {
+          "name": "user_zipcode",
+          "description": "CEP se fornecido",
+          "required": false
+        }
+      ],
+      "temperature": 0.1,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": "Continuar perguntando até ter pelo menos rua, número, bairro e cidade"
+    },
+    {
+      "id": "validate-address",
+      "node_type": "validation",
+      "prompt": {
+        "context": "Validação do endereço coletado",
+        "objective": "Confirmar se o endereço está completo e correto",
+        "notes": "Mostrar o endereço completo formatado e perguntar se está correto. Se não estiver, voltar para coletar novamente.",
+        "examples": "Confirma que seu endereço é: [rua] [número], [bairro], [cidade]? Se estiver correto, vou buscar lugares incríveis na sua região!"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.2,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": ""
+    },
+    {
+      "id": "recommend-restaurants",
+      "node_type": "recommendation",
+      "prompt": {
+        "context": "Recomendação de restaurantes na região",
+        "objective": "Sugerir restaurantes e locais para comer próximos ao endereço do usuário",
+        "notes": "Usar as variáveis extraídas (bairro e cidade) para personalizar as sugestões. Mencionar tipos de culinária e faixas de preço variadas.",
+        "examples": "Baseado no seu endereço em [bairro], [cidade], aqui estão ótimos restaurantes na região: [sugestões específicas por tipo de culinária]"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.4,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": ""
+    },
+    {
+      "id": "recommend-attractions",
+      "node_type": "recommendation",
+      "prompt": {
+        "context": "Recomendação de pontos turísticos e atrações",
+        "objective": "Sugerir pontos turísticos, parques, museus e atrações próximas ao endereço",
+        "notes": "Usar localização específica (bairro/cidade) para sugestões relevantes. Incluir opções gratuitas e pagas.",
+        "examples": "Para passeios e atrações perto de [bairro], [cidade], recomendo: [lista de pontos turísticos, parques, museus específicos da região]"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.4,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": ""
+    },
+    {
+      "id": "final-summary",
+      "node_type": "summary",
+      "prompt": {
+        "context": "Resumo final personalizado",
+        "objective": "Fazer um resumo das recomendações e se despedir",
+        "notes": "Mencionar o endereço do usuário e resumir as categorias de sugestões dadas. Oferecer ajuda futura.",
+        "examples": "Espero que aproveite as sugestões para [bairro], [cidade]! Se precisar de mais dicas sobre sua região ou quiser explorar outras categorias, é só me chamar!"
+      },
+      "is_start": false,
+      "is_end": true,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.3,
+      "skip_user_response": false,
+      "overrides_global_pathway": true,
+      "loop_condition": ""
+    }
+  ],
+  "connections": [
+    {
+      "id": "c1",
+      "label": "start-conversation",
+      "description": "Iniciar coleta de endereço",
+      "else_option": false,
+      "source": "welcome",
+      "target": "ask-address"
+    },
+    {
+      "id": "c2", 
+      "label": "collect-address",
+      "description": "Usuário vai fornecer endereço",
+      "else_option": false,
+      "source": "ask-address",
+      "target": "extract-address"
+    },
+    {
+      "id": "c3",
+      "label": "address-complete",
+      "description": "Endereço foi extraído com sucesso",
+      "else_option": false,
+      "source": "extract-address",
+      "target": "validate-address"
+    },
+    {
+      "id": "c4",
+      "label": "address-incomplete",
+      "description": "Endereço incompleto, pedir mais informações",
+      "else_option": true,
+      "source": "extract-address", 
+      "target": "ask-address"
+    },
+    {
+      "id": "c5",
+      "label": "address-confirmed",
+      "description": "Usuário confirmou que endereço está correto",
+      "else_option": false,
+      "source": "validate-address",
+      "target": "recommend-restaurants"
+    },
+    {
+      "id": "c6",
+      "label": "address-incorrect",
+      "description": "Usuário disse que endereço está incorreto",
+      "else_option": true,
+      "source": "validate-address",
+      "target": "ask-address"
+    },
+    {
+      "id": "c7",
+      "label": "want-attractions",
+      "description": "Usuário quer ver atrações também",
+      "else_option": false,
+      "source": "recommend-restaurants",
+      "target": "recommend-attractions"
+    },
+    {
+      "id": "c8",
+      "label": "satisfied-restaurants", 
+      "description": "Usuário está satisfeito apenas com restaurantes",
+      "else_option": true,
+      "source": "recommend-restaurants",
+      "target": "final-summary"
+    },
+    {
+      "id": "c9",
+      "label": "finish-recommendations",
+      "description": "Finalizar todas as recomendações",
+      "else_option": false,
+      "source": "recommend-attractions",
+      "target": "final-summary"
+    }
+  ],
+  "global_objective": "Coletar o endereço completo do usuário e usar essa informação para recomendar restaurantes e atrações personalizadas na região",
+  "global_tone": "amigável e prestativo",
+  "global_language": "pt-BR", 
+  "global_behaviour": "entusiasmado para ajudar a descobrir lugares incríveis",
+  "global_values": "personalização baseada na localização e utilidade prática"
+}

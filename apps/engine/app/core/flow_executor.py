@@ -4,9 +4,10 @@ from typing import Tuple, Dict, Any
 from ..models.flow import Flow
 from ..models.session import ChatSession
 from ..llm.providers import get_llm
+from .variable_extractor import format_variables_for_prompt
 
 
-def _format_prompts(flow: Flow, current_node_id: str) -> tuple[str, float]:
+def _format_prompts(flow: Flow, current_node_id: str, session: ChatSession) -> tuple[str, float]:
     node = next((node for node in flow.nodes if node.id == current_node_id))
 
     global_prompt = (
@@ -24,12 +25,15 @@ def _format_prompts(flow: Flow, current_node_id: str) -> tuple[str, float]:
         f"Exemplos da mensagem atual: {node.prompt.examples}"
     )
 
-    prompt = f"{global_prompt}\n-------------------------------\n{node_prompt}"
+    # Add extracted variables context
+    variables_context = format_variables_for_prompt(session)
+    
+    prompt = f"{global_prompt}\n-------------------------------\n{node_prompt}{variables_context}"
     return prompt, node.temperature
 
 
 def generate_response(flow: Flow, session: ChatSession, current_node_id: str) -> Tuple[str, Dict[str, Any]]:
-    prompt, temperature = _format_prompts(flow, current_node_id)
+    prompt, temperature = _format_prompts(flow, current_node_id, session)
     llm = get_llm()
     
     start_time = perf_counter()

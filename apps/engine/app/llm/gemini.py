@@ -64,6 +64,11 @@ class GeminiClient(LLMClient):
 
             system_instruction = "\n\n".join(system_chunks) if system_chunks else None
 
+            # If we only have system messages, convert to user message for Gemini
+            if not contents and system_instruction:
+                contents.append({"role": "user", "parts": [{"text": system_instruction}]})
+                system_instruction = None
+
             gen_config: Dict[str, Any] = {"temperature": float(temperature)}
             if system_instruction:
                 gen_config["system_instruction"] = {"text": system_instruction}

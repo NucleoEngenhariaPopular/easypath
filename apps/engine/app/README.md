@@ -40,7 +40,9 @@ This will start:
 
 ## Testing with Postman
 
-### Chat Message Example:
+### Chat Message Examples:
+
+**Basic greeting flow:**
 ```http
 POST http://localhost:8081/chat/message
 Content-Type: application/json
@@ -52,6 +54,20 @@ Content-Type: application/json
 }
 ```
 
+**Variable extraction flow (recommended for testing):**
+```http
+POST http://localhost:8081/chat/message
+Content-Type: application/json
+
+{
+  "session_id": "extraction-test-001",
+  "flow_path": "/app/fixtures/simple_extraction_flow.json",
+  "user_message": "Olá!"
+}
+```
+
+Expected flow: Welcome → Ask Name → Extract Name → Ask Location → Extract Location → Recommendations → Farewell
+
 ### FlowPath Format:
 - **In Docker**: Use container paths like `/app/fixtures/greeting_flow.json`
 - **Local**: Use absolute paths like `C:\path\to\your\flow.json`
@@ -59,6 +75,8 @@ Content-Type: application/json
 Available test flows:
 - `/app/fixtures/greeting_flow.json` - Simple greeting and name collection
 - `/app/fixtures/sample_flow.json` - More complex example
+- `/app/fixtures/simple_extraction_flow.json` - **RECOMMENDED** - Simple variable extraction flow collecting user name and location
+- `/app/fixtures/address_extraction_flow.json` - Advanced flow with detailed address extraction and recommendations
 
 ## Run tests
 

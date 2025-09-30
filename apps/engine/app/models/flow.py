@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 
@@ -11,8 +11,8 @@ class Prompt(BaseModel):
 
 class VariableExtraction(BaseModel):
     name: str = ""
-    var_type: str = ""
-    prompt: str = ""
+    description: str = ""
+    required: bool = True
 
 
 class Node(BaseModel):
