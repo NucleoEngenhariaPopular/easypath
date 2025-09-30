@@ -1,4 +1,6 @@
 import logging
+from time import perf_counter
+from typing import Tuple
 from ..models.flow import Flow
 from ..models.session import ChatSession
 from ..llm.providers import get_llm
@@ -26,21 +28,25 @@ def _format_prompts(flow: Flow, current_node_id: str) -> tuple[str, float]:
     return prompt, node.temperature
 
 
-def generate_response(flow: Flow, session: ChatSession, current_node_id: str) -> str:
+def generate_response(flow: Flow, session: ChatSession, current_node_id: str) -> Tuple[str, float]:
     prompt, temperature = _format_prompts(flow, current_node_id)
     llm = get_llm()
+    
+    start_time = perf_counter()
     llm_answer = llm.chat(
         messages=session.to_llm_messages() + [{"content": prompt, "role": "system"}],
         temperature=temperature,
     )
+    llm_time_ms = llm_answer.timing_ms or ((perf_counter() - start_time) * 1000)
     if llm_answer.success and isinstance(llm_answer.response, str):
-        return llm_answer.response
+        return llm_answer.response, llm_time_ms
     # Loga falhas/ausências de resposta para facilitar diagnóstico
     logging.warning(
-        "LLM response failure: success=%s, error=%s",
+        "LLM response failure: success=%s, error=%s, llm_time=%.1fms",
         llm_answer.success,
         getattr(llm_answer, "error_message", None),
+        llm_time_ms,
     )
-    return ""
+    return "", llm_time_ms
 
 

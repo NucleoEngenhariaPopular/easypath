@@ -7,6 +7,7 @@ class LLMResult:
     success: bool
     response: Optional[str]
     error_message: Optional[str] = None
+    timing_ms: Optional[float] = None
 
 
 class LLMClient:

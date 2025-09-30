@@ -77,13 +77,14 @@ class GeminiClient(LLMClient):
             )
             t_llm = time.perf_counter() - t1
 
+            total_time_ms = (t_prep + t_llm) * 1000
             text = getattr(resp, "text", None)
             if isinstance(text, str):
-                logging.info("Gemini timings: prep=%.3fs llm=%.3fs", t_prep, t_llm)
-                return LLMResult(success=True, response=text)
-            return LLMResult(success=False, response=None, error_message="Empty Gemini response")
+                logging.info("Gemini timings: prep=%.3fs llm=%.3fs total=%.1fms", t_prep, t_llm, total_time_ms)
+                return LLMResult(success=True, response=text, timing_ms=round(total_time_ms, 1))
+            return LLMResult(success=False, response=None, error_message="Empty Gemini response", timing_ms=round(total_time_ms, 1))
         except Exception as exc:  # noqa: BLE001
             logging.error("GeminiClient error: %s", exc)
-            return LLMResult(success=False, response=None, error_message=str(exc))
+            return LLMResult(success=False, response=None, error_message=str(exc), timing_ms=None)
 
 

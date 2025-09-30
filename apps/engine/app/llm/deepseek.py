@@ -48,12 +48,14 @@ class DeepSeekClient(LLMClient):
         logging.info(f"\nHeaders: \n {json.dumps(masked_headers, indent=4)}\n")
         logging.info(f"\n\nBody : \n {json.dumps(data, indent=4)}\n")
 
-        response_time = perf_counter()
+        start_time = perf_counter()
         try:
             response = requests.post(self.url, headers=headers, data=json.dumps(data))
         except Exception as error:  # noqa: BLE001
             logging.error(f"\n\nAPI call failed with error: {error}\n")
             return LLMResult(success=False, response=None, error_message=str(error))
+        
+        response_time_ms = (perf_counter() - start_time) * 1000
 
         # Tenta decodificar JSON do provider para logging; captura erros de parse
         try:
@@ -61,7 +63,7 @@ class DeepSeekClient(LLMClient):
         except Exception:
             response_json = {"raw_text": response.text[:500]}
 
-        logging.info(f"\n\nResponse: {perf_counter()-response_time}s \n {json.dumps(response_json, indent=4)}\n")
+        logging.info(f"\n\nResponse: {response_time_ms:.1f}ms \n {json.dumps(response_json, indent=4)}\n")
 
         if response.status_code == 200:
             content: str = ""
@@ -73,7 +75,7 @@ class DeepSeekClient(LLMClient):
                         message = first.get("message")
                         if isinstance(message, dict):
                             content = str(message.get("content", ""))
-            return LLMResult(success=True, response=content)
+            return LLMResult(success=True, response=content, timing_ms=round(response_time_ms, 1))
         if isinstance(response_json, dict):
             err_obj = response_json.get("error")
             error_msg = err_obj.get("message") if isinstance(err_obj, dict) else None
@@ -82,6 +84,6 @@ class DeepSeekClient(LLMClient):
         if not error_msg:
             error_msg = f"HTTP {response.status_code}"
         logging.error(f"DeepSeekClient: chamada falhou: {error_msg}")
-        return LLMResult(success=False, response=None, error_message=error_msg)
+        return LLMResult(success=False, response=None, error_message=error_msg, timing_ms=round(response_time_ms, 1))
 
 

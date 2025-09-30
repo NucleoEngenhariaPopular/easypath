@@ -1,4 +1,6 @@
 import logging
+from time import perf_counter
+from typing import Tuple
 from ..models.flow import Flow, Connection
 from ..models.session import ChatSession
 from ..llm.providers import get_llm
@@ -30,16 +32,19 @@ def _format_prompt(flow: Flow, current_node_id: str) -> tuple[str, list[Connecti
     return prompt, connections_list
 
 
-def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> str:
+def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> Tuple[str, float]:
     prompt, connection_list = _format_prompt(flow, current_node_id)
     llm = get_llm()
+    
+    start_time = perf_counter()
     llm_answer = llm.chat(messages=session.to_llm_messages() + [{"content": prompt, "role": "system"}])
+    llm_time_ms = llm_answer.timing_ms or ((perf_counter() - start_time) * 1000)
 
     if llm_answer.success and isinstance(llm_answer.response, str):
         labels = [connection.label for connection in connection_list]
         if not labels:
             logging.warning("Pathway selection: sem conexoes saindo de %s", current_node_id)
-            return current_node_id
+            return current_node_id, llm_time_ms
 
         result = process.extractOne(
             llm_answer.response,
@@ -52,7 +57,7 @@ def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> str:
                 "Pathway selection: extractOne retornou None para resposta='%s'",
                 llm_answer.response,
             )
-            return current_node_id
+            return current_node_id, llm_time_ms
 
         best_match = result[0]
         score = result[1] if len(result) > 1 else 0
@@ -60,20 +65,22 @@ def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> str:
         if score >= FUZZY_THRESHOLD:
             for connection in connection_list:
                 if connection.label == best_match:
-                    return connection.target
+                    return connection.target, llm_time_ms
         logging.warning(
-            "Pathway selection: baixa confianca (score=%s < %s) para resposta='%s'",
+            "Pathway selection: baixa confianca (score=%s < %s) para resposta='%s' llm_time=%.1fms",
             score,
             FUZZY_THRESHOLD,
             llm_answer.response,
+            llm_time_ms,
         )
     else:
         logging.warning(
-            "Pathway selection: LLM falhou ou sem resposta. success=%s, error=%s",
+            "Pathway selection: LLM falhou ou sem resposta. success=%s, error=%s, llm_time=%.1fms",
             llm_answer.success,
             getattr(llm_answer, "error_message", None),
+            llm_time_ms,
         )
 
-    return current_node_id
+    return current_node_id, llm_time_ms
 
 
