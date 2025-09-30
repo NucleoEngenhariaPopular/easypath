@@ -42,7 +42,11 @@ def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> Tuple
     
     llm_info = {
         "timing_ms": round(llm_time_ms, 1),
-        "model_name": llm_answer.model_name or "unknown"
+        "model_name": llm_answer.model_name or "unknown",
+        "input_tokens": llm_answer.input_tokens or 0,
+        "output_tokens": llm_answer.output_tokens or 0,
+        "total_tokens": llm_answer.total_tokens or 0,
+        "estimated_cost_usd": llm_answer.estimated_cost_usd or 0.0
     }
 
     if llm_answer.success and isinstance(llm_answer.response, str):
@@ -72,19 +76,25 @@ def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> Tuple
                 if connection.label == best_match:
                     return connection.target, llm_info
         logging.warning(
-            "Pathway selection: baixa confianca (score=%s < %s) para resposta='%s' llm_time=%.1fms model=%s",
+            "Pathway selection: baixa confianca (score=%s < %s) para resposta='%s' llm_time=%.1fms tokens=%d/%d cost=$%.6f model=%s",
             score,
             FUZZY_THRESHOLD,
             llm_answer.response,
             llm_info["timing_ms"],
+            llm_info["input_tokens"],
+            llm_info["output_tokens"],
+            llm_info["estimated_cost_usd"],
             llm_info["model_name"],
         )
     else:
         logging.warning(
-            "Pathway selection: LLM falhou ou sem resposta. success=%s, error=%s, llm_time=%.1fms model=%s",
+            "Pathway selection: LLM falhou ou sem resposta. success=%s, error=%s, llm_time=%.1fms tokens=%d/%d cost=$%.6f model=%s",
             llm_answer.success,
             getattr(llm_answer, "error_message", None),
             llm_info["timing_ms"],
+            llm_info["input_tokens"],
+            llm_info["output_tokens"],
+            llm_info["estimated_cost_usd"],
             llm_info["model_name"],
         )
 

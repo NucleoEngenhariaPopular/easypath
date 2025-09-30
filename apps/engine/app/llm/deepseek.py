@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 import requests
 
 from .base import LLMClient, LLMResult
+from .pricing import calculate_cost
 
 
 class DeepSeekClient(LLMClient):
@@ -68,6 +69,10 @@ class DeepSeekClient(LLMClient):
 
         if response.status_code == 200:
             content: str = ""
+            input_tokens = 0
+            output_tokens = 0
+            total_tokens = 0
+            
             if isinstance(response_json, dict):
                 choices = response_json.get("choices")
                 if isinstance(choices, list) and choices:
@@ -76,7 +81,27 @@ class DeepSeekClient(LLMClient):
                         message = first.get("message")
                         if isinstance(message, dict):
                             content = str(message.get("content", ""))
-            return LLMResult(success=True, response=content, timing_ms=round(response_time_ms, 1), model_name=self.model_name)
+                
+                # Extract token usage
+                usage = response_json.get("usage", {})
+                if isinstance(usage, dict):
+                    input_tokens = usage.get("prompt_tokens", 0)
+                    output_tokens = usage.get("completion_tokens", 0)
+                    total_tokens = usage.get("total_tokens", 0)
+            
+            # Calculate cost
+            estimated_cost = calculate_cost(self.model_name, input_tokens, output_tokens)
+            
+            return LLMResult(
+                success=True, 
+                response=content, 
+                timing_ms=round(response_time_ms, 1), 
+                model_name=self.model_name,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
+                estimated_cost_usd=estimated_cost
+            )
         if isinstance(response_json, dict):
             err_obj = response_json.get("error")
             error_msg = err_obj.get("message") if isinstance(err_obj, dict) else None
@@ -85,6 +110,16 @@ class DeepSeekClient(LLMClient):
         if not error_msg:
             error_msg = f"HTTP {response.status_code}"
         logging.error(f"DeepSeekClient: chamada falhou: {error_msg}")
-        return LLMResult(success=False, response=None, error_message=error_msg, timing_ms=round(response_time_ms, 1), model_name=self.model_name)
+        return LLMResult(
+            success=False, 
+            response=None, 
+            error_message=error_msg, 
+            timing_ms=round(response_time_ms, 1), 
+            model_name=self.model_name,
+            input_tokens=0,
+            output_tokens=0,
+            total_tokens=0,
+            estimated_cost_usd=0.0
+        )
 
 

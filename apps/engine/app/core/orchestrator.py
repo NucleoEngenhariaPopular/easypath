@@ -32,18 +32,38 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
         "choose_next_llm_ms": choose_llm_info["timing_ms"],
         "generate_response_llm_ms": exec_llm_info["timing_ms"],
         "choose_next_model": choose_llm_info["model_name"],
-        "generate_response_model": exec_llm_info["model_name"]
+        "generate_response_model": exec_llm_info["model_name"],
+        "choose_next_tokens": {
+            "input": choose_llm_info["input_tokens"],
+            "output": choose_llm_info["output_tokens"],
+            "total": choose_llm_info["total_tokens"],
+            "cost_usd": choose_llm_info["estimated_cost_usd"]
+        },
+        "generate_response_tokens": {
+            "input": exec_llm_info["input_tokens"],
+            "output": exec_llm_info["output_tokens"],
+            "total": exec_llm_info["total_tokens"],
+            "cost_usd": exec_llm_info["estimated_cost_usd"]
+        }
     }
     
+    total_cost = choose_llm_info["estimated_cost_usd"] + exec_llm_info["estimated_cost_usd"]
+    total_tokens = choose_llm_info["total_tokens"] + exec_llm_info["total_tokens"]
+    
     logging.info(
-        "run_step timings: choose_next=%.3fs(llm=%.1fms,%s) generate_response=%.3fs(llm=%.1fms,%s) total=%.3fs node=%s",
+        "run_step timings: choose_next=%.3fs(llm=%.1fms,tokens=%d,cost=$%.6f,%s) generate_response=%.3fs(llm=%.1fms,tokens=%d,cost=$%.6f,%s) total=%.3fs total_cost=$%.6f node=%s",
         t_choose,
         choose_llm_info["timing_ms"],
+        choose_llm_info["total_tokens"],
+        choose_llm_info["estimated_cost_usd"],
         choose_llm_info["model_name"],
         t_exec,
         exec_llm_info["timing_ms"],
+        exec_llm_info["total_tokens"],
+        exec_llm_info["estimated_cost_usd"],
         exec_llm_info["model_name"],
         t_total,
+        total_cost,
         next_node_id,
     )
     
