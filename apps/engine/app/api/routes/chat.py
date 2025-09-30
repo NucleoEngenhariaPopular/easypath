@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import logging
 from time import perf_counter
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from ...core.chat_manager import new_session
 from ...core.orchestrator import run_step
@@ -51,6 +51,7 @@ class ChatResponse(BaseModel):
     reply: str
     current_node_id: str
     timing: TimingInfo
+    extracted_variables: Optional[Dict[str, Any]] = None
 
 
 @router.post("/message")
@@ -116,5 +117,6 @@ async def post_message(payload: ChatRequest):
     return ChatResponse(
         reply=reply,
         current_node_id=session.current_node_id,
-        timing=timing_info
+        timing=timing_info,
+        extracted_variables=session.extracted_variables if session.extracted_variables else None
     )

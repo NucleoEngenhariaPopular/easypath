@@ -68,6 +68,44 @@ Content-Type: application/json
 
 Expected flow: Welcome → Ask Name → Extract Name → Ask Location → Extract Location → Recommendations → Farewell
 
+**Example response with extracted variables:**
+```json
+{
+  "reply": "Prazer em conhecê-lo, João!",
+  "current_node_id": "extract-name",
+  "extracted_variables": {
+    "user_name": "João"
+  },
+  "timing": {
+    "session_load": 0.002,
+    "flow_load": 0.001,
+    "run_step": 0.847,
+    "save_session": 0.003,
+    "total": 0.853,
+    "step_details": {
+      "choose_next": 0.421,
+      "generate_response": 0.426,
+      "total": 0.847,
+      "choose_next_llm_ms": 315.2,
+      "generate_response_llm_ms": 298.7,
+      "choose_next_model": "deepseek-chat",
+      "generate_response_model": "deepseek-chat",
+      "choose_next_tokens": {
+        "input": 245,
+        "output": 12,
+        "total": 257,
+        "cost_usd": 0.000038
+      },
+      "generate_response_tokens": {
+        "input": 312,
+        "output": 45,
+        "total": 357,
+        "cost_usd": 0.000056
+      }
+    }
+  }
+}
+
 ### FlowPath Format:
 - **In Docker**: Use container paths like `/app/fixtures/greeting_flow.json`
 - **Local**: Use absolute paths like `C:\path\to\your\flow.json`
