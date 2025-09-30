@@ -8,6 +8,7 @@ class LLMResult:
     response: Optional[str]
     error_message: Optional[str] = None
     timing_ms: Optional[float] = None
+    model_name: Optional[str] = None
 
 
 class LLMClient:

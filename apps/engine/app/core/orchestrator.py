@@ -12,13 +12,13 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
     session.add_user_message(user_message)
 
     t_choose = perf_counter()
-    next_node_id, choose_llm_time = choose_next(flow, session, session.current_node_id)
+    next_node_id, choose_llm_info = choose_next(flow, session, session.current_node_id)
     t_choose = perf_counter() - t_choose
 
     session.current_node_id = next_node_id
 
     t_exec = perf_counter()
-    assistant_reply, exec_llm_time = generate_response(flow, session, next_node_id)
+    assistant_reply, exec_llm_info = generate_response(flow, session, next_node_id)
     t_exec = perf_counter() - t_exec
 
     session.add_assistant_message(assistant_reply)
@@ -29,16 +29,20 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
         "choose_next": round(t_choose, 3),
         "generate_response": round(t_exec, 3),
         "total": round(t_total, 3),
-        "choose_next_llm_ms": round(choose_llm_time, 1),
-        "generate_response_llm_ms": round(exec_llm_time, 1)
+        "choose_next_llm_ms": choose_llm_info["timing_ms"],
+        "generate_response_llm_ms": exec_llm_info["timing_ms"],
+        "choose_next_model": choose_llm_info["model_name"],
+        "generate_response_model": exec_llm_info["model_name"]
     }
     
     logging.info(
-        "run_step timings: choose_next=%.3fs(llm=%.1fms) generate_response=%.3fs(llm=%.1fms) total=%.3fs node=%s",
+        "run_step timings: choose_next=%.3fs(llm=%.1fms,%s) generate_response=%.3fs(llm=%.1fms,%s) total=%.3fs node=%s",
         t_choose,
-        choose_llm_time,
+        choose_llm_info["timing_ms"],
+        choose_llm_info["model_name"],
         t_exec,
-        exec_llm_time,
+        exec_llm_info["timing_ms"],
+        exec_llm_info["model_name"],
         t_total,
         next_node_id,
     )

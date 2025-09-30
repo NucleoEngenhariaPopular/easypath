@@ -12,6 +12,7 @@ class DeepSeekClient(LLMClient):
     def __init__(self, api_key: str | None = None) -> None:
         self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
         self.url = "https://api.deepseek.com/chat/completions"
+        self.model_name = "deepseek-chat"
 
     def chat(self, messages: List[Dict[str, Any]], temperature: float = 0.2) -> LLMResult:
         if not self.api_key:
@@ -26,7 +27,7 @@ class DeepSeekClient(LLMClient):
 
         data = {
             "messages": messages,
-            "model": "deepseek-chat",
+            "model": self.model_name,
             "frequency_penalty": 0,
             "max_tokens": 8000,
             "presence_penalty": 0,
@@ -75,7 +76,7 @@ class DeepSeekClient(LLMClient):
                         message = first.get("message")
                         if isinstance(message, dict):
                             content = str(message.get("content", ""))
-            return LLMResult(success=True, response=content, timing_ms=round(response_time_ms, 1))
+            return LLMResult(success=True, response=content, timing_ms=round(response_time_ms, 1), model_name=self.model_name)
         if isinstance(response_json, dict):
             err_obj = response_json.get("error")
             error_msg = err_obj.get("message") if isinstance(err_obj, dict) else None
@@ -84,6 +85,6 @@ class DeepSeekClient(LLMClient):
         if not error_msg:
             error_msg = f"HTTP {response.status_code}"
         logging.error(f"DeepSeekClient: chamada falhou: {error_msg}")
-        return LLMResult(success=False, response=None, error_message=error_msg, timing_ms=round(response_time_ms, 1))
+        return LLMResult(success=False, response=None, error_message=error_msg, timing_ms=round(response_time_ms, 1), model_name=self.model_name)
 
 

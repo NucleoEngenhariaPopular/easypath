@@ -25,6 +25,8 @@ class StepTimingInfo(BaseModel):
     total: float
     choose_next_llm_ms: float
     generate_response_llm_ms: float
+    choose_next_model: str
+    generate_response_model: str
 
 
 class TimingInfo(BaseModel):
@@ -86,7 +88,9 @@ async def post_message(payload: ChatRequest):
         generate_response=step_timings["generate_response"],
         total=step_timings["total"],
         choose_next_llm_ms=step_timings["choose_next_llm_ms"],
-        generate_response_llm_ms=step_timings["generate_response_llm_ms"]
+        generate_response_llm_ms=step_timings["generate_response_llm_ms"],
+        choose_next_model=step_timings["choose_next_model"],
+        generate_response_model=step_timings["generate_response_model"]
     )
     
     timing_info = TimingInfo(
