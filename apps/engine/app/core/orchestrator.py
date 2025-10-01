@@ -5,37 +5,90 @@ from ..models.session import ChatSession
 from ..models.flow import Flow
 from time import perf_counter
 import logging
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 
 def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, Dict[str, float]]:
+    """
+    Execute one step of the conversation flow.
+
+    Args:
+        flow: The conversation flow
+        session: Current chat session
+        user_message: User's input message
+
+    Returns:
+        Tuple of (assistant_reply, step_timings)
+
+    Raises:
+        ValueError: If user_message is invalid or flow/session is malformed
+        Exception: For unexpected errors during execution
+    """
+    logger.info("=" * 80)
+    logger.info("RUN_STEP STARTED - Session: %s, Current Node: %s",
+                session.session_id, session.current_node_id)
+    logger.debug("User message: %s", user_message[:200])
+
     t0 = perf_counter()
-    session.add_user_message(user_message)
+
+    # Validate inputs
+    try:
+        _validate_run_step_inputs(flow, session, user_message)
+    except ValueError as e:
+        logger.error("Input validation failed: %s", e)
+        error_message = "Desculpe, não consegui processar sua mensagem. Por favor, tente novamente."
+        return error_message, _create_error_timings(perf_counter() - t0)
+
+    # Add user message to session
+    try:
+        session.add_user_message(user_message)
+        logger.debug("User message added to session history")
+    except Exception as e:
+        logger.error("Failed to add user message to session: %s", e, exc_info=True)
+        return "Erro ao processar mensagem.", _create_error_timings(perf_counter() - t0)
     
     # Get current node for variable extraction
-    current_node = flow.get_node_by_id(session.current_node_id)
-    
+    try:
+        current_node = flow.get_node_by_id(session.current_node_id)
+        logger.debug("Current node retrieved: %s (type: %s)", current_node.id, current_node.node_type)
+    except Exception as e:
+        logger.error("Failed to get current node '%s': %s", session.current_node_id, e, exc_info=True)
+        return "Erro no fluxo de conversação.", _create_error_timings(perf_counter() - t0)
+
     # Extract variables if node has extraction configuration
     if current_node.extract_vars:
+        logger.info("Node has %d variables to extract", len(current_node.extract_vars))
         t_extract = perf_counter()
-        extracted = extract_variables(current_node, session)
-        
+
+        try:
+            extracted = extract_variables(current_node, session)
+            logger.debug("Extraction completed - Variables: %s", list(extracted.keys()))
+        except Exception as e:
+            logger.error("Variable extraction failed: %s", e, exc_info=True)
+            # Continue flow even if extraction fails
+            extracted = {}
+
         # Update session with extracted variables
         for name, value in extracted.items():
             session.set_variable(name, value)
-        
+            logger.debug("Session variable set: %s = %s", name, value[:50] if len(value) > 50 else value)
+
         t_extract = perf_counter() - t_extract
-        logging.info("Variable extraction: %.3fs, extracted: %s", t_extract, list(extracted.keys()))
-        
+        logger.info("Variable extraction completed: %.3fs, extracted: %s", t_extract, list(extracted.keys()))
+
         # Check if we need to continue extraction (missing required variables)
         if should_continue_extraction(current_node, session.extracted_variables):
             # Stay on current node, generate a prompt asking for missing info
-            missing_vars = [var for var in current_node.extract_vars 
+            missing_vars = [var for var in current_node.extract_vars
                           if var.required and var.name not in session.extracted_variables]
-            
+
+            logger.info("Requesting missing variables from user: %s", [v.name for v in missing_vars])
+
             assistant_reply = f"Preciso de mais algumas informações. Você poderia me informar: {', '.join([var.description for var in missing_vars])}?"
             session.add_assistant_message(assistant_reply)
-            
+
             t_total = perf_counter() - t0
             step_timings = {
                 "choose_next": 0.0,
@@ -52,24 +105,54 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
                     "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
                 }
             }
-            
-            logging.info("Staying on node %s for variable extraction", session.current_node_id)
+
+            logger.info("Staying on node %s for variable extraction", session.current_node_id)
+            logger.info("RUN_STEP COMPLETED (extraction loop)")
+            logger.info("=" * 80)
             return assistant_reply, step_timings
 
+    # Choose next node in the flow
+    logger.info("Choosing next node from current node: %s", session.current_node_id)
     t_choose = perf_counter()
-    next_node_id, choose_llm_info = choose_next(flow, session, session.current_node_id)
-    t_choose = perf_counter() - t_choose
 
+    try:
+        next_node_id, choose_llm_info = choose_next(flow, session, session.current_node_id)
+        t_choose = perf_counter() - t_choose
+        logger.info("Next node selected: %s (took %.3fs)", next_node_id, t_choose)
+        logger.debug("Choose next LLM info: %s", choose_llm_info)
+    except Exception as e:
+        logger.error("Failed to choose next node: %s", e, exc_info=True)
+        t_choose = perf_counter() - t_choose
+        return "Desculpe, ocorreu um erro ao processar sua solicitação.", _create_error_timings(perf_counter() - t0)
+
+    # Update session with new node
     session.current_node_id = next_node_id
+    logger.debug("Session current_node_id updated to: %s", next_node_id)
 
+    # Generate response for the new node
+    logger.info("Generating response for node: %s", next_node_id)
     t_exec = perf_counter()
-    assistant_reply, exec_llm_info = generate_response(flow, session, next_node_id)
-    t_exec = perf_counter() - t_exec
 
-    session.add_assistant_message(assistant_reply)
+    try:
+        assistant_reply, exec_llm_info = generate_response(flow, session, next_node_id)
+        t_exec = perf_counter() - t_exec
+        logger.info("Response generated (took %.3fs): %s", t_exec, assistant_reply[:100])
+        logger.debug("Generate response LLM info: %s", exec_llm_info)
+    except Exception as e:
+        logger.error("Failed to generate response: %s", e, exc_info=True)
+        t_exec = perf_counter() - t_exec
+        return "Desculpe, não consegui gerar uma resposta.", _create_error_timings(perf_counter() - t0)
+
+    # Add assistant message to session
+    try:
+        session.add_assistant_message(assistant_reply)
+        logger.debug("Assistant message added to session history")
+    except Exception as e:
+        logger.error("Failed to add assistant message to session: %s", e, exc_info=True)
+        # Continue anyway since we have the response
 
     t_total = perf_counter() - t0
-    
+
     step_timings = {
         "choose_next": round(t_choose, 3),
         "generate_response": round(t_exec, 3),
@@ -91,12 +174,12 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             "cost_usd": exec_llm_info["estimated_cost_usd"]
         }
     }
-    
+
     total_cost = choose_llm_info["estimated_cost_usd"] + exec_llm_info["estimated_cost_usd"]
     total_tokens = choose_llm_info["total_tokens"] + exec_llm_info["total_tokens"]
-    
-    logging.info(
-        "run_step timings: choose_next=%.3fs(llm=%.1fms,tokens=%d,cost=$%.6f,%s) generate_response=%.3fs(llm=%.1fms,tokens=%d,cost=$%.6f,%s) total=%.3fs total_cost=$%.6f node=%s",
+
+    logger.info(
+        "Step completed: choose_next=%.3fs(llm=%.1fms,tokens=%d,cost=$%.6f,%s) generate_response=%.3fs(llm=%.1fms,tokens=%d,cost=$%.6f,%s) total=%.3fs total_cost=$%.6f node=%s",
         t_choose,
         choose_llm_info["timing_ms"],
         choose_llm_info["total_tokens"],
@@ -111,7 +194,75 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
         total_cost,
         next_node_id,
     )
-    
+
+    logger.info("RUN_STEP COMPLETED SUCCESSFULLY")
+    logger.info("=" * 80)
+
     return assistant_reply, step_timings
+
+
+def _validate_run_step_inputs(flow: Flow, session: ChatSession, user_message: str) -> None:
+    """
+    Validate inputs to run_step function.
+
+    Args:
+        flow: The conversation flow
+        session: Current chat session
+        user_message: User's input message
+
+    Raises:
+        ValueError: If any input is invalid
+    """
+    if not flow:
+        raise ValueError("Flow cannot be None")
+
+    if not session:
+        raise ValueError("Session cannot be None")
+
+    if not user_message:
+        raise ValueError("User message cannot be empty")
+
+    if not isinstance(user_message, str):
+        raise ValueError(f"User message must be string, got {type(user_message)}")
+
+    # Validate message content
+    if not user_message.strip():
+        raise ValueError("User message cannot be whitespace-only")
+
+    if len(user_message) > 10000:
+        raise ValueError(f"User message too long: {len(user_message)} characters")
+
+    # Validate session has current_node_id
+    if not session.current_node_id:
+        raise ValueError("Session current_node_id cannot be empty")
+
+    logger.debug("Input validation passed")
+
+
+def _create_error_timings(total_time: float) -> Dict[str, Any]:
+    """
+    Create error timing information.
+
+    Args:
+        total_time: Total execution time
+
+    Returns:
+        Dictionary with error timing information
+    """
+    return {
+        "choose_next": 0.0,
+        "generate_response": 0.0,
+        "total": round(total_time, 3),
+        "choose_next_llm_ms": 0.0,
+        "generate_response_llm_ms": 0.0,
+        "choose_next_model": "error",
+        "generate_response_model": "error",
+        "choose_next_tokens": {
+            "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
+        },
+        "generate_response_tokens": {
+            "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
+        }
+    }
 
 
