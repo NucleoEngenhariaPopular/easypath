@@ -249,10 +249,12 @@ pytest tests/integration
 
 ### Notas importantes:
 
+- **Diretório de trabalho**: SEMPRE execute os testes a partir do diretório `apps/engine`. Se executar da raiz do projeto, os imports falharão.
 - **Testes unitários**: "mockam" chamadas ao LLM para garantir reprodutibilidade e velocidade.
 - **Testes de integração**: podem exigir Redis ativo em `redis://localhost:6379/0`.
 - **Logs de teste**: Capturados automaticamente; use `-s` para ver em tempo real.
 - **Logs do Engine**: Gravados em `logs/engine.log` com rotação automática (10MB, 5 backups).
+- **Configuração**: O arquivo `pytest.ini` contém configurações úteis (markers, paths, logging).
 
 ---
 
