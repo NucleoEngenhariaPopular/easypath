@@ -177,12 +177,17 @@ Na raiz do repositório existe um `docker-compose.yml` que pode ser usado para o
 
 ## Rodando os testes
 
-Passo a passo (Windows PowerShell) a partir de `apps/engine`:
+**IMPORTANTE:** Todos os comandos de teste devem ser executados a partir do diretório `apps/engine`.
+
+Passo a passo (Windows PowerShell):
 
 ```powershell
+# 0) Navegue até o diretório correto
+cd apps/engine
+
 # 1) (opcional, mas recomendado) ativar ambiente virtual
 python -m venv .venv
-.;\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 
 # 2) instalar dependências
 pip install -r requirements.txt
@@ -194,40 +199,134 @@ copy .env.example .env
 # 4) subir um Redis local (se ainda não estiver rodando)
 docker run --name easypath-redis -p 6379:6379 -d redis:7-alpine
 
-# 5) executar testes (unitários + integração)
-pytest -q
+# 5) executar testes
+pytest                              # Todos os testes
+pytest -v                           # Modo verbose (mostra cada teste)
+pytest -v --tb=short                # Com tracebacks curtos
+pytest -q                           # Modo quiet (output mínimo)
 
-# (opcionais) filtros úteis
-pytest -q tests/unit
-pytest -q tests/integration
+# Filtros úteis
+pytest tests/unit                   # Somente testes unitários
+pytest tests/integration            # Somente testes de integração
+pytest tests/unit/test_variable_extraction.py  # Arquivo específico
+pytest -k "test_extract"            # Testes com nome contendo "test_extract"
+pytest -k "not integration"         # Exclui testes de integração
+
+# Cobertura de código
+pytest --cov=app --cov-report=html  # Gera relatório HTML em htmlcov/
+pytest --cov=app --cov-report=term  # Mostra cobertura no terminal
+
+# Debug
+pytest -v -s                        # Mostra prints/logs durante os testes
+pytest --lf                         # Roda apenas testes que falharam na última execução
+pytest --pdb                        # Abre debugger quando um teste falha
 ```
 
-Notas:
-- Os testes “mockam” chamadas ao LLM para garantir reprodutibilidade.
-- O Redis é usado para persistir sessões durante os cenários de integração. Se não houver Redis acessível em `redis://localhost:6379/0`, os testes de integração podem falhar.
+### Comandos Linux/MacOS (bash/zsh):
+
+```bash
+# 0) Navegue até o diretório correto
+cd apps/engine
+
+# 1) Ativar ambiente virtual
+source .venv/bin/activate
+
+# 2) Instalar dependências
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# 3) Preparar .env
+cp .env.example .env
+
+# 4) Subir Redis
+docker run --name easypath-redis -p 6379:6379 -d redis:7-alpine
+
+# 5) Executar testes (mesmos comandos pytest acima)
+pytest -v
+pytest tests/unit
+pytest tests/integration
+```
+
+### Notas importantes:
+
+- **Testes unitários**: "mockam" chamadas ao LLM para garantir reprodutibilidade e velocidade.
+- **Testes de integração**: podem exigir Redis ativo em `redis://localhost:6379/0`.
+- **Logs de teste**: Capturados automaticamente; use `-s` para ver em tempo real.
+- **Logs do Engine**: Gravados em `logs/engine.log` com rotação automática (10MB, 5 backups).
 
 ---
 
 ### Diferenças entre testes unitários e de integração (Pytest)
 
-- Unidade (tests/unit):
-  - Escopo: funções/classes isoladas do domínio (ex.: `orchestrator`, `models`).
-  - Dependências externas: evitadas. LLM e I/O são simulados com monkeypatch/mocks.
-  - Velocidade: muito rápidos e determinísticos.
-  - Objetivo: validar regras de negócio e contratos internos sem efeitos colaterais.
-  - Rodar: `pytest -q tests/unit`
+#### Testes Unitários (`tests/unit/`)
 
-- Integração (tests/integration):
-  - Escopo: fluxo HTTP da API via `fastapi.TestClient` e integração entre módulos (`api` + `core` + `storage`).
-  - Dependências externas: pode exigir Redis ativo; LLM costuma ser “mockado”. Pode ler arquivos de fluxo.
-  - Velocidade: mais lentos e sujeitos a ambiente (ex.: disponibilidade do Redis).
-  - Objetivo: validar se os componentes funcionam juntos e os endpoints respondem como esperado.
-  - Rodar: `pytest -q tests/integration`
+**Escopo:** Funções/classes isoladas do domínio (ex.: `orchestrator`, `variable_extractor`, `models`).
 
-Recomendações:
-- Crie/ajuste testes unitários para cobrir novas regras de negócio.
-- Utilize integração para validar endpoints e contratos entre camadas (com Redis rodando).
-- Use `-k` no Pytest para filtrar casos: `pytest -q -k "test_nome"`.
+**Características:**
+- Dependências externas evitadas (LLM e I/O simulados com mocks/monkeypatch)
+- Muito rápidos e determinísticos
+- Não requerem Redis ou outros serviços externos
+
+**Objetivo:** Validar regras de negócio e contratos internos sem efeitos colaterais.
+
+**Executar:**
+```bash
+pytest tests/unit                              # Todos os testes unitários
+pytest tests/unit/test_variable_extraction.py  # Teste específico de extração de variáveis
+pytest tests/unit -v                           # Com output detalhado
+```
+
+**Exemplos de testes unitários:**
+- `test_variable_extraction.py`: 43 testes cobrindo extração de variáveis, validações, retry logic, edge cases
+- `test_core.py`: Testes do orchestrator e flow executor
+- `test_models.py`: Validação de modelos de dados
+
+#### Testes de Integração (`tests/integration/`)
+
+**Escopo:** Fluxo HTTP da API via `fastapi.TestClient` e integração entre módulos (`api` + `core` + `storage`).
+
+**Características:**
+- Pode exigir Redis ativo
+- LLM geralmente "mockado" para reprodutibilidade
+- Podem ler arquivos de fluxo reais
+- Mais lentos e dependentes do ambiente
+
+**Objetivo:** Validar se os componentes funcionam juntos e os endpoints respondem como esperado.
+
+**Executar:**
+```bash
+pytest tests/integration                 # Todos os testes de integração
+pytest tests/integration/test_api.py     # Testes específicos da API
+pytest tests/integration -v              # Com output detalhado
+```
+
+**Exemplos de testes de integração:**
+- `test_api.py`: Testes end-to-end do endpoint `/chat/message`
+- Validação de fluxos completos com sessões Redis
+- Testes de persistência e recuperação de estado
+
+### Recomendações:
+
+1. **Desenvolvimento de features:**
+   - Comece com testes unitários para validar a lógica
+   - Adicione testes de integração para validar o fluxo completo
+
+2. **Debugging:**
+   - Use `pytest -v -s` para ver logs em tempo real
+   - Use `pytest --lf` para rodar apenas testes que falharam
+   - Use `pytest --pdb` para debugar interativamente
+
+3. **CI/CD:**
+   - Rode testes unitários primeiro (rápidos)
+   - Rode testes de integração em ambiente com Redis
+   - Use `pytest --cov` para monitorar cobertura
+
+4. **Filtros úteis:**
+   ```bash
+   pytest -k "test_extract"        # Testes de extração
+   pytest -k "test_llm"            # Testes relacionados a LLM
+   pytest -k "not integration"     # Apenas unitários
+   ```
 
 ---
 
