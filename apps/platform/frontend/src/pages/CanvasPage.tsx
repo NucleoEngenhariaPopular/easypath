@@ -11,6 +11,7 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import '../components/canvas/canvas-styles.css';
 import React, { useCallback, useState } from 'react';
 
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -50,6 +51,7 @@ const initialEdges: Edge[] = [];
 
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { convertEngineToCanvas, isEngineFormat, isCanvasFormat } from '../utils/flowConverter';
 
 const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
@@ -239,11 +241,29 @@ const CanvasPage: React.FC = () => {
         reader.onload = (e) => {
           try {
             const importedData = JSON.parse(e.target?.result as string);
-            if (importedData.nodes) setNodes(importedData.nodes);
-            if (importedData.edges) setEdges(importedData.edges);
-            if (importedData.globalConfig) setGlobalConfig(importedData.globalConfig);
+
+            // Check if it's engine format (from apps/engine fixtures)
+            if (isEngineFormat(importedData)) {
+              console.log('Detected engine format, converting...');
+              const converted = convertEngineToCanvas(importedData);
+              setNodes(converted.nodes);
+              setEdges(converted.edges);
+              setGlobalConfig(converted.globalConfig);
+            }
+            // Check if it's canvas format
+            else if (isCanvasFormat(importedData)) {
+              console.log('Detected canvas format, loading...');
+              if (importedData.nodes) setNodes(importedData.nodes);
+              if (importedData.edges) setEdges(importedData.edges);
+              if (importedData.globalConfig) setGlobalConfig(importedData.globalConfig);
+            }
+            else {
+              console.error('Unknown flow format');
+              alert('Error: Unknown flow format. Please import a valid flow JSON.');
+            }
           } catch (error) {
             console.error("Error parsing JSON file:", error);
+            alert('Error parsing JSON file. Please check the file format.');
           }
         };
         reader.readAsText(file);
@@ -312,10 +332,47 @@ const CanvasPage: React.FC = () => {
           onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
           fitView
+          defaultEdgeOptions={{
+            type: 'smoothstep',
+            animated: true,
+            style: {
+              stroke: '#667eea',
+              strokeWidth: 2.5,
+            },
+            labelStyle: {
+              fontSize: 12,
+              fontWeight: 600,
+              fill: '#555',
+            },
+            labelBgStyle: {
+              fill: '#fff',
+              fillOpacity: 0.9,
+            },
+            markerEnd: {
+              type: 'arrowclosed',
+              color: '#667eea',
+              width: 20,
+              height: 20,
+            },
+          }}
         >
-          <MiniMap />
+          <MiniMap
+            nodeStrokeWidth={3}
+            nodeColor={(node) => {
+              if (node.type === 'start') return '#43e97b';
+              if (node.type === 'end') return '#f5576c';
+              if (node.type === 'request') return '#fa709a';
+              return '#667eea';
+            }}
+            maskColor="rgba(0, 0, 0, 0.1)"
+          />
           <Controls />
-          <Background color="#aaa" gap={16} />
+          <Background
+            color="#d0d0d0"
+            gap={20}
+            size={1.5}
+            style={{ backgroundColor: '#f8f9fa' }}
+          />
           <CanvasToolbar
             onAddNode={handleAddNode}
             onClearIntermediateNodes={handleClearIntermediateNodes}
