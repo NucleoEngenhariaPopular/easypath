@@ -80,3 +80,27 @@ def list_flows(db: Session = Depends(get_db)):
     """List all flows."""
     flows = db.query(Flow).all()
     return flows
+
+@app.put("/flows/{flow_id}", response_model=FlowSchema)
+def update_flow(flow_id: int, flow: FlowCreate, db: Session = Depends(get_db)):
+    db_flow = db.query(Flow).filter(Flow.id == flow_id).first()
+    if db_flow is None:
+        raise HTTPException(status_code=404, detail="Flow not found")
+
+    db_flow.name = flow.name
+    db_flow.description = flow.description
+    db_flow.flow_data = flow.flow_data
+
+    db.commit()
+    db.refresh(db_flow)
+    return db_flow
+
+@app.delete("/flows/{flow_id}")
+def delete_flow(flow_id: int, db: Session = Depends(get_db)):
+    db_flow = db.query(Flow).filter(Flow.id == flow_id).first()
+    if db_flow is None:
+        raise HTTPException(status_code=404, detail="Flow not found")
+
+    db.delete(db_flow)
+    db.commit()
+    return {"message": "Flow deleted successfully"}

@@ -15,6 +15,7 @@ import '../components/canvas/canvas-styles.css';
 import React, { useCallback, useState } from 'react';
 
 import SettingsIcon from '@mui/icons-material/Settings';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { Box, Fab, Tooltip, Typography } from '@mui/material';
 import EasyPathAppBar from '../components/AppBar';
 import CanvasToolbar from '../components/canvas/CanvasToolbar';
@@ -66,6 +67,8 @@ const CanvasPage: React.FC = () => {
 
   const [isGlobalConfigSidebarOpen, setIsGlobalConfigSidebarOpen] = useState(false);
   const [globalConfig, setGlobalConfig] = useState<GlobalCanvasConfig>(initialGlobalConfig);
+  const [flowName, setFlowName] = useState('Untitled Flow');
+  const [flowDescription, setFlowDescription] = useState('');
 
   useEffect(() => {
     const fetchFlow = async () => {
@@ -73,6 +76,8 @@ const CanvasPage: React.FC = () => {
         const response = await fetch(`/api/flows/${flowId}`);
         if (response.ok) {
           const data = await response.json();
+          if (data.name) setFlowName(data.name);
+          if (data.description) setFlowDescription(data.description);
           const flowData = data.flow_data;
           if (flowData.nodes) setNodes(flowData.nodes);
           if (flowData.edges) setEdges(flowData.edges);
@@ -318,8 +323,8 @@ const CanvasPage: React.FC = () => {
 
   const handleSaveFlow = async () => {
     const flowData = {
-      name: "My Flow", // You might want to get this from a user input
-      description: "A description of my flow", // You might want to get this from a user input
+      name: flowName,
+      description: flowDescription,
       flow_data: { nodes, edges, globalConfig },
     };
 
@@ -346,6 +351,29 @@ const CanvasPage: React.FC = () => {
     }
   };
 
+  const handleDeleteFlow = async () => {
+    if (flowId === 'new') {
+      alert(t('canvasPage.cannotDeleteUnsaved'));
+      return;
+    }
+
+    if (!window.confirm(t('canvasPage.confirmDelete'))) {
+      return;
+    }
+
+    const response = await fetch(`/api/flows/${flowId}`, {
+      method: 'DELETE',
+    });
+
+    if (response.ok) {
+      console.log("Flow deleted successfully");
+      window.location.href = '/dashboard';
+    } else {
+      console.error("Failed to delete flow");
+      alert(t('canvasPage.deleteFailed'));
+    }
+  };
+
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'background.default' }}>
@@ -355,6 +383,10 @@ const CanvasPage: React.FC = () => {
         onClose={() => setIsGlobalConfigSidebarOpen(false)}
         config={globalConfig}
         onConfigChange={handleGlobalConfigChange}
+        flowName={flowName}
+        flowDescription={flowDescription}
+        onFlowNameChange={setFlowName}
+        onFlowDescriptionChange={setFlowDescription}
       />
       <Box
         sx={{
@@ -439,7 +471,20 @@ const CanvasPage: React.FC = () => {
               <SettingsIcon />
             </Fab>
           </Tooltip>
-          {/* Export Button */}
+          {/* Delete Button */}
+          {flowId !== 'new' && (
+            <Tooltip title={t('canvasPage.deleteTooltip')}>
+              <Fab
+                color="error"
+                size="small"
+                sx={{ position: 'absolute', top: 16, right: 80, zIndex: 10 }}
+                onClick={handleDeleteFlow}
+              >
+                <DeleteIcon />
+              </Fab>
+            </Tooltip>
+          )}
+          {/* Save Button */}
           <Tooltip title={t('canvasPage.saveTooltip')}>
             <Fab
               color="primary"

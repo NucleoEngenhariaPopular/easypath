@@ -17,6 +17,10 @@ interface GlobalConfigSidebarProps {
   onClose: () => void;
   config: GlobalCanvasConfig;
   onConfigChange: (fieldName: keyof GlobalCanvasConfig, value: string) => void;
+  flowName: string;
+  flowDescription: string;
+  onFlowNameChange: (name: string) => void;
+  onFlowDescriptionChange: (description: string) => void;
 }
 
 export const drawerWidth = 400;
@@ -26,6 +30,10 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
   onClose,
   config,
   onConfigChange,
+  flowName,
+  flowDescription,
+  onFlowNameChange,
+  onFlowDescriptionChange,
 }) => {
   const { t } = useTranslation();
 
@@ -58,6 +66,27 @@ const GlobalConfigSidebar: React.FC<GlobalConfigSidebarProps> = ({
       </Toolbar>
       <Divider />
       <Box sx={{ p: 2, overflowY: 'auto' }}>
+        <TextField
+          label={t('globalConfigSidebar.flowNameLabel')}
+          fullWidth
+          variant="outlined"
+          value={flowName}
+          onChange={(e) => onFlowNameChange(e.target.value)}
+          margin="normal"
+          helperText={t('globalConfigSidebar.flowNameHelper')}
+        />
+        <TextField
+          label={t('globalConfigSidebar.flowDescriptionLabel')}
+          multiline
+          rows={2}
+          fullWidth
+          variant="outlined"
+          value={flowDescription}
+          onChange={(e) => onFlowDescriptionChange(e.target.value)}
+          margin="normal"
+          helperText={t('globalConfigSidebar.flowDescriptionHelper')}
+        />
+        <Divider sx={{ my: 3 }} />
         <TextField
           label={t('globalConfigSidebar.globalPromptLabel')}
           name="globalPrompt"
