@@ -1,0 +1,69 @@
+version: '3.8'
+
+# Platform only (Frontend + Backend + Database)
+# Lighter version for testing just the platform without the engine
+# Usage: docker-compose -f docker-compose.platform.yml up
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: easypath_postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: easypath
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d easypath"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - easypath-network
+
+  backend:
+    build:
+      context: ./apps/platform/backend
+      dockerfile: Dockerfile
+    container_name: easypath_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/platform/backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://user:password@postgres:5432/easypath"
+      CORS_ORIGINS: "http://localhost:5173,http://frontend:5173"
+    networks:
+      - easypath-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./apps/platform/frontend
+      dockerfile: Dockerfile.dev
+    container_name: easypath_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/platform/frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: "http://backend:8000"
+    depends_on:
+      - backend
+    networks:
+      - easypath-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  easypath-network:
+    driver: bridge

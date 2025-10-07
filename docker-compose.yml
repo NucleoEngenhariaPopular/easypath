@@ -30,8 +30,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://user:password@postgres/easypath"
-      SUPABASE_URL: "https://cmuywtxasjmrbodvagiv.supabase.co"
-      SUPABASE_JWT_SECRET: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtdXl3dHhhc2ptcmJvZHZhZ2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NDk5NTUsImV4cCI6MjA2NDUyNTk1NX0.LtlSdhMqlsXEOg4VdjtTZh3tFtikQo1Hbj5F-5v2kaQ"
+      CORS_ORIGINS: "http://localhost:5173"
 
 volumes:
   postgres_data:
