@@ -122,7 +122,7 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
 
     // Calculate position in a vertical flow layout
     const x = 400; // Center horizontally
-    const y = 150 * index; // Vertical spacing
+    const y = 250 * index; // Vertical spacing (increased for better visibility)
 
     return {
       id: engineNode.id,

@@ -22,6 +22,7 @@ import GlobalConfigSidebar, { drawerWidth } from '../components/canvas/GlobalCon
 import { nodeTypes } from '../components/canvas/CustomNodes';
 import type { GlobalCanvasConfig, CustomNodeData, ModelOptions, ExtractVarItem } from '../types/canvasTypes';
 import NodeModal from '../components/canvas/NodeModal';
+import EdgeModal from '../components/canvas/EdgeModal';
 import { useTranslation } from 'react-i18next';
 
 const initialGlobalConfig: GlobalCanvasConfig = {
@@ -60,6 +61,8 @@ const CanvasPage: React.FC = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [isEdgeModalOpen, setIsEdgeModalOpen] = useState(false);
 
   const [isGlobalConfigSidebarOpen, setIsGlobalConfigSidebarOpen] = useState(false);
   const [globalConfig, setGlobalConfig] = useState<GlobalCanvasConfig>(initialGlobalConfig);
@@ -98,6 +101,11 @@ const CanvasPage: React.FC = () => {
     setIsModalOpen(true);
   }, []);
 
+  const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    setSelectedEdge(edge);
+    setIsEdgeModalOpen(true);
+  }, []);
+
   const handleAddNode = (type: string) => {
     const newNodeData: CustomNodeData = {
       name: `${type.charAt(0).toUpperCase() + type.slice(1)} Node`,
@@ -123,6 +131,23 @@ const CanvasPage: React.FC = () => {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedNode(null);
+  };
+
+  const handleEdgeModalClose = () => {
+    setIsEdgeModalOpen(false);
+    setSelectedEdge(null);
+  };
+
+  const handleEdgeUpdate = (edgeId: string, label: string) => {
+    setEdges((eds) =>
+      eds.map((edge) =>
+        edge.id === edgeId ? { ...edge, label } : edge
+      )
+    );
+  };
+
+  const handleEdgeDelete = (edgeId: string) => {
+    setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
   };
 
   const handleNodeDataChange = (
@@ -330,6 +355,7 @@ const CanvasPage: React.FC = () => {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
           nodeTypes={nodeTypes}
           fitView
           defaultEdgeOptions={{
@@ -412,6 +438,14 @@ const CanvasPage: React.FC = () => {
           onNodeDataChange={handleNodeDataChange}
         />
       )}
+
+      <EdgeModal
+        isOpen={isEdgeModalOpen}
+        onClose={handleEdgeModalClose}
+        selectedEdge={selectedEdge}
+        onEdgeUpdate={handleEdgeUpdate}
+        onEdgeDelete={handleEdgeDelete}
+      />
     </Box>
   );
 };

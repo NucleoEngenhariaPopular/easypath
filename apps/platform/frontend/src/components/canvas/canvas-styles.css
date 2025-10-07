@@ -94,6 +94,30 @@
   fill: #555;
 }
 
+/* Make edges clickable and visible */
+.react-flow__edge {
+  cursor: pointer;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #764ba2;
+  stroke-width: 3;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #764ba2;
+  stroke-width: 3.5;
+}
+
+/* Edge label becomes more visible on hover */
+.react-flow__edge:hover .react-flow__edge-textbg {
+  fill: #667eea;
+}
+
+.react-flow__edge:hover .react-flow__edge-text {
+  fill: white;
+}
+
 /* Pane (canvas background) */
 .react-flow__pane {
   cursor: default;
