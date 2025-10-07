@@ -104,8 +104,14 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
     }));
 
     // Map node_type to canvas type
+    // Keep the node_type as-is since we now support: start, end, normal, message, extraction, validation, recommendation, summary, request
     let nodeType = engineNode.node_type;
-    if (nodeType === 'message') nodeType = 'normal';
+
+    // Only map 'normal' if it doesn't match any of our known types
+    const validTypes = ['start', 'end', 'message', 'extraction', 'validation', 'recommendation', 'summary', 'request'];
+    if (!validTypes.includes(nodeType)) {
+      nodeType = 'normal';
+    }
 
     const nodeData: CustomNodeData = {
       name: displayName,

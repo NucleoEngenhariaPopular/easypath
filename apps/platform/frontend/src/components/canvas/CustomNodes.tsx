@@ -5,6 +5,10 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import HttpIcon from '@mui/icons-material/Http';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import RecommendIcon from '@mui/icons-material/Recommend';
+import SummarizeIcon from '@mui/icons-material/Summarize';
 import { type CSSProperties } from 'react';
 import type { CustomNodeData } from '../../types/canvasTypes';
 
@@ -178,6 +182,191 @@ export const nodeTypes = {
         }}
       >
         {props.data.name || 'Request Node'}
+      </Typography>
+      <Handle type="target" position={Position.Top} style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} style={handleStyle} />
+    </Box>
+  ),
+  extraction: (props: NodeProps<Node<CustomNodeData>>) => (
+    <Box
+      sx={{
+        ...nodeBaseStyle,
+        background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        minWidth: 170,
+        maxWidth: 280,
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 6px 16px rgba(240, 147, 251, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
+        },
+      }}
+    >
+      <FilterAltIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
+      <Typography
+        variant="body2"
+        sx={{
+          userSelect: 'none',
+          wordBreak: 'break-word',
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          lineHeight: 1.4,
+          fontWeight: 500,
+          color: 'white',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+        }}
+      >
+        {props.data.name || 'Extraction Node'}
+      </Typography>
+      <Handle type="target" position={Position.Top} style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} style={handleStyle} />
+    </Box>
+  ),
+  validation: (props: NodeProps<Node<CustomNodeData>>) => (
+    <Box
+      sx={{
+        ...nodeBaseStyle,
+        background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        minWidth: 170,
+        maxWidth: 280,
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 6px 16px rgba(79, 172, 254, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
+        },
+      }}
+    >
+      <CheckCircleOutlineIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
+      <Typography
+        variant="body2"
+        sx={{
+          userSelect: 'none',
+          wordBreak: 'break-word',
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          lineHeight: 1.4,
+          fontWeight: 500,
+          color: 'white',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+        }}
+      >
+        {props.data.name || 'Validation Node'}
+      </Typography>
+      <Handle type="target" position={Position.Top} style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} style={handleStyle} />
+    </Box>
+  ),
+  recommendation: (props: NodeProps<Node<CustomNodeData>>) => (
+    <Box
+      sx={{
+        ...nodeBaseStyle,
+        background: 'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)',
+        minWidth: 170,
+        maxWidth: 280,
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 6px 16px rgba(252, 203, 144, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
+        },
+      }}
+    >
+      <RecommendIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
+      <Typography
+        variant="body2"
+        sx={{
+          userSelect: 'none',
+          wordBreak: 'break-word',
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          lineHeight: 1.4,
+          fontWeight: 500,
+          color: 'white',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+        }}
+      >
+        {props.data.name || 'Recommendation Node'}
+      </Typography>
+      <Handle type="target" position={Position.Top} style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} style={handleStyle} />
+    </Box>
+  ),
+  summary: (props: NodeProps<Node<CustomNodeData>>) => (
+    <Box
+      sx={{
+        ...nodeBaseStyle,
+        background: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
+        minWidth: 170,
+        maxWidth: 280,
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 6px 16px rgba(224, 195, 252, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
+        },
+      }}
+    >
+      <SummarizeIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
+      <Typography
+        variant="body2"
+        sx={{
+          userSelect: 'none',
+          wordBreak: 'break-word',
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          lineHeight: 1.4,
+          fontWeight: 500,
+          color: 'white',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+        }}
+      >
+        {props.data.name || 'Summary Node'}
+      </Typography>
+      <Handle type="target" position={Position.Top} style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} style={handleStyle} />
+    </Box>
+  ),
+  message: (props: NodeProps<Node<CustomNodeData>>) => (
+    <Box
+      sx={{
+        ...nodeBaseStyle,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        minWidth: 170,
+        maxWidth: 280,
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
+        },
+      }}
+    >
+      <ChatBubbleOutlineIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
+      <Typography
+        variant="body2"
+        sx={{
+          userSelect: 'none',
+          wordBreak: 'break-word',
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          lineHeight: 1.4,
+          fontWeight: 500,
+          color: 'white',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+        }}
+      >
+        {props.data.name || 'Message Node'}
       </Typography>
       <Handle type="target" position={Position.Top} style={handleStyle} />
       <Handle type="source" position={Position.Bottom} style={handleStyle} />

@@ -1,6 +1,9 @@
 import { ClearAllOutlined, FileUploadOutlined, FileDownloadOutlined } from '@mui/icons-material';
 import HttpIcon from '@mui/icons-material/Http';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Box, Button, Divider, IconButton, Paper, Tooltip } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -33,7 +36,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearInterme
     >
       <Box display="flex" alignItems="center" gap={0.5}>
 
-        <Tooltip title={t('canvasToolbar.addNormalNode')}>
+        <Tooltip title={t('canvasToolbar.addMessageNode')}>
           <IconButton
             color={'default'}
             sx={{
@@ -42,9 +45,39 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearInterme
                 color: 'primary.main'
               },
             }}
-            onClick={() => onAddNode('normal')}
+            onClick={() => onAddNode('message')}
           >
-            <TextFieldsIcon />
+            <ChatBubbleOutlineIcon />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title={t('canvasToolbar.addExtractionNode')}>
+          <IconButton
+            color={'default'}
+            sx={{
+              borderRadius: 2,
+              '&:hover': {
+                color: 'primary.main'
+              },
+            }}
+            onClick={() => onAddNode('extraction')}
+          >
+            <FilterAltIcon />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title={t('canvasToolbar.addValidationNode')}>
+          <IconButton
+            color={'default'}
+            sx={{
+              borderRadius: 2,
+              '&:hover': {
+                color: 'primary.main'
+              },
+            }}
+            onClick={() => onAddNode('validation')}
+          >
+            <CheckCircleOutlineIcon />
           </IconButton>
         </Tooltip>
 

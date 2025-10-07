@@ -107,16 +107,35 @@ const CanvasPage: React.FC = () => {
   }, []);
 
   const handleAddNode = (type: string) => {
-    const newNodeData: CustomNodeData = {
-      name: `${type.charAt(0).toUpperCase() + type.slice(1)} Node`,
+    // Create appropriate name based on type
+    const typeNames: Record<string, string> = {
+      'message': 'Message',
+      'extraction': 'Extraction',
+      'validation': 'Validation',
+      'recommendation': 'Recommendation',
+      'summary': 'Summary',
+      'request': 'Request',
+      'start': 'Start',
+      'end': 'End',
+      'normal': 'Normal',
     };
+
+    const newNodeData: CustomNodeData = {
+      name: typeNames[type] || `${type.charAt(0).toUpperCase() + type.slice(1)} Node`,
+    };
+
     // Initialize specific fields for new nodes if needed
-    if (type === 'normal' || type === 'request' || type === 'EndCall') {
-      newNodeData.modelOptions = { modelType: 'smart', temperature: 0.2 }; // Default modelOptions
+    if (['message', 'normal', 'request', 'extraction', 'validation', 'recommendation', 'summary'].includes(type)) {
+      newNodeData.modelOptions = { modelType: 'smart', temperature: 0.2 };
       newNodeData.prompt = '';
     }
+
     if (type === 'start') {
       newNodeData.isStart = true;
+    }
+
+    if (type === 'extraction') {
+      newNodeData.extractVars = [];
     }
 
     const newNode: Node<CustomNodeData> = {
@@ -388,6 +407,11 @@ const CanvasPage: React.FC = () => {
               if (node.type === 'start') return '#43e97b';
               if (node.type === 'end') return '#f5576c';
               if (node.type === 'request') return '#fa709a';
+              if (node.type === 'extraction') return '#f093fb';
+              if (node.type === 'validation') return '#4facfe';
+              if (node.type === 'recommendation') return '#fccb90';
+              if (node.type === 'summary') return '#e0c3fc';
+              if (node.type === 'message') return '#667eea';
               return '#667eea';
             }}
             maskColor="rgba(0, 0, 0, 0.1)"
