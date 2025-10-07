@@ -95,7 +95,12 @@
   },
   "canvasToolbar": {
     "addNormalNode": "Adicionar Nó Normal",
+    "addMessageNode": "Adicionar Nó de Mensagem",
+    "addExtractionNode": "Adicionar Nó de Extração",
+    "addValidationNode": "Adicionar Nó de Validação",
     "addRequestNode": "Adicionar Nó de Requisição",
+    "importFlow": "Importar Fluxo",
+    "exportFlow": "Exportar Fluxo",
     "clearAddedIcons": "Limpar Ícones Adicionados",
     "clearButton": "Limpar"
   },
@@ -103,6 +108,7 @@
     "initialGlobalPrompt": "Prompt global padrão: Seja útil e conciso.",
     "exportFileName": "estado-canvas.json",
     "globalSettingsTooltip": "Configurações Globais",
+    "saveTooltip": "Salvar Fluxo",
     "exportTooltip": "Exportar para JSON",
     "exportButtonText": "Exportar"
   },

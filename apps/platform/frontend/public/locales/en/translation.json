@@ -97,7 +97,12 @@
   },
   "canvasToolbar": {
     "addNormalNode": "Add Normal Node",
+    "addMessageNode": "Add Message Node",
+    "addExtractionNode": "Add Extraction Node",
+    "addValidationNode": "Add Validation Node",
     "addRequestNode": "Add Request Node",
+    "importFlow": "Import Flow",
+    "exportFlow": "Export Flow",
     "clearAddedIcons": "Clear Added Icons",
     "clearButton": "Clear"
   },
@@ -105,6 +110,7 @@
     "initialGlobalPrompt": "Default global prompt: Be helpful and concise.",
     "exportFileName": "canvas-state.json",
     "globalSettingsTooltip": "Global Settings",
+    "saveTooltip": "Save Flow",
     "exportTooltip": "Export to JSON",
     "exportButtonText": "Export"
   },
