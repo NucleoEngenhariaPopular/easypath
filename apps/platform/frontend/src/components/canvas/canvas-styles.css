@@ -70,6 +70,22 @@
   outline-offset: 4px;
 }
 
+/* Node click hint */
+.react-flow__node::after {
+  content: '⚙️';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.react-flow__node:hover::after {
+  opacity: 0.6;
+}
+
 /* Handle hover effect */
 .react-flow__handle {
   transition: all 0.2s ease;

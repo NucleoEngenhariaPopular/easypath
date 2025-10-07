@@ -91,8 +91,16 @@ const NodeModal: FC<NodeModalProps> = ({
   };
 
   const isRequestNode = selectedNode.type === 'request';
-  const showContentFields = selectedNode.type === 'normal' || selectedNode.type === 'request' || selectedNode.type === 'EndCall';
-  const showAdvancedFields = selectedNode.type === 'normal' || selectedNode.type === 'request';
+
+  // Determine which fields to show based on node type
+  const contentNodeTypes = ['normal', 'message', 'request', 'extraction', 'validation', 'recommendation', 'summary'];
+  const showContentFields = contentNodeTypes.includes(selectedNode.type || '');
+
+  const advancedNodeTypes = ['normal', 'message', 'request', 'extraction', 'validation', 'recommendation', 'summary'];
+  const showAdvancedFields = advancedNodeTypes.includes(selectedNode.type || '');
+
+  const extractionNodeTypes = ['extraction', 'validation'];
+  const showExtractionFields = extractionNodeTypes.includes(selectedNode.type || '');
 
   return (
     <Modal open={isOpen} onClose={onClose}>
@@ -141,7 +149,11 @@ const NodeModal: FC<NodeModalProps> = ({
               value={selectedNode.data.name || ""}
               onChange={handleSimpleChange}
               sx={{ mb: 2 }}
+              helperText="This is the display name shown on the canvas"
             />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              Node Type: <strong>{selectedNode.type || 'unknown'}</strong>
+            </Typography>
           </Box>
 
           {/* Content Section */}
@@ -150,6 +162,17 @@ const NodeModal: FC<NodeModalProps> = ({
               <Typography variant="h6" gutterBottom color="primary" fontWeight="500">
                 {t('nodeModal.contentTitle')}
               </Typography>
+
+              <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'action.hover', borderColor: 'primary.main' }}>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>💡 Prompt Guide:</strong> Tell the LLM what to do at this step.
+                  {selectedNode.type === 'message' && ' For messages, describe how to interact with the user.'}
+                  {selectedNode.type === 'extraction' && ' For extraction, explain what data to collect.'}
+                  {selectedNode.type === 'validation' && ' For validation, describe what to verify.'}
+                  {selectedNode.type === 'recommendation' && ' For recommendations, explain what to suggest.'}
+                  {selectedNode.type === 'summary' && ' For summaries, describe what to include.'}
+                </Typography>
+              </Paper>
 
               <Box sx={{ mb: 2 }}>
                 <FormControlLabel
@@ -164,10 +187,11 @@ const NodeModal: FC<NodeModalProps> = ({
                   name="prompt"
                   fullWidth
                   multiline
-                  rows={6}
+                  rows={8}
                   value={selectedNode.data.prompt || ''}
                   onChange={handleSimpleChange}
-                  helperText={t('nodeModal.promptHelperText')}
+                  helperText="Describe the context, objective, notes, and examples for the LLM at this step"
+                  placeholder={`Context: [What's happening at this step]\nObjective: [What should the LLM accomplish]\nNotes: [Important considerations]\nExamples: [Sample responses]`}
                 />
               ) : (
                 <TextField
@@ -296,6 +320,30 @@ const NodeModal: FC<NodeModalProps> = ({
             </Box>
           )}
 
+          {/* Variable Extraction - Highlighted for extraction/validation nodes */}
+          {showExtractionFields && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom color="primary" fontWeight="500">
+                Variable Extraction
+              </Typography>
+              <Paper variant="outlined" sx={{ p: 3, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Define variables to extract from user messages. Use JSON format with name, description, and required fields.
+                </Typography>
+                <TextField
+                  label="Extract Variables (JSON)"
+                  name="extractVars"
+                  fullWidth
+                  multiline
+                  rows={8}
+                  value={selectedNode.data.extractVars ? JSON.stringify(selectedNode.data.extractVars, null, 2) : '[]'}
+                  onChange={(e) => handleComplexChange('extractVars', e.target.value)}
+                  helperText='Example: [{"varName": "user_street", "varType": "string", "description": "Street name", "defaultValue": ""}]'
+                />
+              </Paper>
+            </Box>
+          )}
+
           {/* Advanced Configuration - Using Accordions */}
           {showAdvancedFields && (
             <Box sx={{ mb: 3 }}>
@@ -303,23 +351,25 @@ const NodeModal: FC<NodeModalProps> = ({
                 {t('nodeModal.advancedConfigurationTitle')}
               </Typography>
 
-              <Accordion>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography variant="subtitle1">{t('nodeModal.extractVarsTitle')}</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <TextField
-                    label={t('nodeModal.extractVarsJsonLabel')}
-                    name="extractVars"
-                    fullWidth
-                    multiline
-                    rows={4}
-                    value={selectedNode.data.extractVars ? JSON.stringify(selectedNode.data.extractVars, null, 2) : '[]'}
-                    onChange={(e) => handleComplexChange('extractVars', e.target.value)}
-                    helperText={t('nodeModal.extractVarsHelper')}
-                  />
-                </AccordionDetails>
-              </Accordion>
+              {!showExtractionFields && (
+                <Accordion>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle1">{t('nodeModal.extractVarsTitle')}</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <TextField
+                      label={t('nodeModal.extractVarsJsonLabel')}
+                      name="extractVars"
+                      fullWidth
+                      multiline
+                      rows={4}
+                      value={selectedNode.data.extractVars ? JSON.stringify(selectedNode.data.extractVars, null, 2) : '[]'}
+                      onChange={(e) => handleComplexChange('extractVars', e.target.value)}
+                      helperText={t('nodeModal.extractVarsHelper')}
+                    />
+                  </AccordionDetails>
+                </Accordion>
+              )}
 
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
