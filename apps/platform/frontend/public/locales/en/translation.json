@@ -82,6 +82,10 @@
   },
   "globalConfigSidebar": {
     "title": "Global Configuration",
+    "flowNameLabel": "Flow Name",
+    "flowNameHelper": "Enter a name for this flow",
+    "flowDescriptionLabel": "Flow Description",
+    "flowDescriptionHelper": "Describe what this flow does",
     "globalPromptLabel": "Global Prompt",
     "globalPromptHelper": "This prompt will be applied globally.",
     "roleAndObjectiveLabel": "Role & Objective",
@@ -111,6 +115,10 @@
     "exportFileName": "canvas-state.json",
     "globalSettingsTooltip": "Global Settings",
     "saveTooltip": "Save Flow",
+    "deleteTooltip": "Delete Flow",
+    "confirmDelete": "Are you sure you want to delete this flow? This action cannot be undone.",
+    "cannotDeleteUnsaved": "Cannot delete an unsaved flow. Please save it first.",
+    "deleteFailed": "Failed to delete the flow. Please try again.",
     "exportTooltip": "Export to JSON",
     "exportButtonText": "Export"
   },

@@ -80,6 +80,10 @@
   },
   "globalConfigSidebar": {
     "title": "Configuração Global",
+    "flowNameLabel": "Nome do Fluxo",
+    "flowNameHelper": "Insira um nome para este fluxo",
+    "flowDescriptionLabel": "Descrição do Fluxo",
+    "flowDescriptionHelper": "Descreva o que este fluxo faz",
     "globalPromptLabel": "Prompt Global",
     "globalPromptHelper": "Este prompt será aplicado globalmente.",
     "roleAndObjectiveLabel": "Papel & Objetivo",
@@ -109,6 +113,10 @@
     "exportFileName": "estado-canvas.json",
     "globalSettingsTooltip": "Configurações Globais",
     "saveTooltip": "Salvar Fluxo",
+    "deleteTooltip": "Excluir Fluxo",
+    "confirmDelete": "Tem certeza que deseja excluir este fluxo? Esta ação não pode ser desfeita.",
+    "cannotDeleteUnsaved": "Não é possível excluir um fluxo não salvo. Por favor, salve-o primeiro.",
+    "deleteFailed": "Falha ao excluir o fluxo. Por favor, tente novamente.",
     "exportTooltip": "Exportar para JSON",
     "exportButtonText": "Exportar"
   },
