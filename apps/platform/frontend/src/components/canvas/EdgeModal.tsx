@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   Button,
@@ -61,62 +60,131 @@ const EdgeModal: React.FC<EdgeModalProps> = ({
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          boxShadow: 24,
+          borderRadius: 4,
+          boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+          overflow: 'hidden',
         },
       }}
     >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          pb: 1,
-        }}
-      >
-        <Typography variant="h6" component="div" fontWeight={600}>
-          Edit Connection
-        </Typography>
-        <IconButton onClick={onClose} size="small">
+      <Box sx={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        p: 3,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <Box>
+          <Typography variant="h5" component="div" fontWeight={700} sx={{ mb: 0.5 }}>
+            Edit Connection
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            Configure connection properties
+          </Typography>
+        </Box>
+        <IconButton
+          onClick={onClose}
+          size="small"
+          sx={{
+            color: 'white',
+            '&:hover': {
+              bgcolor: 'rgba(255,255,255,0.1)',
+            }
+          }}
+        >
           <CloseIcon />
         </IconButton>
-      </DialogTitle>
+      </Box>
 
-      <DialogContent>
-        <Box sx={{ pt: 1 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Connection from <strong>{selectedEdge.source}</strong> to{' '}
-            <strong>{selectedEdge.target}</strong>
+      <DialogContent sx={{ p: 4 }}>
+        <Box sx={{
+          p: 2.5,
+          mb: 3,
+          bgcolor: 'action.hover',
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+        }}>
+          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box component="span" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              {selectedEdge.source}
+            </Box>
+            <Box component="span" sx={{ color: 'text.disabled' }}>→</Box>
+            <Box component="span" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              {selectedEdge.target}
+            </Box>
           </Typography>
-
-          <TextField
-            label="Connection Label"
-            fullWidth
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Enter a label for this connection..."
-            variant="outlined"
-            sx={{ mb: 2 }}
-            helperText="This label will be displayed on the connection arrow"
-          />
         </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Box sx={{
+            width: 4,
+            height: 24,
+            bgcolor: 'primary.main',
+            borderRadius: 1,
+            mr: 1.5
+          }} />
+          <Typography variant="h6" fontWeight="600" color="text.primary">
+            Connection Label
+          </Typography>
+        </Box>
+
+        <TextField
+          label="Label"
+          fullWidth
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Enter a label for this connection..."
+          variant="outlined"
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+            }
+          }}
+          helperText="This label will be displayed on the connection arrow"
+        />
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
+      <DialogActions sx={{
+        px: 4,
+        pb: 3,
+        pt: 2,
+        borderTop: '2px solid',
+        borderColor: 'divider',
+        justifyContent: 'space-between'
+      }}>
         <Button
           onClick={handleDelete}
           color="error"
           variant="outlined"
           startIcon={<DeleteIcon />}
+          sx={{
+            borderRadius: 2,
+            '&:hover': {
+              bgcolor: 'error.lighter',
+            }
+          }}
         >
           Delete
         </Button>
-        <Box>
-          <Button onClick={onClose} sx={{ mr: 1 }}>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            onClick={onClose}
+            variant="outlined"
+            sx={{ borderRadius: 2 }}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} variant="contained" color="primary">
-            Save
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            color="primary"
+            sx={{
+              borderRadius: 2,
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+            }}
+          >
+            Save Changes
           </Button>
         </Box>
       </DialogActions>

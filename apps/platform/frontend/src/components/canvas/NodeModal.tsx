@@ -103,76 +103,156 @@ const NodeModal: FC<NodeModalProps> = ({
   const showExtractionFields = extractionNodeTypes.includes(selectedNode.type || '');
 
   return (
-    <Modal open={isOpen} onClose={onClose}>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
       <Box
         sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: { xs: '95%', sm: 650, md: 750 },
-          maxHeight: '95vh',
+          position: 'relative',
+          width: { xs: '95%', sm: 650, md: 800 },
+          maxHeight: '90vh',
           overflowY: 'auto',
           bgcolor: 'background.paper',
-          borderRadius: 3,
-          boxShadow: 24,
+          borderRadius: 4,
+          boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#888',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: '#555',
+          },
         }}>
 
         {/* Header */}
         <Box sx={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          p: 3,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          p: 3,
-          pb: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider'
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
         }}>
-          <Typography variant="h5" component="h2" fontWeight="600">
-            {t('nodeModal.editNodeTitle', { nodeName: selectedNode.data.name || selectedNode.id })}
-          </Typography>
-          <IconButton onClick={onClose} size="small">
+          <Box>
+            <Typography variant="h5" component="h2" fontWeight="700" sx={{ mb: 0.5 }}>
+              Edit Node
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              {selectedNode.data.name || selectedNode.id}
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: 'white',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.1)',
+              }
+            }}
+          >
             <CloseIcon />
           </IconButton>
         </Box>
 
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 4 }}>
           {/* Basic Information */}
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" gutterBottom color="primary" fontWeight="500">
-              {t('nodeModal.basicInformationTitle')}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Box sx={{
+                width: 4,
+                height: 24,
+                bgcolor: 'primary.main',
+                borderRadius: 1,
+                mr: 1.5
+              }} />
+              <Typography variant="h6" fontWeight="600" color="text.primary">
+                Basic Information
+              </Typography>
+            </Box>
             <TextField
-              label={t('nodeModal.nodeNameLabel')}
+              label="Node Name"
               name="name"
               fullWidth
               value={selectedNode.data.name || ""}
               onChange={handleSimpleChange}
-              sx={{ mb: 2 }}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                }
+              }}
               helperText="This is the display name shown on the canvas"
             />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              Node Type: <strong>{selectedNode.type || 'unknown'}</strong>
-            </Typography>
+            <Box sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              px: 2,
+              py: 0.75,
+              bgcolor: 'action.hover',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'divider',
+            }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+                Node Type:
+              </Typography>
+              <Typography variant="caption" fontWeight="600" color="primary.main">
+                {selectedNode.type || 'unknown'}
+              </Typography>
+            </Box>
           </Box>
 
           {/* Content Section */}
           {showContentFields && (
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" gutterBottom color="primary" fontWeight="500">
-                {t('nodeModal.contentTitle')}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box sx={{
+                  width: 4,
+                  height: 24,
+                  bgcolor: 'primary.main',
+                  borderRadius: 1,
+                  mr: 1.5
+                }} />
+                <Typography variant="h6" fontWeight="600" color="text.primary">
+                  Content Configuration
+                </Typography>
+              </Box>
 
-              <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'action.hover', borderColor: 'primary.main' }}>
-                <Typography variant="body2" color="text.secondary">
-                  <strong>💡 Prompt Guide:</strong> Tell the LLM what to do at this step.
+              <Box sx={{
+                p: 2.5,
+                mb: 3,
+                bgcolor: 'primary.lighter',
+                borderRadius: 2,
+                borderLeft: '4px solid',
+                borderColor: 'primary.main',
+              }}>
+                <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
+                  💡 <strong>Prompt Guide</strong>
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Tell the LLM what to do at this step.
                   {selectedNode.type === 'message' && ' For messages, describe how to interact with the user.'}
                   {selectedNode.type === 'extraction' && ' For extraction, explain what data to collect.'}
                   {selectedNode.type === 'validation' && ' For validation, describe what to verify.'}
                   {selectedNode.type === 'recommendation' && ' For recommendations, explain what to suggest.'}
                   {selectedNode.type === 'summary' && ' For summaries, describe what to include.'}
                 </Typography>
-              </Paper>
+              </Box>
 
               <Box sx={{ mb: 2 }}>
                 <FormControlLabel
@@ -247,10 +327,23 @@ const NodeModal: FC<NodeModalProps> = ({
           {/* Model Options */}
           {showContentFields && (
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" gutterBottom color="primary" fontWeight="500">
-                {t('nodeModal.modelConfigurationTitle')}
-              </Typography>
-              <Paper variant="outlined" sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box sx={{
+                  width: 4,
+                  height: 24,
+                  bgcolor: 'primary.main',
+                  borderRadius: 1,
+                  mr: 1.5
+                }} />
+                <Typography variant="h6" fontWeight="600" color="text.primary">
+                  Model Configuration
+                </Typography>
+              </Box>
+              <Paper variant="outlined" sx={{
+                p: 3,
+                borderRadius: 2,
+                borderColor: 'divider',
+              }}>
                 <Grid container spacing={3}>
                   <Grid sx={{ xs: 12, sm: 6 }} >
                     <TextField
@@ -323,10 +416,25 @@ const NodeModal: FC<NodeModalProps> = ({
           {/* Variable Extraction - Highlighted for extraction/validation nodes */}
           {showExtractionFields && (
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" gutterBottom color="primary" fontWeight="500">
-                Variable Extraction
-              </Typography>
-              <Paper variant="outlined" sx={{ p: 3, bgcolor: 'action.hover' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box sx={{
+                  width: 4,
+                  height: 24,
+                  bgcolor: 'warning.main',
+                  borderRadius: 1,
+                  mr: 1.5
+                }} />
+                <Typography variant="h6" fontWeight="600" color="text.primary">
+                  Variable Extraction
+                </Typography>
+              </Box>
+              <Paper variant="outlined" sx={{
+                p: 3,
+                bgcolor: 'warning.lighter',
+                borderRadius: 2,
+                borderColor: 'warning.main',
+                borderWidth: 2,
+              }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Define variables to extract from user messages. Use JSON format with name, description, and required fields.
                 </Typography>
@@ -347,9 +455,18 @@ const NodeModal: FC<NodeModalProps> = ({
           {/* Advanced Configuration - Using Accordions */}
           {showAdvancedFields && (
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom color="primary" fontWeight="500">
-                {t('nodeModal.advancedConfigurationTitle')}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box sx={{
+                  width: 4,
+                  height: 24,
+                  bgcolor: 'secondary.main',
+                  borderRadius: 1,
+                  mr: 1.5
+                }} />
+                <Typography variant="h6" fontWeight="600" color="text.primary">
+                  Advanced Configuration
+                </Typography>
+              </Box>
 
               {!showExtractionFields && (
                 <Accordion>
@@ -394,18 +511,37 @@ const NodeModal: FC<NodeModalProps> = ({
           {/* Footer Actions */}
           <Box sx={{
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             gap: 2,
             pt: 3,
-            borderTop: '1px solid',
+            mt: 3,
+            borderTop: '2px solid',
             borderColor: 'divider'
           }}>
-            <Button variant="outlined" onClick={onClose}>
-              {t('nodeModal.cancelButton')}
-            </Button>
-            <Button variant="contained" color="primary" onClick={onClose}>
-              {t('nodeModal.doneButton')}
-            </Button>
+            <Typography variant="caption" color="text.secondary">
+              Changes are saved automatically
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={onClose}
+                sx={{ borderRadius: 2 }}
+              >
+                Close
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={onClose}
+                sx={{
+                  borderRadius: 2,
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                }}
+              >
+                Done
+              </Button>
+            </Box>
           </Box>
         </Box>
       </Box>
