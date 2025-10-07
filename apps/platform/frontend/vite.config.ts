@@ -7,6 +7,14 @@ export default defineConfig({
   server: {
     host: true, // Listen on all addresses (important for Docker)
     port: 5173,
+    watch: {
+      usePolling: true, // Enable polling for Docker on Windows
+      interval: 100, // Check for changes every 100ms
+    },
+    hmr: {
+      host: 'localhost', // HMR host for WebSocket connection
+      port: 5173,
+    },
     proxy: {
       // Proxy API requests to backend
       '/api': {
