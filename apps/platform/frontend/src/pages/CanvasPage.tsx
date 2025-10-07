@@ -50,7 +50,6 @@ const initialEdges: Edge[] = [];
 
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
 
 const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
@@ -66,21 +65,13 @@ const CanvasPage: React.FC = () => {
   useEffect(() => {
     const fetchFlow = async () => {
       if (flowId && flowId !== 'new') {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const response = await fetch(`/api/flows/${flowId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-            });
-          if (response.ok) {
-            const data = await response.json();
-            const flowData = data.flow_data;
-            if (flowData.nodes) setNodes(flowData.nodes);
-            if (flowData.edges) setEdges(flowData.edges);
-            if (flowData.globalConfig) setGlobalConfig(flowData.globalConfig);
-          }
+        const response = await fetch(`/api/flows/${flowId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const flowData = data.flow_data;
+          if (flowData.nodes) setNodes(flowData.nodes);
+          if (flowData.edges) setEdges(flowData.edges);
+          if (flowData.globalConfig) setGlobalConfig(flowData.globalConfig);
         }
       }
     };
@@ -262,36 +253,32 @@ const CanvasPage: React.FC = () => {
   };
 
   const handleSaveFlow = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const flowData = {
-        name: "My Flow", // You might want to get this from a user input
-        description: "A description of my flow", // You might want to get this from a user input
-        flow_data: { nodes, edges, globalConfig },
-      };
+    const flowData = {
+      name: "My Flow", // You might want to get this from a user input
+      description: "A description of my flow", // You might want to get this from a user input
+      flow_data: { nodes, edges, globalConfig },
+    };
 
-      const url = flowId === 'new' ? '/api/flows/' : `/api/flows/${flowId}`;
-      const method = flowId === 'new' ? 'POST' : 'PUT';
+    const url = flowId === 'new' ? '/api/flows/' : `/api/flows/${flowId}`;
+    const method = flowId === 'new' ? 'POST' : 'PUT';
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(flowData),
-      });
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(flowData),
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (flowId === 'new') {
-          // redirect to the new flow's page
-          window.history.replaceState(null, '', `/canvas/${data.id}`)
-        }
-        console.log("Flow saved successfully");
-      } else {
-        console.error("Failed to save flow");
+    if (response.ok) {
+      const data = await response.json();
+      if (flowId === 'new') {
+        // redirect to the new flow's page
+        window.history.replaceState(null, '', `/canvas/${data.id}`)
       }
+      console.log("Flow saved successfully");
+    } else {
+      console.error("Failed to save flow");
     }
   };
 

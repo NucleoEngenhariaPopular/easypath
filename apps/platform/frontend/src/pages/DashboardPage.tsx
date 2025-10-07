@@ -34,7 +34,6 @@ import { useNavigate } from 'react-router-dom';
 import EasyPathAppBar from '../components/AppBar';
 
 import { useEffect, useState, useMemo, type FC } from 'react';
-import { supabase } from '../supabaseClient';
 
 
 
@@ -52,17 +51,10 @@ const DashboardPage: FC = () => {
 
   useEffect(() => {
     const fetchFlows = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const response = await fetch('/api/flows/', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setFlows(data);
-        }
+      const response = await fetch('/api/flows/');
+      if (response.ok) {
+        const data = await response.json();
+        setFlows(data);
       }
     };
 

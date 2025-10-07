@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
@@ -15,21 +16,12 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # SQLAlchemy Models
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    flows = relationship("Flow", back_populates="owner")
-
 class Flow(Base):
     __tablename__ = "flows"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     description = Column(String)
     flow_data = Column(JSON)
-    owner_id = Column(Integer, ForeignKey("users.id"))
-    owner = relationship("User", back_populates="flows")
 
 Base.metadata.create_all(bind=engine)
 
@@ -44,25 +36,21 @@ class FlowCreate(FlowBase):
 
 class FlowSchema(FlowBase):
     id: int
-    owner_id: int
 
     class Config:
         orm_mode = True
 
-class UserBase(BaseModel):
-    email: str
+app = FastAPI(title="EasyPath Platform API", version="1.0.0")
 
-class UserCreate(UserBase):
-    password: str
-
-class UserSchema(UserBase):
-    id: int
-    flows: list[FlowSchema] = []
-
-    class Config:
-        orm_mode = True
-
-app = FastAPI()
+# CORS Configuration
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Dependency
 def get_db():
@@ -72,28 +60,9 @@ def get_db():
     finally:
         db.close()
 
-@app.post("/users/", response_model=UserSchema)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    # In a real app, hash the password
-    db_user = User(email=user.email, hashed_password=user.password)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-
-@app.get("/users/{user_id}", response_model=UserSchema)
-def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.id == user_id).first()
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
-
 @app.post("/flows/", response_model=FlowSchema)
-def create_flow(flow: FlowCreate, owner_id: int, db: Session = Depends(get_db)):
-    db_flow = Flow(**flow.dict(), owner_id=owner_id)
+def create_flow(flow: FlowCreate, db: Session = Depends(get_db)):
+    db_flow = Flow(**flow.dict())
     db.add(db_flow)
     db.commit()
     db.refresh(db_flow)
@@ -106,7 +75,8 @@ def read_flow(flow_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Flow not found")
     return db_flow
 
-@app.get("/users/{user_id}/flows/", response_model=list[FlowSchema])
-def read_user_flows(user_id: int, db: Session = Depends(get_db)):
-    flows = db.query(Flow).filter(Flow.owner_id == user_id).all()
+@app.get("/flows/", response_model=list[FlowSchema])
+def list_flows(db: Session = Depends(get_db)):
+    """List all flows."""
+    flows = db.query(Flow).all()
     return flows
