@@ -33,9 +33,94 @@ interface TestModePanelProps {
   currentNodeId: string | null;
   onSendMessage: (message: string) => void;
   onReset: () => void;
+  isLoading?: boolean;
 }
 
 const drawerWidth = 400;
+
+// Typing indicator component with animated dots
+const TypingIndicator: React.FC = () => {
+  return (
+    <Box
+      sx={{
+        mb: 2,
+        display: 'flex',
+        justifyContent: 'flex-start',
+      }}
+    >
+      <Paper
+        sx={{
+          p: 1.5,
+          backgroundColor: 'grey.800',
+          display: 'flex',
+          gap: 0.5,
+          alignItems: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            backgroundColor: 'grey.500',
+            animation: 'bounce 1.4s infinite ease-in-out',
+            animationDelay: '0s',
+            '@keyframes bounce': {
+              '0%, 80%, 100%': {
+                transform: 'scale(0)',
+                opacity: 0.5,
+              },
+              '40%': {
+                transform: 'scale(1)',
+                opacity: 1,
+              },
+            },
+          }}
+        />
+        <Box
+          sx={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            backgroundColor: 'grey.500',
+            animation: 'bounce 1.4s infinite ease-in-out',
+            animationDelay: '0.2s',
+            '@keyframes bounce': {
+              '0%, 80%, 100%': {
+                transform: 'scale(0)',
+                opacity: 0.5,
+              },
+              '40%': {
+                transform: 'scale(1)',
+                opacity: 1,
+              },
+            },
+          }}
+        />
+        <Box
+          sx={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            backgroundColor: 'grey.500',
+            animation: 'bounce 1.4s infinite ease-in-out',
+            animationDelay: '0.4s',
+            '@keyframes bounce': {
+              '0%, 80%, 100%': {
+                transform: 'scale(0)',
+                opacity: 0.5,
+              },
+              '40%': {
+                transform: 'scale(1)',
+                opacity: 1,
+              },
+            },
+          }}
+        />
+      </Paper>
+    </Box>
+  );
+};
 
 const TestModePanel: React.FC<TestModePanelProps> = ({
   open,
@@ -47,6 +132,7 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
   currentNodeId,
   onSendMessage,
   onReset,
+  isLoading = false,
 }) => {
   const { t } = useTranslation();
   const [inputMessage, setInputMessage] = useState('');
@@ -58,7 +144,7 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleSend = () => {
     if (inputMessage.trim()) {
@@ -176,6 +262,7 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
               </Box>
             ))
           )}
+          {isLoading && <TypingIndicator />}
           <div ref={messagesEndRef} />
         </Box>
 
@@ -188,14 +275,14 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={!isConnected}
+            disabled={!isConnected || isLoading}
             multiline
             maxRows={3}
           />
           <IconButton
             color="primary"
             onClick={handleSend}
-            disabled={!inputMessage.trim() || !isConnected}
+            disabled={!inputMessage.trim() || !isConnected || isLoading}
           >
             <SendIcon />
           </IconButton>

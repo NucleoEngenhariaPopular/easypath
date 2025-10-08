@@ -80,6 +80,7 @@ const CanvasPage: React.FC = () => {
   const [testVariables, setTestVariables] = useState<Record<string, any>>({});
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [animatingEdge, setAnimatingEdge] = useState<string | null>(null);
+  const [isLoadingResponse, setIsLoadingResponse] = useState(false);
 
   useEffect(() => {
     const fetchFlow = async () => {
@@ -132,6 +133,7 @@ const CanvasPage: React.FC = () => {
             content: event.message!,
             timestamp: event.timestamp
           }]);
+          setIsLoadingResponse(false);
         }
         break;
     }
@@ -299,6 +301,7 @@ const CanvasPage: React.FC = () => {
       setTestMessages([]);
       setTestVariables({});
       setActiveNodeId(null);
+      setIsLoadingResponse(false);
     }
   };
 
@@ -313,6 +316,9 @@ const CanvasPage: React.FC = () => {
         content: message,
         timestamp: new Date().toISOString()
       }]);
+
+      // Set loading state
+      setIsLoadingResponse(true);
 
       // Convert canvas flow to engine format
       const engineFlow = {
@@ -381,6 +387,7 @@ const CanvasPage: React.FC = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Failed to send message:', response.statusText, errorText);
+        setIsLoadingResponse(false);
         alert(`Error: ${response.status} - ${errorText}`);
       } else {
         const responseData = await response.json();
@@ -388,6 +395,7 @@ const CanvasPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error sending test message:', error);
+      setIsLoadingResponse(false);
       alert(`Error sending message: ${error}`);
     }
   };
@@ -396,6 +404,7 @@ const CanvasPage: React.FC = () => {
     setTestMessages([]);
     setTestVariables({});
     setActiveNodeId(null);
+    setIsLoadingResponse(false);
   };
 
   const handleToggleGlobalConfigSidebar = () => {
@@ -704,6 +713,7 @@ const CanvasPage: React.FC = () => {
         currentNodeId={activeNodeId}
         onSendMessage={handleSendTestMessage}
         onReset={handleResetTestSession}
+        isLoading={isLoadingResponse}
       />
     </Box>
   );
