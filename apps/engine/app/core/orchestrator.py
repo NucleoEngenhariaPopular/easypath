@@ -102,6 +102,9 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             assistant_reply = f"Preciso de mais algumas informações. Você poderia me informar: {', '.join([var.description for var in missing_vars])}?"
             session.add_assistant_message(assistant_reply)
 
+            # Emit WebSocket event for assistant message
+            EventEmitter.emit_assistant_message(session.session_id, assistant_reply, session.current_node_id)
+
             t_total = perf_counter() - t0
             step_timings = {
                 "choose_next": 0.0,

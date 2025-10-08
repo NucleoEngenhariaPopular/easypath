@@ -15,6 +15,8 @@ import {
 import SendIcon from '@mui/icons-material/Send';
 import CloseIcon from '@mui/icons-material/Close';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useTranslation } from 'react-i18next';
 
 interface Message {
@@ -34,6 +36,32 @@ interface TestModePanelProps {
   onSendMessage: (message: string) => void;
   onReset: () => void;
   isLoading?: boolean;
+  lastMessageStats?: {
+    responseTime: number;
+    tokens: number;
+    cost: number;
+    pathwaySelection: {
+      time: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      cost: number;
+      model: string;
+    };
+    responseGeneration: {
+      time: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      cost: number;
+      model: string;
+    };
+  } | null;
+  conversationStats?: {
+    totalResponseTime: number;
+    totalTokens: number;
+    totalCost: number;
+  };
 }
 
 const drawerWidth = 400;
@@ -133,9 +161,12 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
   onSendMessage,
   onReset,
   isLoading = false,
+  lastMessageStats,
+  conversationStats,
 }) => {
   const { t } = useTranslation();
   const [inputMessage, setInputMessage] = useState('');
+  const [showStats, setShowStats] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -225,6 +256,140 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
                 </Typography>
               </Box>
             ))}
+          </Paper>
+        )}
+
+        {/* Stats - Collapsible */}
+        {(lastMessageStats || (conversationStats && conversationStats.totalTokens > 0)) && (
+          <Paper sx={{ mb: 2, backgroundColor: 'action.hover' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                p: 1.5,
+                cursor: 'pointer',
+                '&:hover': { backgroundColor: 'action.selected' },
+              }}
+              onClick={() => setShowStats(!showStats)}
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                Performance Stats
+              </Typography>
+              <IconButton size="small" sx={{ p: 0 }}>
+                {showStats ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              </IconButton>
+            </Box>
+
+            {showStats && (
+              <Box sx={{ px: 2, pb: 2 }}>
+                {/* Last Message Stats */}
+                {lastMessageStats && (
+                  <Box sx={{ mb: 1.5, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                      Last Message Breakdown:
+                    </Typography>
+
+                    {/* Summary */}
+                    <Box sx={{ mb: 1, p: 1, backgroundColor: 'background.paper', borderRadius: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.3 }}>
+                        <Typography variant="caption" color="text.secondary">Total Time:</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                          {lastMessageStats.responseTime.toFixed(2)}s
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.3 }}>
+                        <Typography variant="caption" color="text.secondary">Total Tokens:</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                          {lastMessageStats.tokens.toLocaleString()}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="caption" color="text.secondary">Total Cost:</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                          ${lastMessageStats.cost.toFixed(6)}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Pathway Selection */}
+                    <Box sx={{ mb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5, color: 'primary.main' }}>
+                        1. Pathway Selection ({lastMessageStats.pathwaySelection.model})
+                      </Typography>
+                      <Box sx={{ pl: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
+                          <Typography variant="caption" color="text.secondary">Time:</Typography>
+                          <Typography variant="caption">{lastMessageStats.pathwaySelection.time.toFixed(2)}s</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
+                          <Typography variant="caption" color="text.secondary">Tokens:</Typography>
+                          <Typography variant="caption">
+                            {lastMessageStats.pathwaySelection.totalTokens.toLocaleString()}
+                            <span style={{ opacity: 0.6 }}> ({lastMessageStats.pathwaySelection.inputTokens} in / {lastMessageStats.pathwaySelection.outputTokens} out)</span>
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="caption" color="text.secondary">Cost:</Typography>
+                          <Typography variant="caption">${lastMessageStats.pathwaySelection.cost.toFixed(6)}</Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    {/* Response Generation */}
+                    <Box>
+                      <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5, color: 'success.main' }}>
+                        2. Response Generation ({lastMessageStats.responseGeneration.model})
+                      </Typography>
+                      <Box sx={{ pl: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
+                          <Typography variant="caption" color="text.secondary">Time:</Typography>
+                          <Typography variant="caption">{lastMessageStats.responseGeneration.time.toFixed(2)}s</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
+                          <Typography variant="caption" color="text.secondary">Tokens:</Typography>
+                          <Typography variant="caption">
+                            {lastMessageStats.responseGeneration.totalTokens.toLocaleString()}
+                            <span style={{ opacity: 0.6 }}> ({lastMessageStats.responseGeneration.inputTokens} in / {lastMessageStats.responseGeneration.outputTokens} out)</span>
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="caption" color="text.secondary">Cost:</Typography>
+                          <Typography variant="caption">${lastMessageStats.responseGeneration.cost.toFixed(6)}</Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
+
+                {/* Conversation Totals */}
+                {conversationStats && conversationStats.totalTokens > 0 && (
+                  <Box>
+                    <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                      Conversation Total:
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.3 }}>
+                      <Typography variant="caption" color="text.secondary">Time:</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                        {conversationStats.totalResponseTime.toFixed(2)}s
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.3 }}>
+                      <Typography variant="caption" color="text.secondary">Tokens:</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                        {conversationStats.totalTokens.toLocaleString()}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="caption" color="text.secondary">Cost:</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                        ${conversationStats.totalCost.toFixed(6)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            )}
           </Paper>
         )}
 

@@ -82,6 +82,34 @@ const CanvasPage: React.FC = () => {
   const [animatingEdge, setAnimatingEdge] = useState<string | null>(null);
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
 
+  // Stats tracking
+  const [lastMessageStats, setLastMessageStats] = useState<{
+    responseTime: number;
+    tokens: number;
+    cost: number;
+    pathwaySelection: {
+      time: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      cost: number;
+      model: string;
+    };
+    responseGeneration: {
+      time: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      cost: number;
+      model: string;
+    };
+  } | null>(null);
+  const [conversationStats, setConversationStats] = useState({
+    totalResponseTime: 0,
+    totalTokens: 0,
+    totalCost: 0,
+  });
+
   useEffect(() => {
     const fetchFlow = async () => {
       if (flowId && flowId !== 'new') {
@@ -302,6 +330,12 @@ const CanvasPage: React.FC = () => {
       setTestVariables({});
       setActiveNodeId(null);
       setIsLoadingResponse(false);
+      setLastMessageStats(null);
+      setConversationStats({
+        totalResponseTime: 0,
+        totalTokens: 0,
+        totalCost: 0,
+      });
     }
   };
 
@@ -392,6 +426,48 @@ const CanvasPage: React.FC = () => {
       } else {
         const responseData = await response.json();
         console.log('Engine response:', responseData);
+
+        // Extract timing and cost information
+        if (responseData.timing && responseData.timing.step_details) {
+          const stepDetails = responseData.timing.step_details;
+          const totalTokens =
+            stepDetails.choose_next_tokens.total +
+            stepDetails.generate_response_tokens.total;
+          const totalCost =
+            stepDetails.choose_next_tokens.cost_usd +
+            stepDetails.generate_response_tokens.cost_usd;
+          const responseTime = responseData.timing.total;
+
+          // Update last message stats with detailed breakdown
+          setLastMessageStats({
+            responseTime,
+            tokens: totalTokens,
+            cost: totalCost,
+            pathwaySelection: {
+              time: stepDetails.choose_next,
+              inputTokens: stepDetails.choose_next_tokens.input,
+              outputTokens: stepDetails.choose_next_tokens.output,
+              totalTokens: stepDetails.choose_next_tokens.total,
+              cost: stepDetails.choose_next_tokens.cost_usd,
+              model: stepDetails.choose_next_model,
+            },
+            responseGeneration: {
+              time: stepDetails.generate_response,
+              inputTokens: stepDetails.generate_response_tokens.input,
+              outputTokens: stepDetails.generate_response_tokens.output,
+              totalTokens: stepDetails.generate_response_tokens.total,
+              cost: stepDetails.generate_response_tokens.cost_usd,
+              model: stepDetails.generate_response_model,
+            },
+          });
+
+          // Update conversation totals
+          setConversationStats(prev => ({
+            totalResponseTime: prev.totalResponseTime + responseTime,
+            totalTokens: prev.totalTokens + totalTokens,
+            totalCost: prev.totalCost + totalCost,
+          }));
+        }
       }
     } catch (error) {
       console.error('Error sending test message:', error);
@@ -405,6 +481,12 @@ const CanvasPage: React.FC = () => {
     setTestVariables({});
     setActiveNodeId(null);
     setIsLoadingResponse(false);
+    setLastMessageStats(null);
+    setConversationStats({
+      totalResponseTime: 0,
+      totalTokens: 0,
+      totalCost: 0,
+    });
   };
 
   const handleToggleGlobalConfigSidebar = () => {
@@ -714,6 +796,8 @@ const CanvasPage: React.FC = () => {
         onSendMessage={handleSendTestMessage}
         onReset={handleResetTestSession}
         isLoading={isLoadingResponse}
+        lastMessageStats={lastMessageStats}
+        conversationStats={conversationStats}
       />
     </Box>
   );
