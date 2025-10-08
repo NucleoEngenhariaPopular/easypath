@@ -54,6 +54,7 @@ const initialEdges: Edge[] = [];
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { convertEngineToCanvas, isEngineFormat, isCanvasFormat } from '../utils/flowConverter';
+import { autoLayoutNodes } from '../utils/autoLayout';
 
 const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
@@ -233,6 +234,10 @@ const CanvasPage: React.FC = () => {
     setIsModalOpen(false);
   };
 
+  const handleAutoArrange = () => {
+    setNodes((currentNodes) => autoLayoutNodes(currentNodes, edges));
+  };
+
   const handleToggleGlobalConfigSidebar = () => {
     setIsGlobalConfigSidebarOpen(!isGlobalConfigSidebarOpen);
   };
@@ -408,6 +413,9 @@ const CanvasPage: React.FC = () => {
           onNodeClick={onNodeClick}
           onEdgeClick={onEdgeClick}
           nodeTypes={nodeTypes}
+          nodesDraggable={true}
+          nodesConnectable={true}
+          elementsSelectable={true}
           fitView
           defaultEdgeOptions={{
             type: 'smoothstep',
@@ -460,6 +468,7 @@ const CanvasPage: React.FC = () => {
             onClearIntermediateNodes={handleClearIntermediateNodes}
             onImport={handleImportFromJson}
             onExport={handleExportToJson}
+            onAutoArrange={handleAutoArrange}
           />
           <Tooltip title={t('canvasPage.globalSettingsTooltip')}>
             <Fab

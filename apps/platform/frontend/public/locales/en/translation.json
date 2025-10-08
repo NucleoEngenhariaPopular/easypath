@@ -124,6 +124,7 @@
     "addRequestNode": "Add Request Node",
     "importFlow": "Import Flow",
     "exportFlow": "Export Flow",
+    "autoArrange": "Auto-Arrange Nodes",
     "clearAddedIcons": "Clear Added Icons",
     "clearButton": "Clear"
   },

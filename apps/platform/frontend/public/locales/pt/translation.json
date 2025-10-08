@@ -122,6 +122,7 @@
     "addRequestNode": "Adicionar Nó de Requisição",
     "importFlow": "Importar Fluxo",
     "exportFlow": "Exportar Fluxo",
+    "autoArrange": "Organizar Nós Automaticamente",
     "clearAddedIcons": "Limpar Ícones Adicionados",
     "clearButton": "Limpar"
   },

@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { CustomNodeData, GlobalCanvasConfig, ExtractVarItem } from '../types/canvasTypes';
+import { autoLayoutNodes } from './autoLayout';
 
 // Engine flow format (from apps/engine)
 interface EnginePrompt {
@@ -126,14 +127,10 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
       condition: engineNode.loop_condition,
     };
 
-    // Calculate position in a vertical flow layout
-    const x = 400; // Center horizontally
-    const y = 250 * index; // Vertical spacing (increased for better visibility)
-
     return {
       id: engineNode.id,
       type: nodeType,
-      position: { x, y },
+      position: { x: 0, y: 0 }, // Temporary position, will be calculated by auto-layout
       data: nodeData,
     };
   });
@@ -147,12 +144,6 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
     type: 'smoothstep',
   }));
 
-  console.log('Converted engine flow to canvas format:', {
-    nodeCount: nodes.length,
-    edgeCount: edges.length,
-    nodes: nodes.map(n => ({ id: n.id, type: n.type, name: n.data.name })),
-  });
-
   // Convert global config
   const globalConfig: GlobalCanvasConfig = {
     globalPrompt: '', // Not in engine format
@@ -163,8 +154,17 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
     placeholdersAndVariables: engineFlow.global_values,
   };
 
+  // Apply auto-layout to position nodes intelligently
+  const positionedNodes = autoLayoutNodes(nodes, edges);
+
+  console.log('Converted engine flow to canvas format:', {
+    nodeCount: positionedNodes.length,
+    edgeCount: edges.length,
+    nodes: positionedNodes.map(n => ({ id: n.id, type: n.type, name: n.data.name, position: n.position })),
+  });
+
   return {
-    nodes,
+    nodes: positionedNodes,
     edges,
     globalConfig,
   };

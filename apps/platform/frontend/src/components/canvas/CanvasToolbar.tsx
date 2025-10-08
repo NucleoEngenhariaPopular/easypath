@@ -1,4 +1,4 @@
-import { ClearAllOutlined, FileUploadOutlined, FileDownloadOutlined } from '@mui/icons-material';
+import { ClearAllOutlined, FileUploadOutlined, FileDownloadOutlined, AccountTreeOutlined } from '@mui/icons-material';
 import HttpIcon from '@mui/icons-material/Http';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
@@ -13,9 +13,10 @@ interface CanvasToolbarProps {
   onClearIntermediateNodes: () => void;
   onImport: () => void;
   onExport: () => void;
+  onAutoArrange: () => void;
 }
 
-const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearIntermediateNodes, onImport, onExport }) => {
+const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearIntermediateNodes, onImport, onExport, onAutoArrange }) => {
   const { t } = useTranslation();
 
   return (
@@ -125,6 +126,23 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearInterme
             onClick={onExport}
           >
             <FileDownloadOutlined />
+          </IconButton>
+        </Tooltip>
+
+        <Divider orientation='vertical' flexItem sx={{ mx: 0.5 }} />
+
+        <Tooltip title={t('canvasToolbar.autoArrange')}>
+          <IconButton
+            color={'default'}
+            sx={{
+              borderRadius: 2,
+              '&:hover': {
+                color: 'primary.main'
+              },
+            }}
+            onClick={onAutoArrange}
+          >
+            <AccountTreeOutlined />
           </IconButton>
         </Tooltip>
 
