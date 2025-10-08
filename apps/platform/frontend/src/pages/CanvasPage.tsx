@@ -121,16 +121,12 @@ const CanvasPage: React.FC = () => {
         }
         break;
       case 'user_message':
-        if (event.message) {
-          setTestMessages(prev => [...prev, {
-            role: 'user',
-            content: event.message!,
-            timestamp: event.timestamp
-          }]);
-        }
+        // User messages are shown immediately when sent, skip WebSocket event
+        console.log('Skipping user_message WebSocket event (already shown):', event.message);
         break;
       case 'assistant_message':
         if (event.message) {
+          console.log('Adding assistant message from WebSocket:', event.message);
           setTestMessages(prev => [...prev, {
             role: 'assistant',
             content: event.message!,
@@ -309,6 +305,14 @@ const CanvasPage: React.FC = () => {
   const handleSendTestMessage = async (message: string) => {
     try {
       console.log('Sending test message:', message);
+
+      // Immediately show user message in the chat
+      console.log('Adding user message immediately:', message);
+      setTestMessages(prev => [...prev, {
+        role: 'user',
+        content: message,
+        timestamp: new Date().toISOString()
+      }]);
 
       // Convert canvas flow to engine format
       const engineFlow = {
