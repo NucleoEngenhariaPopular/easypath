@@ -52,4 +52,11 @@ class Flow(BaseModel):
     def get_node_by_id(self, node_id: str) -> Node:
         return next(node for node in self.nodes if node.id == node_id)
 
+    def get_connection(self, source_id: str, target_id: str) -> Optional[Connection]:
+        """Get connection between two nodes, if it exists."""
+        for conn in self.connections:
+            if conn.source == source_id and conn.target == target_id:
+                return conn
+        return None
+
 
