@@ -55,7 +55,7 @@ export function useFlowWebSocket({
   const [executionState, setExecutionState] = useState<FlowExecutionState | null>(null);
 
   const connect = useCallback(() => {
-    if (!enabled || !sessionId) return;
+    if (!enabled || !sessionId || wsRef.current?.readyState === WebSocket.OPEN) return;
 
     // Determine WebSocket URL (ws:// for http, wss:// for https)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -104,6 +104,7 @@ export function useFlowWebSocket({
     ws.onclose = () => {
       console.log('WebSocket disconnected');
       setIsConnected(false);
+      wsRef.current = null;
     };
 
     wsRef.current = ws;
@@ -123,12 +124,15 @@ export function useFlowWebSocket({
   }, []);
 
   useEffect(() => {
-    connect();
+    if (enabled && sessionId) {
+      connect();
+    }
 
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, sessionId]);
 
   return {
     isConnected,

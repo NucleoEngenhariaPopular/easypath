@@ -7,7 +7,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
 from app.models.ws_events import FlowExecutionState, SessionStartedEvent
 from app.ws.manager import ws_manager
-from app.storage.session_store import get_session_store
+from app.storage.session_store import load_session
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +43,13 @@ async def websocket_endpoint(
         await ws_manager.send_event(event, session_id)
 
         # Try to load and send current session state if it exists
-        session_store = get_session_store()
         try:
-            session = await session_store.get_session(session_id)
+            session = await load_session(session_id)
             if session:
                 state = FlowExecutionState(
                     session_id=session_id,
                     current_node_id=session.current_node_id,
-                    variables=session.variables,
+                    variables=session.extracted_variables,
                     message_history=[
                         {"role": msg["role"], "content": msg["content"]}
                         for msg in session.message_history
@@ -63,14 +62,18 @@ async def websocket_endpoint(
 
         # Keep connection alive and handle incoming messages
         while True:
-            # Wait for messages from client (if needed for future features)
-            data = await websocket.receive_text()
-            logger.debug(f"Received WebSocket message: {data}")
+            try:
+                # Wait for messages from client (if needed for future features)
+                data = await websocket.receive_text()
+                logger.debug(f"Received WebSocket message: {data}")
 
-            # For now, we just log. In future, could handle commands like:
-            # - "pause" - pause flow execution
-            # - "step" - step through flow manually
-            # - "reset" - reset session
+                # For now, we just log. In future, could handle commands like:
+                # - "pause" - pause flow execution
+                # - "step" - step through flow manually
+                # - "reset" - reset session
+            except Exception as e:
+                logger.debug(f"WebSocket receive error: {e}")
+                break
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected: session_id={session_id}")

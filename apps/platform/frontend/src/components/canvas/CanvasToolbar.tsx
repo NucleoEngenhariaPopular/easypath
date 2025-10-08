@@ -1,4 +1,4 @@
-import { ClearAllOutlined, FileUploadOutlined, FileDownloadOutlined, AccountTreeOutlined } from '@mui/icons-material';
+import { ClearAllOutlined, FileUploadOutlined, FileDownloadOutlined, AccountTreeOutlined, PlayArrow, Stop } from '@mui/icons-material';
 import HttpIcon from '@mui/icons-material/Http';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
@@ -14,9 +14,19 @@ interface CanvasToolbarProps {
   onImport: () => void;
   onExport: () => void;
   onAutoArrange: () => void;
+  onTestModeToggle: () => void;
+  isTestMode: boolean;
 }
 
-const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearIntermediateNodes, onImport, onExport, onAutoArrange }) => {
+const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
+  onAddNode,
+  onClearIntermediateNodes,
+  onImport,
+  onExport,
+  onAutoArrange,
+  onTestModeToggle,
+  isTestMode
+}) => {
   const { t } = useTranslation();
 
   return (
@@ -144,6 +154,20 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onClearInterme
           >
             <AccountTreeOutlined />
           </IconButton>
+        </Tooltip>
+
+        <Divider orientation='vertical' flexItem sx={{ mx: 0.5 }} />
+
+        <Tooltip title={isTestMode ? t('canvasToolbar.stopTest') : t('canvasToolbar.startTest')}>
+          <Button
+            variant={isTestMode ? 'contained' : 'outlined'}
+            color={isTestMode ? 'success' : 'primary'}
+            startIcon={isTestMode ? <Stop /> : <PlayArrow />}
+            size='small'
+            onClick={onTestModeToggle}
+          >
+            {isTestMode ? t('canvasToolbar.stopButton') : t('canvasToolbar.testButton')}
+          </Button>
         </Tooltip>
 
         <Divider orientation='vertical' flexItem sx={{ mx: 0.5 }} />

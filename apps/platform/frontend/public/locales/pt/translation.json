@@ -123,8 +123,22 @@
     "importFlow": "Importar Fluxo",
     "exportFlow": "Exportar Fluxo",
     "autoArrange": "Organizar Nós Automaticamente",
+    "startTest": "Iniciar Modo de Teste",
+    "stopTest": "Parar Modo de Teste",
+    "testButton": "Testar",
+    "stopButton": "Parar",
     "clearAddedIcons": "Limpar Ícones Adicionados",
     "clearButton": "Limpar"
+  },
+  "testMode": {
+    "title": "Modo de Teste",
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "currentNode": "Nó Atual",
+    "variables": "Variáveis",
+    "noMessages": "Comece a conversar para testar seu fluxo",
+    "inputPlaceholder": "Digite uma mensagem...",
+    "reset": "Resetar Sessão"
   },
   "canvasPage": {
     "initialGlobalPrompt": "Prompt global padrão: Seja útil e conciso.",

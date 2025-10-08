@@ -26,13 +26,23 @@ class EventEmitter:
     def _emit_sync(event_coro):
         """Helper to emit events from sync code."""
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Create task to run concurrently
-                asyncio.create_task(event_coro)
-            else:
-                # Run in new event loop
-                asyncio.run(event_coro)
+            # Try to get the running event loop
+            try:
+                loop = asyncio.get_running_loop()
+                # We have a running loop - schedule the task
+                loop.create_task(event_coro)
+            except RuntimeError:
+                # No running loop - try to get the event loop
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        loop.create_task(event_coro)
+                    else:
+                        # Create a new loop and run the coroutine
+                        asyncio.run(event_coro)
+                except Exception:
+                    # Last resort - try to run directly
+                    asyncio.run(event_coro)
         except Exception as e:
             logger.debug(f"Could not emit WebSocket event: {e}")
 

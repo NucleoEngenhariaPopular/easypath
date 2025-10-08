@@ -55,6 +55,8 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { convertEngineToCanvas, isEngineFormat, isCanvasFormat } from '../utils/flowConverter';
 import { autoLayoutNodes } from '../utils/autoLayout';
+import TestModePanel from '../components/canvas/TestModePanel';
+import { useFlowWebSocket, type FlowEvent } from '../hooks/useFlowWebSocket';
 
 const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
@@ -70,6 +72,14 @@ const CanvasPage: React.FC = () => {
   const [globalConfig, setGlobalConfig] = useState<GlobalCanvasConfig>(initialGlobalConfig);
   const [flowName, setFlowName] = useState('Untitled Flow');
   const [flowDescription, setFlowDescription] = useState('');
+
+  // Test mode state
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [testSessionId] = useState(`test-${Date.now()}`);
+  const [testMessages, setTestMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string; timestamp: string }>>([]);
+  const [testVariables, setTestVariables] = useState<Record<string, any>>({});
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+  const [animatingEdge, setAnimatingEdge] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFlow = async () => {
@@ -89,6 +99,54 @@ const CanvasPage: React.FC = () => {
 
     fetchFlow();
   }, [flowId, setNodes, setEdges]);
+
+  // WebSocket integration for test mode
+  const handleWebSocketEvent = (event: FlowEvent) => {
+    console.log('WebSocket event:', event);
+
+    switch (event.event_type) {
+      case 'node_entered':
+        setActiveNodeId(event.node_id || null);
+        break;
+      case 'pathway_selected':
+        if (event.from_node_id && event.to_node_id) {
+          const edgeId = `${event.from_node_id}-${event.to_node_id}`;
+          setAnimatingEdge(edgeId);
+          setTimeout(() => setAnimatingEdge(null), 1000);
+        }
+        break;
+      case 'variable_extracted':
+        if (event.all_variables) {
+          setTestVariables(event.all_variables);
+        }
+        break;
+      case 'user_message':
+        if (event.message) {
+          setTestMessages(prev => [...prev, {
+            role: 'user',
+            content: event.message!,
+            timestamp: event.timestamp
+          }]);
+        }
+        break;
+      case 'assistant_message':
+        if (event.message) {
+          setTestMessages(prev => [...prev, {
+            role: 'assistant',
+            content: event.message!,
+            timestamp: event.timestamp
+          }]);
+        }
+        break;
+    }
+  };
+
+  const { isConnected } = useFlowWebSocket({
+    sessionId: testSessionId,
+    flowId: flowId,
+    onEvent: handleWebSocketEvent,
+    enabled: isTestMode
+  });
 
   const onConnect = useCallback(
     (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),
@@ -236,6 +294,104 @@ const CanvasPage: React.FC = () => {
 
   const handleAutoArrange = () => {
     setNodes((currentNodes) => autoLayoutNodes(currentNodes, edges));
+  };
+
+  const handleTestModeToggle = () => {
+    setIsTestMode(!isTestMode);
+    if (isTestMode) {
+      // Reset state when closing test mode
+      setTestMessages([]);
+      setTestVariables({});
+      setActiveNodeId(null);
+    }
+  };
+
+  const handleSendTestMessage = async (message: string) => {
+    try {
+      console.log('Sending test message:', message);
+
+      // Convert canvas flow to engine format
+      const engineFlow = {
+        first_node_id: nodes.find(n => n.data.isStart)?.id || nodes[0]?.id || 'start',
+        nodes: nodes.map(n => ({
+          id: n.id,
+          node_type: n.type || 'normal',
+          prompt: {
+            context: '',
+            objective: n.data.prompt || '',
+            notes: '',
+            examples: ''
+          },
+          is_start: n.data.isStart || false,
+          is_end: n.type === 'end',
+          use_llm: true,
+          is_global: false,
+          extract_vars: n.data.extractVars?.map(v => ({
+            name: v.varName,
+            description: v.description,
+            required: true
+          })) || [],
+          temperature: n.data.modelOptions?.temperature || 0.2,
+          skip_user_response: n.data.modelOptions?.skipUserResponse || false,
+          overrides_global_pathway: n.data.modelOptions?.conditionOverridesGlobalPathway || false,
+          loop_condition: n.data.condition || ''
+        })),
+        connections: edges.map((e, idx) => ({
+          id: e.id || `conn-${idx}`,
+          label: e.label?.toString() || '',
+          description: e.label?.toString() || '',
+          else_option: false,
+          source: e.source,
+          target: e.target
+        })),
+        global_objective: globalConfig.roleAndObjective || '',
+        global_tone: globalConfig.toneAndStyle || '',
+        global_language: globalConfig.languageAndFormatRules || '',
+        global_behaviour: globalConfig.behaviorAndFallbacks || '',
+        global_values: globalConfig.placeholdersAndVariables || ''
+      };
+
+      console.log('Engine flow:', engineFlow);
+      console.log('Number of nodes:', engineFlow.nodes.length);
+      console.log('Number of connections:', engineFlow.connections.length);
+      console.log('First node ID:', engineFlow.first_node_id);
+
+      const requestBody = {
+        session_id: testSessionId,
+        user_message: message,
+        flow: engineFlow
+      };
+
+      console.log('Sending request to engine:', requestBody);
+
+      const response = await fetch('http://localhost:8081/chat/message-with-flow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('Engine response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to send message:', response.statusText, errorText);
+        alert(`Error: ${response.status} - ${errorText}`);
+      } else {
+        const responseData = await response.json();
+        console.log('Engine response:', responseData);
+      }
+    } catch (error) {
+      console.error('Error sending test message:', error);
+      alert(`Error sending message: ${error}`);
+    }
+  };
+
+  const handleResetTestSession = () => {
+    setTestMessages([]);
+    setTestVariables({});
+    setActiveNodeId(null);
   };
 
   const handleToggleGlobalConfigSidebar = () => {
@@ -405,8 +561,15 @@ const CanvasPage: React.FC = () => {
         }}
       >
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
+          nodes={nodes.map(node => ({
+            ...node,
+            className: node.id === activeNodeId ? 'active-node' : ''
+          }))}
+          edges={edges.map(edge => ({
+            ...edge,
+            className: edge.id === animatingEdge ? 'animating-edge' : '',
+            animated: edge.id === animatingEdge
+          }))}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
@@ -469,6 +632,8 @@ const CanvasPage: React.FC = () => {
             onImport={handleImportFromJson}
             onExport={handleExportToJson}
             onAutoArrange={handleAutoArrange}
+            onTestModeToggle={handleTestModeToggle}
+            isTestMode={isTestMode}
           />
           <Tooltip title={t('canvasPage.globalSettingsTooltip')}>
             <Fab
@@ -523,6 +688,18 @@ const CanvasPage: React.FC = () => {
         selectedEdge={selectedEdge}
         onEdgeUpdate={handleEdgeUpdate}
         onEdgeDelete={handleEdgeDelete}
+      />
+
+      <TestModePanel
+        open={isTestMode}
+        onClose={() => setIsTestMode(false)}
+        sessionId={testSessionId}
+        isConnected={isConnected}
+        messages={testMessages}
+        variables={testVariables}
+        currentNodeId={activeNodeId}
+        onSendMessage={handleSendTestMessage}
+        onReset={handleResetTestSession}
       />
     </Box>
   );

@@ -125,8 +125,22 @@
     "importFlow": "Import Flow",
     "exportFlow": "Export Flow",
     "autoArrange": "Auto-Arrange Nodes",
+    "startTest": "Start Test Mode",
+    "stopTest": "Stop Test Mode",
+    "testButton": "Test",
+    "stopButton": "Stop",
     "clearAddedIcons": "Clear Added Icons",
     "clearButton": "Clear"
+  },
+  "testMode": {
+    "title": "Test Mode",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "currentNode": "Current Node",
+    "variables": "Variables",
+    "noMessages": "Start chatting to test your flow",
+    "inputPlaceholder": "Type a message...",
+    "reset": "Reset Session"
   },
   "canvasPage": {
     "initialGlobalPrompt": "Default global prompt: Be helpful and concise.",

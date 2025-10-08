@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from .utils.logging import setup_logging
 from .config import settings
 import logging
@@ -10,6 +11,15 @@ from .api.routes.ws import router as ws_router
 setup_logging(settings.LOG_LEVEL)
 
 app = FastAPI(title="EasyPath Engine", version="0.1.0")
+
+# CORS Configuration for WebSocket and HTTP
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(health_router, prefix="/health", tags=["health"])
 app.include_router(chat_router, prefix="/chat", tags=["chat"])
