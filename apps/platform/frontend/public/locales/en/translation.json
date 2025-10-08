@@ -38,6 +38,23 @@
     "pathCard": {
       "nodes": "{{count}} nodes",
       "created": "Created: {{date}}"
+    },
+    "menu": {
+      "rename": "Rename",
+      "delete": "Delete"
+    },
+    "renameDialog": {
+      "title": "Rename Flow",
+      "description": "Enter a new name for this flow",
+      "label": "Flow Name",
+      "cancel": "Cancel",
+      "confirm": "Rename"
+    },
+    "deleteDialog": {
+      "title": "Delete Flow",
+      "description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
     }
   },
   "nodeModal": {

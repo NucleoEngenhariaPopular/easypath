@@ -38,6 +38,23 @@
     "pathCard": {
       "nodes": "{{count}} nós",
       "created": "Criado em: {{date}}"
+    },
+    "menu": {
+      "rename": "Renomear",
+      "delete": "Excluir"
+    },
+    "renameDialog": {
+      "title": "Renomear Fluxo",
+      "description": "Digite um novo nome para este fluxo",
+      "label": "Nome do Fluxo",
+      "cancel": "Cancelar",
+      "confirm": "Renomear"
+    },
+    "deleteDialog": {
+      "title": "Excluir Fluxo",
+      "description": "Tem certeza que deseja excluir \"{{name}}\"? Esta ação não pode ser desfeita.",
+      "cancel": "Cancelar",
+      "confirm": "Excluir"
     }
   },
   "nodeModal": {

@@ -1,5 +1,7 @@
 import AddIcon from '@mui/icons-material/Add';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import FolderIcon from '@mui/icons-material/Folder';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import GridViewIcon from '@mui/icons-material/GridView';
@@ -12,12 +14,18 @@ import {
   Button,
   Card,
   CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   FormControl,
   Grid,
   IconButton,
   InputAdornment,
   InputLabel,
+  Menu,
   MenuItem,
   Paper,
   Select,
@@ -48,6 +56,13 @@ const DashboardPage: FC = () => {
   const [sortBy, setSortBy] = useState<'title-asc' | 'title-desc' | 'date-newest' | 'date-oldest'>('date-newest');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'draft' | 'archived'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Menu and dialog states
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [selectedFlow, setSelectedFlow] = useState<any | null>(null);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [newFlowName, setNewFlowName] = useState('');
 
   useEffect(() => {
     const fetchFlows = async () => {
@@ -82,6 +97,80 @@ const DashboardPage: FC = () => {
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(i18n.language, options);
+  };
+
+  // Menu handlers
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, flow: any) => {
+    event.stopPropagation();
+    setMenuAnchor(event.currentTarget);
+    setSelectedFlow(flow);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+  };
+
+  // Rename handlers
+  const handleRenameClick = () => {
+    setNewFlowName(selectedFlow?.name || '');
+    setRenameDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const handleRenameClose = () => {
+    setRenameDialogOpen(false);
+    setNewFlowName('');
+  };
+
+  const handleRenameConfirm = async () => {
+    if (!selectedFlow || !newFlowName.trim()) return;
+
+    try {
+      const response = await fetch(`/api/flows/${selectedFlow.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newFlowName.trim(),
+          description: selectedFlow.description,
+          flow_data: selectedFlow.flow_data,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedFlow = await response.json();
+        setFlows(flows.map(f => f.id === selectedFlow.id ? updatedFlow : f));
+        handleRenameClose();
+      }
+    } catch (error) {
+      console.error('Failed to rename flow:', error);
+    }
+  };
+
+  // Delete handlers
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const handleDeleteClose = () => {
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedFlow) return;
+
+    try {
+      const response = await fetch(`/api/flows/${selectedFlow.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setFlows(flows.filter(f => f.id !== selectedFlow.id));
+        handleDeleteClose();
+      }
+    } catch (error) {
+      console.error('Failed to delete flow:', error);
+    }
   };
 
   const filteredAndSortedPaths = useMemo(() => {
@@ -383,11 +472,10 @@ const DashboardPage: FC = () => {
                         <IconButton
                           size="small"
                           sx={{ ml: 1, mt: -1, mr: -1 }}
-                          onClick={(e) => e.stopPropagation()} // Prevent card click when clicking dropdown
+                          onClick={(e) => handleMenuOpen(e, path)}
                         >
                           <MoreVertIcon fontSize="small" />
                         </IconButton>
-                        {/* More options dropdown would go here */}
                       </Box>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.4, minHeight: 40, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                         {path.description}
@@ -473,7 +561,7 @@ const DashboardPage: FC = () => {
                     </Box>
                     <Box sx={{ flexGrow: 1 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                        {path.title}
+                        {path.name}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4, minHeight: 20, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
                         {path.description}
@@ -481,7 +569,7 @@ const DashboardPage: FC = () => {
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, ml: 3 }}>
                       <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-                        {formatDate(path.createdAt)}
+                        {formatDate(path.created_at)}
                       </Typography>
                       <Box
                         sx={{
@@ -500,11 +588,10 @@ const DashboardPage: FC = () => {
                       </Box>
                       <IconButton
                         size="small"
-                        onClick={(e) => e.stopPropagation()} // Prevent card click
+                        onClick={(e) => handleMenuOpen(e, path)}
                       >
                         <MoreVertIcon fontSize="small" />
                       </IconButton>
-                      {/* More options dropdown would go here */}
                     </Box>
                   </CardContent>
                 </Card>
@@ -513,6 +600,74 @@ const DashboardPage: FC = () => {
           )}
         </Box>
       </Box>
+
+      {/* Options Menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        <MenuItem onClick={handleRenameClick}>
+          <EditIcon sx={{ mr: 1, fontSize: 20 }} />
+          {t('dashboardPage.menu.rename')}
+        </MenuItem>
+        <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
+          <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
+          {t('dashboardPage.menu.delete')}
+        </MenuItem>
+      </Menu>
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onClose={handleRenameClose} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('dashboardPage.renameDialog.title')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            {t('dashboardPage.renameDialog.description')}
+          </DialogContentText>
+          <TextField
+            autoFocus
+            fullWidth
+            label={t('dashboardPage.renameDialog.label')}
+            value={newFlowName}
+            onChange={(e) => setNewFlowName(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && newFlowName.trim()) {
+                handleRenameConfirm();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleRenameClose}>{t('dashboardPage.renameDialog.cancel')}</Button>
+          <Button onClick={handleRenameConfirm} variant="contained" disabled={!newFlowName.trim()}>
+            {t('dashboardPage.renameDialog.confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteClose} maxWidth="sm">
+        <DialogTitle>{t('dashboardPage.deleteDialog.title')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t('dashboardPage.deleteDialog.description', { name: selectedFlow?.name })}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteClose}>{t('dashboardPage.deleteDialog.cancel')}</Button>
+          <Button onClick={handleDeleteConfirm} variant="contained" color="error">
+            {t('dashboardPage.deleteDialog.confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
