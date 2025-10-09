@@ -22,6 +22,7 @@ interface NodeModalProps {
   onClose: () => void;
   selectedNode: Node<CustomNodeData> | null;
   onNodeDataChange: (field: keyof CustomNodeData | `modelOptions.${keyof ModelOptions}` | `extractVars.${number}.${keyof ExtractVarItem}`, value: any) => void;
+  onNodeDelete: (nodeId: string) => void;
 }
 
 type InputMode = 'prompt' | 'staticText';
@@ -46,6 +47,7 @@ const NodeModal: FC<NodeModalProps> = ({
   onClose,
   selectedNode,
   onNodeDataChange,
+  onNodeDelete,
 }) => {
   const { t } = useTranslation();
   const [inputMode, setInputMode] = useState<InputMode>('prompt');
@@ -120,6 +122,13 @@ const NodeModal: FC<NodeModalProps> = ({
 
     const currentPrompt = selectedNode.data.prompt || { context: '', objective: '', notes: '', examples: '', custom_fields: {} };
     onNodeDataChange('prompt', { ...currentPrompt, custom_fields: customFieldsObj });
+  };
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this node? All connected edges will also be removed.')) {
+      onNodeDelete(selectedNode.id);
+      onClose();
+    }
   };
 
   const handleAddVariable = () => {
@@ -761,9 +770,20 @@ const NodeModal: FC<NodeModalProps> = ({
             borderTop: '2px solid',
             borderColor: 'divider'
           }}>
-            <Typography variant="caption" color="text.secondary">
-              Changes are saved automatically
-            </Typography>
+            <Button
+              onClick={handleDelete}
+              color="error"
+              variant="outlined"
+              startIcon={<DeleteIcon />}
+              sx={{
+                borderRadius: 2,
+                '&:hover': {
+                  bgcolor: 'error.lighter',
+                }
+              }}
+            >
+              Delete
+            </Button>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button
                 variant="outlined"

@@ -132,6 +132,21 @@ const CanvasPage: React.FC = () => {
     fetchFlow();
   }, [flowId, setNodes, setEdges]);
 
+  // Keyboard event listener for deleting selected edges
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.key === 'Delete' || event.key === 'Backspace') && clickedEdge) {
+        event.preventDefault();
+        setEdges((eds) => eds.filter((edge) => edge.id !== clickedEdge));
+        setClickedEdge(null);
+        setLastClickedEdgeId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [clickedEdge, setEdges]);
+
   // WebSocket integration for test mode
   const handleWebSocketEvent = (event: FlowEvent) => {
     console.log('WebSocket event:', event);
@@ -270,6 +285,13 @@ const CanvasPage: React.FC = () => {
 
   const handleEdgeDelete = (edgeId: string) => {
     setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
+  };
+
+  const handleNodeDelete = (nodeId: string) => {
+    // Remove the node
+    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+    // Remove any edges connected to this node
+    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
   };
 
   const handleNodeDataChange = (
@@ -696,6 +718,7 @@ const CanvasPage: React.FC = () => {
           nodesDraggable={true}
           nodesConnectable={true}
           elementsSelectable={true}
+          edgesReconnectable={true}
           fitView
           defaultEdgeOptions={{
             type: 'smoothstep',
@@ -796,6 +819,7 @@ const CanvasPage: React.FC = () => {
           onClose={handleModalClose}
           selectedNode={selectedNode}
           onNodeDataChange={handleNodeDataChange}
+          onNodeDelete={handleNodeDelete}
         />
       )}
 
