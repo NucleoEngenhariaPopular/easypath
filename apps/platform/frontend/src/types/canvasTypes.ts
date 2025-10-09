@@ -1,16 +1,14 @@
 // src/types/canvasTypes.ts
 export interface ModelOptions {
-  modelType?: string;
   temperature?: number;
   skipUserResponse?: boolean;
-  conditionOverridesGlobalPathway?: boolean;
 }
 
 export interface ExtractVarItem {
-  varName: string;
-  varType: 'string' | 'boolean' | 'number';
+  name: string;
+  varType: 'string' | 'int' | 'float' | 'boolean' | 'datetime' | 'array' | 'object';
   description: string;
-  defaultValue?: any;
+  required: boolean;
 }
 
 export interface ConversationHistoryItem {
@@ -23,16 +21,25 @@ export interface PathwayExample {
   'Conversation History': ConversationHistoryItem[];
 }
 
+export interface PromptData {
+  context: string;
+  objective: string;
+  notes: string;
+  examples: string;
+  custom_fields?: Record<string, string>;
+}
+
 export interface CustomNodeData {
   name: string;
-  prompt?: string;
+  nodeType?: string;
+  prompt?: PromptData;
   text?: string;
   url?: string;
   method?: string;
   isStart?: boolean;
   modelOptions?: ModelOptions;
-  // removed: extractVarSettings?: ExtractVarSettings;
   condition?: string;
+  loopEnabled?: boolean;
   extractVars?: ExtractVarItem[];
   pathwayExamples?: PathwayExample[];
   [key: string]: unknown;

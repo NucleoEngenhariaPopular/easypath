@@ -25,9 +25,17 @@ def _format_prompts(flow: Flow, current_node_id: str, session: ChatSession) -> t
         f"Exemplos da mensagem atual: {node.prompt.examples}"
     )
 
+    # Add custom prompt fields if present
+    if node.prompt.custom_fields:
+        custom_fields_str = "\n".join([
+            f"{field_name}: {field_value}"
+            for field_name, field_value in node.prompt.custom_fields.items()
+        ])
+        node_prompt += f"\n{custom_fields_str}"
+
     # Add extracted variables context
     variables_context = format_variables_for_prompt(session)
-    
+
     prompt = f"{global_prompt}\n-------------------------------\n{node_prompt}{variables_context}"
     return prompt, node.temperature
 

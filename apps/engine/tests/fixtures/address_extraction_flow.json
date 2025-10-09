@@ -17,7 +17,7 @@
       "extract_vars": [],
       "temperature": 0.3,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -36,7 +36,7 @@
       "extract_vars": [],
       "temperature": 0.2,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -56,32 +56,37 @@
         {
           "name": "user_street",
           "description": "Nome da rua/avenida completa",
-          "required": true
+          "required": true,
+          "var_type": "string"
         },
         {
-          "name": "user_number", 
+          "name": "user_number",
           "description": "Número da casa/apartamento",
-          "required": true
+          "required": true,
+          "var_type": "string"
         },
         {
           "name": "user_neighborhood",
           "description": "Nome do bairro",
-          "required": true
+          "required": true,
+          "var_type": "string"
         },
         {
           "name": "user_city",
           "description": "Nome da cidade",
-          "required": true
+          "required": true,
+          "var_type": "string"
         },
         {
           "name": "user_zipcode",
           "description": "CEP se fornecido",
-          "required": false
+          "required": false,
+          "var_type": "string"
         }
       ],
       "temperature": 0.1,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": true,
       "loop_condition": "Continuar perguntando até ter pelo menos rua, número, bairro e cidade"
     },
     {
@@ -100,7 +105,7 @@
       "extract_vars": [],
       "temperature": 0.2,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -119,7 +124,7 @@
       "extract_vars": [],
       "temperature": 0.4,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -138,7 +143,7 @@
       "extract_vars": [],
       "temperature": 0.4,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -157,7 +162,7 @@
       "extract_vars": [],
       "temperature": 0.3,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     }
   ],

@@ -44,12 +44,20 @@ def test_run_step_moves_to_next_node(monkeypatch):
     session = ChatSession(session_id="s1", current_node_id="start-node")
 
     # Monkeypatch choose_next and generate_response to avoid LLM calls
-    from app.core import pathway_selector, flow_executor
+    from app.core import orchestrator
 
-    monkeypatch.setattr(pathway_selector, "choose_next", lambda f, s, nid: "end-node")
-    monkeypatch.setattr(flow_executor, "generate_response", lambda f, s, nid: "ok")
+    mock_llm_info = {
+        "timing_ms": 0.0,
+        "model_name": "test",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost_usd": 0.0
+    }
+    monkeypatch.setattr(orchestrator, "choose_next", lambda f, s, nid: ("end-node", mock_llm_info))
+    monkeypatch.setattr(orchestrator, "generate_response", lambda f, s, nid: ("ok", mock_llm_info))
 
-    reply = run_step(flow, session, "hi")
+    reply, timings = run_step(flow, session, "hi")
     assert reply == "ok"
     assert session.current_node_id == "end-node"
     assert len(session.history) == 2

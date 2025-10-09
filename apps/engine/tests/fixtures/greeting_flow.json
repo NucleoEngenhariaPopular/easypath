@@ -12,7 +12,7 @@
       "extract_vars": [],
       "temperature": 0.0,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -26,7 +26,7 @@
       "extract_vars": [],
       "temperature": 0.2,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": true,
       "loop_condition": "Insistir até que o nome seja coletado"
     },
     {
@@ -40,7 +40,7 @@
       "extract_vars": [],
       "temperature": 0.0,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     }
   ],

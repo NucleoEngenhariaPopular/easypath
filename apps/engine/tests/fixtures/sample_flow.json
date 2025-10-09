@@ -4,7 +4,7 @@
     {
       "id": "start-node",
       "node_type": "start",
-      "prompt": {"context": "", "objective": "", "notes": "", "examples": ""},
+      "prompt": {"context": "", "objective": "", "notes": "", "examples": "", "custom_fields": {}},
       "is_start": true,
       "is_end": false,
       "use_llm": true,
@@ -12,13 +12,13 @@
       "extract_vars": [],
       "temperature": 0.0,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
       "id": "end-node",
       "node_type": "end",
-      "prompt": {"context": "", "objective": "", "notes": "", "examples": ""},
+      "prompt": {"context": "", "objective": "", "notes": "", "examples": "", "custom_fields": {}},
       "is_start": false,
       "is_end": true,
       "use_llm": false,
@@ -26,7 +26,7 @@
       "extract_vars": [],
       "temperature": 0.0,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     }
   ],

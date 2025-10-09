@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
 
@@ -7,12 +7,14 @@ class Prompt(BaseModel):
     objective: str = ""
     notes: str = ""
     examples: str = ""
+    custom_fields: Dict[str, str] = {}
 
 
 class VariableExtraction(BaseModel):
     name: str = ""
     description: str = ""
     required: bool = True
+    var_type: str = "string"  # string, int, datetime, boolean, float, array, object
 
 
 class Node(BaseModel):
@@ -26,7 +28,7 @@ class Node(BaseModel):
     extract_vars: List[VariableExtraction] = []
     temperature: float = 0.2
     skip_user_response: bool = False
-    overrides_global_pathway: bool = True
+    loop_enabled: bool = False
     loop_condition: str = ""
 
 

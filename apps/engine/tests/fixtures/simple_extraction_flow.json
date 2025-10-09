@@ -17,7 +17,7 @@
       "extract_vars": [],
       "temperature": 0.3,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -36,7 +36,7 @@
       "extract_vars": [],
       "temperature": 0.2,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -56,12 +56,13 @@
         {
           "name": "user_name",
           "description": "Nome completo ou primeiro nome do usuário",
-          "required": true
+          "required": true,
+          "var_type": "string"
         }
       ],
       "temperature": 0.1,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -80,7 +81,7 @@
       "extract_vars": [],
       "temperature": 0.2,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -100,17 +101,19 @@
         {
           "name": "user_city",
           "description": "Nome da cidade onde o usuário mora",
-          "required": true
+          "required": true,
+          "var_type": "string"
         },
         {
           "name": "user_state",
           "description": "Nome do estado onde o usuário mora",
-          "required": true
+          "required": true,
+          "var_type": "string"
         }
       ],
       "temperature": 0.1,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -129,7 +132,7 @@
       "extract_vars": [],
       "temperature": 0.4,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     },
     {
@@ -148,7 +151,7 @@
       "extract_vars": [],
       "temperature": 0.3,
       "skip_user_response": false,
-      "overrides_global_pathway": true,
+      "loop_enabled": false,
       "loop_condition": ""
     }
   ],
