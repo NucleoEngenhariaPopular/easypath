@@ -141,15 +141,30 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
     };
   });
 
-  // Convert connections to edges
-  const edges: Edge[] = engineFlow.connections.map(conn => ({
-    id: conn.id,
-    source: conn.source,
-    target: conn.target,
-    label: conn.label,
-    data: { description: conn.description },
-    type: 'smoothstep',
-  }));
+  // Convert connections to edges with smart edge type selection
+  const edges: Edge[] = engineFlow.connections.map(conn => {
+    // Use default (bezier) for loop-back edges (better for cycles)
+    const isLoopBack = conn.else_option ||
+                       conn.label?.toLowerCase().includes('missing') ||
+                       conn.description?.toLowerCase().includes('missing');
+
+    return {
+      id: conn.id,
+      source: conn.source,
+      target: conn.target,
+      label: conn.label,
+      data: {
+        description: conn.description,
+        else_option: conn.else_option
+      },
+      type: isLoopBack ? 'default' : 'smoothstep', // Use default (bezier) for loops
+      style: isLoopBack ? {
+        stroke: '#ff9800',
+        strokeWidth: 2,
+        strokeDasharray: '5,5', // Dashed line for loop-backs
+      } : undefined,
+    };
+  });
 
   // Convert global config
   const globalConfig: GlobalCanvasConfig = {

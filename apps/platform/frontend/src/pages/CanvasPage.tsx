@@ -734,10 +734,15 @@ const CanvasPage: React.FC = () => {
             let className = '';
             if (edge.id === animatingEdge) className = 'animating-edge';
             else if (edge.id === clickedEdge) className = 'clicked-edge';
+
+            // Preserve edge style and type from original edge
             return {
               ...edge,
               className,
-              animated: edge.id === animatingEdge
+              animated: edge.id === animatingEdge,
+              // Keep existing style and type (for loop-back edges)
+              style: edge.style,
+              type: edge.type || 'smoothstep',
             };
           })}
           onNodesChange={onNodesChange}

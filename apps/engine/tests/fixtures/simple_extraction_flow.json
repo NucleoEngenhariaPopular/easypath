@@ -3,12 +3,12 @@
   "nodes": [
     {
       "id": "welcome",
-      "node_type": "start", 
+      "node_type": "start",
       "prompt": {
-        "context": "Início da conversa para coletar informações básicas",
-        "objective": "Dar boas-vindas e explicar que vamos ajudar a encontrar lugares interessantes",
-        "notes": "Seja caloroso e direto",
-        "examples": "Olá! Sou seu assistente para descobrir lugares incríveis na sua região. Vou te ajudar a encontrar sugestões personalizadas!"
+        "context": "Início da conversa - estabelecer rapport e explicar o objetivo",
+        "objective": "Dar boas-vindas calorosas e explicar que vamos ajudar a descobrir lugares interessantes na cidade do usuário",
+        "notes": "Seja entusiasmado e acolhedor. Criar expectativa positiva sobre as recomendações personalizadas.",
+        "examples": "Olá! 👋 Sou seu assistente pessoal para descobrir lugares incríveis! Vou te ajudar a encontrar os melhores restaurantes, atrações e atividades na sua cidade. Vamos começar?"
       },
       "is_start": true,
       "is_end": false,
@@ -21,32 +21,13 @@
       "loop_condition": ""
     },
     {
-      "id": "ask-name",
-      "node_type": "message",
-      "prompt": {
-        "context": "Solicitação do nome do usuário",
-        "objective": "Perguntar o nome do usuário de forma amigável",
-        "notes": "Ser simpático e direto",
-        "examples": "Para começar, qual é o seu nome?"
-      },
-      "is_start": false,
-      "is_end": false,
-      "use_llm": true,
-      "is_global": false,
-      "extract_vars": [],
-      "temperature": 0.2,
-      "skip_user_response": false,
-      "loop_enabled": false,
-      "loop_condition": ""
-    },
-    {
-      "id": "extract-name",
+      "id": "collect-name",
       "node_type": "extraction",
       "prompt": {
-        "context": "Extração do nome do usuário",
-        "objective": "Extrair e confirmar o nome fornecido",
-        "notes": "Confirmar o nome extraído de forma amigável",
-        "examples": "Prazer em conhecê-lo, [nome]!"
+        "context": "Coleta do nome do usuário com extração automática",
+        "objective": "Perguntar o nome de forma amigável e confirmar quando extraído com sucesso",
+        "notes": "Se o nome não for fornecido claramente, perguntar novamente de forma educada. Quando extraído, confirmar de forma calorosa.",
+        "examples": "Para começar, qual é o seu nome? | Prazer em conhecê-lo, {user_name}! | Desculpe, não consegui entender seu nome. Pode repetir para mim?"
       },
       "is_start": false,
       "is_end": false,
@@ -60,38 +41,19 @@
           "var_type": "string"
         }
       ],
-      "temperature": 0.1,
-      "skip_user_response": false,
-      "loop_enabled": false,
-      "loop_condition": ""
-    },
-    {
-      "id": "ask-location",
-      "node_type": "message",
-      "prompt": {
-        "context": "Solicitação da localização do usuário",
-        "objective": "Perguntar cidade e estado do usuário",
-        "notes": "Usar o nome do usuário se disponível. Pedir cidade e estado.",
-        "examples": "Agora preciso saber onde você mora para dar sugestões personalizadas. Em qual cidade e estado você está?"
-      },
-      "is_start": false,
-      "is_end": false,
-      "use_llm": true,
-      "is_global": false,
-      "extract_vars": [],
       "temperature": 0.2,
       "skip_user_response": false,
-      "loop_enabled": false,
-      "loop_condition": ""
+      "loop_enabled": true,
+      "loop_condition": "Continuar pedindo o nome até que seja fornecido claramente pelo usuário"
     },
     {
-      "id": "extract-location",
+      "id": "collect-city",
       "node_type": "extraction",
       "prompt": {
-        "context": "Extração da localização do usuário",
-        "objective": "Extrair cidade e estado fornecidos",
-        "notes": "Confirmar a localização extraída",
-        "examples": "Perfeito! Então você está em [cidade], [estado]."
+        "context": "Coleta da localização do usuário (cidade e estado) com extração automática",
+        "objective": "Perguntar cidade e estado usando o nome do usuário, e confirmar quando extraído com sucesso",
+        "notes": "Usar o {user_name} para personalizar. Pedir explicitamente cidade E estado. Se algo estiver faltando, perguntar especificamente o que falta. Quando completo, confirmar de forma entusiasmada.",
+        "examples": "Ótimo, {user_name}! Agora preciso saber: em qual cidade e estado você mora? | Perfeito! Então você está em {user_city}, {user_state}! | Entendi a cidade, mas pode me dizer o estado também?"
       },
       "is_start": false,
       "is_end": false,
@@ -106,12 +68,31 @@
         },
         {
           "name": "user_state",
-          "description": "Nome do estado onde o usuário mora",
+          "description": "Nome do estado (ou sigla UF) onde o usuário mora",
           "required": true,
           "var_type": "string"
         }
       ],
-      "temperature": 0.1,
+      "temperature": 0.2,
+      "skip_user_response": false,
+      "loop_enabled": true,
+      "loop_condition": "Continuar perguntando até ter TANTO a cidade QUANTO o estado do usuário"
+    },
+    {
+      "id": "confirm-info",
+      "node_type": "validation",
+      "prompt": {
+        "context": "Confirmação das informações coletadas antes de prosseguir",
+        "objective": "Mostrar as informações coletadas de forma clara e perguntar se está tudo correto",
+        "notes": "Usar TODAS as variáveis extraídas ({user_name}, {user_city}, {user_state}) para criar uma confirmação clara. Se usuário disser que está incorreto, direcionar para correção.",
+        "examples": "Deixa eu confirmar: você é {user_name} e mora em {user_city}, {user_state}. Está tudo certo? | Perfeito! Vou buscar as melhores sugestões para você!"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.2,
       "skip_user_response": false,
       "loop_enabled": false,
       "loop_condition": ""
@@ -120,17 +101,36 @@
       "id": "recommendations",
       "node_type": "recommendation",
       "prompt": {
-        "context": "Recomendações personalizadas baseadas na localização",
-        "objective": "Dar sugestões de lugares interessantes na cidade/estado do usuário",
-        "notes": "Usar o nome e localização extraídos para personalizar as sugestões",
-        "examples": "Baseado na sua localização em [cidade], [estado], aqui estão algumas sugestões incríveis para você, [nome]!"
+        "context": "Recomendações personalizadas de lugares e atividades na cidade do usuário",
+        "objective": "Dar sugestões específicas e relevantes de restaurantes, pontos turísticos, parques e atividades baseadas na localização exata do usuário",
+        "notes": "IMPORTANTE: Usar {user_name} para personalizar. Mencionar especificamente {user_city} e {user_state} nas sugestões. Dar pelo menos 3-5 sugestões concretas com nomes reais de lugares (se conhecidos) ou tipos específicos de estabelecimentos. Incluir variedade: gastronomia, cultura, lazer ao ar livre.",
+        "examples": "Ótimas notícias, {user_name}! Baseado em {user_city}, {user_state}, aqui estão sugestões incríveis para você:\n\n🍽️ **Gastronomia:**\n- [restaurantes típicos da região]\n- [cafeterias charmosas]\n- [bares e pubs locais]\n\n🎭 **Cultura e Lazer:**\n- [museus e centros culturais]\n- [teatros e cinemas]\n- [eventos locais]\n\n🌳 **Ao Ar Livre:**\n- [parques e praças]\n- [trilhas e áreas naturais]\n- [atividades recreativas]\n\nO que te interessa mais?"
       },
       "is_start": false,
       "is_end": false,
       "use_llm": true,
       "is_global": false,
       "extract_vars": [],
-      "temperature": 0.4,
+      "temperature": 0.5,
+      "skip_user_response": false,
+      "loop_enabled": false,
+      "loop_condition": ""
+    },
+    {
+      "id": "offer-more-help",
+      "node_type": "message",
+      "prompt": {
+        "context": "Oferecer ajuda adicional e verificar se usuário quer mais sugestões",
+        "objective": "Perguntar se o usuário quer explorar mais categorias ou obter detalhes sobre alguma sugestão",
+        "notes": "Ser receptivo e dar opções claras. Mencionar que pode dar mais detalhes sobre qualquer lugar mencionado.",
+        "examples": "Quer que eu te conte mais sobre algum desses lugares, {user_name}? Ou prefere que eu sugira outras categorias de atividades em {user_city}?"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.3,
       "skip_user_response": false,
       "loop_enabled": false,
       "loop_condition": ""
@@ -139,10 +139,10 @@
       "id": "farewell",
       "node_type": "end",
       "prompt": {
-        "context": "Despedida personalizada",
-        "objective": "Se despedir usando o nome do usuário",
-        "notes": "Ser caloroso e oferecer ajuda futura",
-        "examples": "Foi um prazer ajudar você, [nome]! Se precisar de mais sugestões sobre [cidade], é só me chamar!"
+        "context": "Despedida personalizada usando as informações do usuário",
+        "objective": "Criar uma despedida calorosa e memorável, incentivando o usuário a voltar",
+        "notes": "Usar {user_name} e {user_city} para personalizar. Deixar a porta aberta para conversas futuras.",
+        "examples": "Foi um prazer ajudar você, {user_name}! 🌟\n\nEspero que aproveite todas as experiências incríveis que {user_city} tem a oferecer. Se precisar de mais dicas ou quiser descobrir lugares novos, é só me chamar!\n\nAté a próxima! ✨"
       },
       "is_start": false,
       "is_end": true,
@@ -159,71 +159,79 @@
     {
       "id": "c1",
       "label": "start-conversation",
-      "description": "Iniciar processo de coleta",
+      "description": "Iniciar processo de coleta de informações",
       "else_option": false,
       "source": "welcome",
-      "target": "ask-name"
+      "target": "collect-name"
     },
     {
-      "id": "c2", 
-      "label": "collect-name",
-      "description": "Usuário vai fornecer nome",
+      "id": "c2",
+      "label": "name-extracted",
+      "description": "Nome foi extraído com sucesso, prosseguir para localização",
       "else_option": false,
-      "source": "ask-name",
-      "target": "extract-name"
+      "source": "collect-name",
+      "target": "collect-city"
     },
     {
       "id": "c3",
-      "label": "name-extracted",
-      "description": "Nome extraído com sucesso",
+      "label": "location-extracted",
+      "description": "Cidade e estado extraídos com sucesso, confirmar informações",
       "else_option": false,
-      "source": "extract-name",
-      "target": "ask-location"
+      "source": "collect-city",
+      "target": "confirm-info"
     },
     {
       "id": "c4",
-      "label": "name-missing",
-      "description": "Nome não foi extraído, tentar novamente",
-      "else_option": true,
-      "source": "extract-name", 
-      "target": "ask-name"
-    },
-    {
-      "id": "c5",
-      "label": "collect-location",
-      "description": "Usuário vai fornecer localização",
+      "label": "info-confirmed",
+      "description": "Usuário confirmou que as informações estão corretas",
       "else_option": false,
-      "source": "ask-location",
-      "target": "extract-location"
-    },
-    {
-      "id": "c6",
-      "label": "location-extracted",
-      "description": "Localização extraída com sucesso",
-      "else_option": false,
-      "source": "extract-location",
+      "source": "confirm-info",
       "target": "recommendations"
     },
     {
-      "id": "c7",
-      "label": "location-missing",
-      "description": "Localização não foi extraída, tentar novamente",
+      "id": "c5",
+      "label": "info-incorrect",
+      "description": "Usuário disse que informações estão incorretas, voltar para correção",
       "else_option": true,
-      "source": "extract-location",
-      "target": "ask-location"
+      "source": "confirm-info",
+      "target": "collect-city"
+    },
+    {
+      "id": "c6",
+      "label": "recommendations-given",
+      "description": "Recomendações fornecidas, perguntar se quer mais ajuda",
+      "else_option": false,
+      "source": "recommendations",
+      "target": "offer-more-help"
+    },
+    {
+      "id": "c7",
+      "label": "wants-more-suggestions",
+      "description": "Usuário quer mais sugestões ou detalhes adicionais",
+      "else_option": false,
+      "source": "offer-more-help",
+      "target": "recommendations"
     },
     {
       "id": "c8",
-      "label": "finish",
-      "description": "Finalizar conversa",
-      "else_option": false,
-      "source": "recommendations",
+      "label": "satisfied",
+      "description": "Usuário está satisfeito e pronto para encerrar",
+      "else_option": true,
+      "source": "offer-more-help",
       "target": "farewell"
+    },
+    {
+      "id": "c9",
+      "label": "correct-name",
+      "description": "Usuário quer corrigir o nome durante confirmação",
+      "else_option": true,
+      "source": "collect-city",
+      "target": "collect-name"
     }
   ],
-  "global_objective": "Coletar nome e localização do usuário para fornecer recomendações personalizadas",
-  "global_tone": "amigável e prestativo",
-  "global_language": "pt-BR", 
-  "global_behaviour": "entusiasmado e personalizado",
-  "global_values": "simplicidade e personalização"
+  "global_objective": "Coletar o nome e localização (cidade e estado) do usuário através de extração automática de variáveis, e usar essas informações para fornecer recomendações altamente personalizadas de lugares e atividades na região",
+  "global_tone": "amigável, entusiasmado e prestativo",
+  "global_language": "pt-BR",
+  "global_behaviour": "personalizado e atencioso - sempre usar o nome do usuário e mencionar sua cidade nas respostas",
+  "global_values": "personalização através de dados extraídos, utilidade prática, e experiência conversacional natural"
 }

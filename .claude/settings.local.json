@@ -8,7 +8,10 @@
       "Bash(rm:*)",
       "Bash(python -m pytest tests/unit -q)",
       "Bash(npm install:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(python -c \"import json; f=open(''tests/fixtures/simple_extraction_flow.json''); data=json.load(f); print(f''✓ Valid JSON\\n✓ Nodes: {len(data[\"\"nodes\"\"])}\\n✓ Connections: {len(data[\"\"connections\"\"])}\\n✓ Extraction nodes: {sum(1 for n in data[\"\"nodes\"\"] if n[\"\"extract_vars\"\"])}'')\")"
     ],
     "deny": [],
     "ask": []

@@ -1,14 +1,11 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { CustomNodeData } from '../types/canvasTypes';
-
-interface NodeLevel {
-  nodeId: string;
-  level: number;
-}
+import dagre from 'dagre';
 
 /**
- * Auto-layout nodes in a hierarchical tree structure
- * Arranges nodes based on their connections, placing them in levels
+ * Auto-layout nodes using Dagre graph layout library
+ * Handles complex flows with cycles, branches, and loop-backs
+ * Falls back to simple hierarchical layout if Dagre fails
  */
 export function autoLayoutNodes(
   nodes: Node<CustomNodeData>[],
@@ -16,7 +13,111 @@ export function autoLayoutNodes(
 ): Node<CustomNodeData>[] {
   if (nodes.length === 0) return nodes;
 
-  // Build adjacency list for graph traversal
+  try {
+    // Create a new directed graph
+    const g = new dagre.graphlib.Graph({ compound: false, multigraph: false });
+
+    // Set graph layout options - use undefined acyclicer to skip cycle detection
+    // We'll handle cycles ourselves by treating them as part of the normal graph
+    g.setGraph({
+      rankdir: 'TB', // Top to bottom layout
+      align: 'UL', // Align nodes to upper-left
+      nodesep: 100, // Horizontal spacing between nodes in same rank
+      edgesep: 50, // Spacing between edges
+      ranksep: 180, // Vertical spacing between ranks
+      marginx: 80,
+      marginy: 80,
+      ranker: 'network-simplex', // Better ranking algorithm
+    });
+
+    // Default to graph edges unless specified
+    g.setDefaultEdgeLabel(() => ({}));
+
+    // Add nodes to graph with their dimensions
+    nodes.forEach(node => {
+      // Estimate node dimensions based on type
+      let width = 180;
+      let height = 60;
+
+      // Adjust dimensions for different node types
+      if (node.type === 'start' || node.type === 'end') {
+        width = 140;
+        height = 50;
+      } else if (node.type === 'extraction') {
+        width = 200;
+        height = 70;
+      }
+
+      g.setNode(node.id, { width, height });
+    });
+
+    // Separate forward edges from backward edges
+    const forwardEdges: Edge[] = [];
+    const backwardEdges: Edge[] = [];
+
+    edges.forEach(edge => {
+      const isLoopBack = edge.data?.else_option ||
+                         edge.label?.toString().toLowerCase().includes('missing');
+
+      if (isLoopBack) {
+        backwardEdges.push(edge);
+      } else {
+        forwardEdges.push(edge);
+      }
+    });
+
+    // Add only forward edges to dagre (to avoid cycle issues)
+    forwardEdges.forEach(edge => {
+      g.setEdge(edge.source, edge.target, {
+        minlen: 1,
+        weight: 1,
+      });
+    });
+
+    // Run the layout algorithm
+    dagre.layout(g);
+
+    // Get the positioned nodes from Dagre
+    const positionedNodes = nodes.map(node => {
+      const nodeWithPosition = g.node(node.id);
+
+      return {
+        ...node,
+        position: {
+          // Dagre centers nodes, ReactFlow uses top-left corner
+          x: nodeWithPosition.x - nodeWithPosition.width / 2,
+          y: nodeWithPosition.y - nodeWithPosition.height / 2,
+        },
+      };
+    });
+
+    console.log('Dagre layout applied successfully:', {
+      nodeCount: positionedNodes.length,
+      forwardEdges: forwardEdges.length,
+      backwardEdges: backwardEdges.length,
+      graphWidth: g.graph().width,
+      graphHeight: g.graph().height,
+    });
+
+    return positionedNodes;
+
+  } catch (error) {
+    console.warn('Dagre layout failed, falling back to simple hierarchical layout:', error);
+    return simpleHierarchicalLayout(nodes, edges);
+  }
+}
+
+/**
+ * Simple hierarchical layout as fallback
+ * Uses BFS to assign levels and positions nodes accordingly
+ */
+function simpleHierarchicalLayout(
+  nodes: Node<CustomNodeData>[],
+  edges: Edge[]
+): Node<CustomNodeData>[] {
+  if (nodes.length === 0) return nodes;
+
+  // Build adjacency list for graph traversal (forward edges only)
   const adjacencyList = new Map<string, string[]>();
   const inDegree = new Map<string, number>();
 
@@ -26,12 +127,17 @@ export function autoLayoutNodes(
     inDegree.set(node.id, 0);
   });
 
-  // Build graph
+  // Build graph (skip backward/loop edges)
   edges.forEach(edge => {
-    const sources = adjacencyList.get(edge.source) || [];
-    sources.push(edge.target);
-    adjacencyList.set(edge.source, sources);
-    inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
+    const isLoopBack = edge.data?.else_option ||
+                       edge.label?.toString().toLowerCase().includes('missing');
+
+    if (!isLoopBack) {
+      const sources = adjacencyList.get(edge.source) || [];
+      sources.push(edge.target);
+      adjacencyList.set(edge.source, sources);
+      inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
+    }
   });
 
   // Find start nodes (nodes with no incoming edges or marked as start)
@@ -46,7 +152,10 @@ export function autoLayoutNodes(
 
   // BFS to assign levels
   const nodeLevels = new Map<string, number>();
-  const queue: NodeLevel[] = startNodes.map(node => ({ nodeId: node.id, level: 0 }));
+  const queue: Array<{ nodeId: string; level: number }> = startNodes.map(node => ({
+    nodeId: node.id,
+    level: 0
+  }));
   const visited = new Set<string>();
 
   while (queue.length > 0) {
@@ -103,6 +212,7 @@ export function autoLayoutNodes(
     };
   });
 
+  console.log('Simple hierarchical layout applied (fallback)');
   return positionedNodes;
 }
 
