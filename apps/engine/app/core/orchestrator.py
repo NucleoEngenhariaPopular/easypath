@@ -149,7 +149,10 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             next_node_id,
             connection.id if connection else None,
             connection.label if connection else None,
-            choose_llm_info.get("reasoning")
+            choose_llm_info.get("reasoning"),
+            choose_llm_info.get("confidence_score"),
+            choose_llm_info.get("available_pathways"),
+            choose_llm_info.get("llm_response")
         )
     except Exception as e:
         logger.error("Failed to choose next node: %s", e, exc_info=True)
@@ -205,6 +208,37 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
     except Exception as e:
         logger.error("Failed to add assistant message to session: %s", e, exc_info=True)
         # Continue anyway since we have the response
+
+    # Emit comprehensive decision step event
+    try:
+        old_node = flow.get_node_by_id(old_node_id)
+        EventEmitter.emit_decision_step(
+            session_id=session.session_id,
+            step_name="Complete Decision",
+            node_id=next_node_id,
+            node_name=next_node.prompt.objective if next_node.prompt else next_node_id,
+            node_prompt={
+                "context": next_node.prompt.context if next_node.prompt else "",
+                "objective": next_node.prompt.objective if next_node.prompt else "",
+                "notes": next_node.prompt.notes if next_node.prompt else "",
+                "examples": next_node.prompt.examples if next_node.prompt else ""
+            },
+            previous_node_id=old_node_id,
+            previous_node_name=old_node.prompt.objective if old_node.prompt else old_node_id,
+            available_pathways=choose_llm_info.get("available_pathways"),
+            chosen_pathway=connection.label if connection else None,
+            pathway_confidence=choose_llm_info.get("confidence_score"),
+            llm_reasoning=choose_llm_info.get("reasoning"),
+            variables_extracted=session.extracted_variables,
+            assistant_response=assistant_reply,
+            timing_ms=round(t_choose * 1000, 1),
+            tokens_used=choose_llm_info.get("total_tokens", 0) + exec_llm_info.get("total_tokens", 0),
+            cost_usd=choose_llm_info.get("estimated_cost_usd", 0.0) + exec_llm_info.get("estimated_cost_usd", 0.0),
+            model_name=choose_llm_info.get("model_name")
+        )
+    except Exception as e:
+        logger.warning("Failed to emit decision step event: %s", e)
+        # Non-critical, continue
 
     # Handle auto-return for global nodes
     if next_node.auto_return_to_previous and session.previous_node_id:

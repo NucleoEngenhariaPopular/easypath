@@ -55,18 +55,32 @@ def _format_prompt(flow: Flow, current_node_id: str) -> tuple[str, list[Connecti
 def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> Tuple[str, Dict[str, Any]]:
     prompt, connection_list = _format_prompt(flow, current_node_id)
     llm = get_llm()
-    
+
     start_time = perf_counter()
     llm_answer = llm.chat(messages=session.to_llm_messages() + [{"content": prompt, "role": "system"}])
     llm_time_ms = llm_answer.timing_ms or ((perf_counter() - start_time) * 1000)
-    
+
+    # Build list of available pathways for logging
+    available_pathways = [
+        {
+            "label": conn.label,
+            "description": conn.description,
+            "target": conn.target
+        }
+        for conn in connection_list
+    ]
+
     llm_info = {
         "timing_ms": round(llm_time_ms, 1),
         "model_name": llm_answer.model_name or "unknown",
         "input_tokens": llm_answer.input_tokens or 0,
         "output_tokens": llm_answer.output_tokens or 0,
         "total_tokens": llm_answer.total_tokens or 0,
-        "estimated_cost_usd": llm_answer.estimated_cost_usd or 0.0
+        "estimated_cost_usd": llm_answer.estimated_cost_usd or 0.0,
+        "llm_response": llm_answer.response if llm_answer.success else None,
+        "available_pathways": available_pathways,
+        "confidence_score": None,
+        "reasoning": None
     }
 
     if llm_answer.success and isinstance(llm_answer.response, str):
@@ -90,6 +104,10 @@ def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> Tuple
 
         best_match = result[0]
         score = result[1] if len(result) > 1 else 0
+
+        # Update llm_info with confidence score and reasoning
+        llm_info["confidence_score"] = score
+        llm_info["reasoning"] = llm_answer.response
 
         if score >= FUZZY_THRESHOLD:
             for connection in connection_list:

@@ -12,6 +12,7 @@ from app.models.ws_events import (
     UserMessageEvent,
     VariableExtractedEvent,
     AssistantMessageEvent,
+    DecisionStepEvent,
     ErrorEvent,
 )
 from app.ws.manager import ws_manager
@@ -84,7 +85,10 @@ class EventEmitter:
         to_node_id: str,
         connection_id: Optional[str] = None,
         connection_label: Optional[str] = None,
-        reasoning: Optional[str] = None
+        reasoning: Optional[str] = None,
+        confidence_score: Optional[float] = None,
+        available_pathways: Optional[list] = None,
+        llm_response: Optional[str] = None
     ):
         """Emit pathway selected event."""
         event = PathwaySelectedEvent(
@@ -93,7 +97,10 @@ class EventEmitter:
             to_node_id=to_node_id,
             connection_id=connection_id,
             connection_label=connection_label,
-            reasoning=reasoning
+            reasoning=reasoning,
+            confidence_score=confidence_score,
+            available_pathways=available_pathways or [],
+            llm_response=llm_response
         )
         EventEmitter._emit_sync(ws_manager.send_event(event, session_id))
 
@@ -138,6 +145,50 @@ class EventEmitter:
             session_id=session_id,
             message=message,
             node_id=node_id
+        )
+        EventEmitter._emit_sync(ws_manager.send_event(event, session_id))
+
+    @staticmethod
+    def emit_decision_step(
+        session_id: str,
+        step_name: str,
+        node_id: str,
+        node_name: Optional[str] = None,
+        node_prompt: Optional[Dict[str, str]] = None,
+        previous_node_id: Optional[str] = None,
+        previous_node_name: Optional[str] = None,
+        available_pathways: Optional[list] = None,
+        chosen_pathway: Optional[str] = None,
+        pathway_confidence: Optional[float] = None,
+        llm_reasoning: Optional[str] = None,
+        variables_extracted: Optional[Dict[str, Any]] = None,
+        variables_status: Optional[Dict[str, bool]] = None,
+        assistant_response: Optional[str] = None,
+        timing_ms: Optional[float] = None,
+        tokens_used: Optional[int] = None,
+        cost_usd: Optional[float] = None,
+        model_name: Optional[str] = None
+    ):
+        """Emit decision step event with detailed information."""
+        event = DecisionStepEvent(
+            session_id=session_id,
+            step_name=step_name,
+            node_id=node_id,
+            node_name=node_name,
+            node_prompt=node_prompt,
+            previous_node_id=previous_node_id,
+            previous_node_name=previous_node_name,
+            available_pathways=available_pathways or [],
+            chosen_pathway=chosen_pathway,
+            pathway_confidence=pathway_confidence,
+            llm_reasoning=llm_reasoning,
+            variables_extracted=variables_extracted,
+            variables_status=variables_status,
+            assistant_response=assistant_response,
+            timing_ms=timing_ms,
+            tokens_used=tokens_used,
+            cost_usd=cost_usd,
+            model_name=model_name
         )
         EventEmitter._emit_sync(ws_manager.send_event(event, session_id))
 

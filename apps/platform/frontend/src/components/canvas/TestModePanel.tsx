@@ -18,6 +18,8 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useTranslation } from 'react-i18next';
+import PathwayDecisionPanel from './PathwayDecisionPanel';
+import type { DecisionLog } from '../../hooks/useFlowWebSocket';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -62,9 +64,10 @@ interface TestModePanelProps {
     totalTokens: number;
     totalCost: number;
   };
+  decisionLogs?: DecisionLog[];
 }
 
-const drawerWidth = 400;
+const drawerWidth = 800;
 
 // Typing indicator component with animated dots
 const TypingIndicator: React.FC = () => {
@@ -163,6 +166,7 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
   isLoading = false,
   lastMessageStats,
   conversationStats,
+  decisionLogs = [],
 }) => {
   const { t } = useTranslation();
   const [inputMessage, setInputMessage] = useState('');
@@ -393,10 +397,32 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
           </Paper>
         )}
 
-        <Divider sx={{ mb: 2 }} />
+        {/* Main Content Area - Two Columns */}
+        <Box sx={{ display: 'flex', gap: 2, flexGrow: 1, overflow: 'hidden', mb: 2 }}>
+          {/* Left Column - Decision Logs */}
+          <Box sx={{ flex: '0 0 48%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              Decision Logs
+            </Typography>
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 }}>
+              {decisionLogs && decisionLogs.length > 0 ? (
+                decisionLogs.map((log) => (
+                  <PathwayDecisionPanel key={log.id} decisionLog={log} />
+                ))
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
+                  No decision logs yet
+                </Typography>
+              )}
+            </Box>
+          </Box>
 
-        {/* Messages */}
-        <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
+          {/* Right Column - Messages */}
+          <Box sx={{ flex: '0 0 48%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              Chat Messages
+            </Typography>
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 }}>
           {messages.length === 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
               {t('testMode.noMessages')}
@@ -429,6 +455,8 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
           )}
           {isLoading && <TypingIndicator />}
           <div ref={messagesEndRef} />
+            </Box>
+          </Box>
         </Box>
 
         {/* Input */}

@@ -1,6 +1,6 @@
 """WebSocket event models for real-time flow visualization."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -23,6 +23,9 @@ class EventType(str, Enum):
     VARIABLE_EXTRACTED = "variable_extracted"
     RESPONSE_GENERATED = "response_generated"
 
+    # Decision events
+    DECISION_STEP = "decision_step"
+
     # Message events
     USER_MESSAGE = "user_message"
     ASSISTANT_MESSAGE = "assistant_message"
@@ -35,7 +38,7 @@ class BaseEvent(BaseModel):
     """Base event model with common fields."""
 
     event_type: EventType
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     session_id: str
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
@@ -82,6 +85,9 @@ class PathwaySelectedEvent(BaseEvent):
     connection_id: Optional[str] = None
     connection_label: Optional[str] = None
     reasoning: Optional[str] = None
+    confidence_score: Optional[float] = None
+    available_pathways: List[Dict[str, str]] = Field(default_factory=list)
+    llm_response: Optional[str] = None
 
 
 class VariableExtractedEvent(BaseEvent):
@@ -119,6 +125,29 @@ class AssistantMessageEvent(BaseEvent):
     node_id: str
 
 
+class DecisionStepEvent(BaseEvent):
+    """Emitted for each decision-making step with detailed information."""
+
+    event_type: EventType = EventType.DECISION_STEP
+    step_name: str  # e.g., "Pathway Selection", "Variable Extraction", "Response Generation"
+    node_id: str
+    node_name: Optional[str] = None
+    node_prompt: Optional[Dict[str, str]] = None  # context, objective, notes, examples
+    previous_node_id: Optional[str] = None
+    previous_node_name: Optional[str] = None
+    available_pathways: List[Dict[str, str]] = Field(default_factory=list)
+    chosen_pathway: Optional[str] = None
+    pathway_confidence: Optional[float] = None
+    llm_reasoning: Optional[str] = None
+    variables_extracted: Optional[Dict[str, Any]] = None
+    variables_status: Optional[Dict[str, bool]] = None  # variable_name: was_extracted
+    assistant_response: Optional[str] = None
+    timing_ms: Optional[float] = None
+    tokens_used: Optional[int] = None
+    cost_usd: Optional[float] = None
+    model_name: Optional[str] = None
+
+
 class ErrorEvent(BaseEvent):
     """Emitted when an error occurs during flow execution."""
 
@@ -139,6 +168,7 @@ Event = (
     | ResponseGeneratedEvent
     | UserMessageEvent
     | AssistantMessageEvent
+    | DecisionStepEvent
     | ErrorEvent
 )
 

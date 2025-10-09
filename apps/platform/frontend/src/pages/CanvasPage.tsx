@@ -25,6 +25,12 @@ import type { GlobalCanvasConfig, CustomNodeData, ModelOptions, ExtractVarItem }
 import NodeModal from '../components/canvas/NodeModal';
 import EdgeModal from '../components/canvas/EdgeModal';
 import { useTranslation } from 'react-i18next';
+import { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { convertEngineToCanvas, isEngineFormat, isCanvasFormat } from '../utils/flowConverter';
+import { autoLayoutNodes } from '../utils/autoLayout';
+import TestModePanel from '../components/canvas/TestModePanel';
+import { useFlowWebSocket, type FlowEvent, type DecisionLog } from '../hooks/useFlowWebSocket';
 import { v6 as uuidv6 } from 'uuid';
 
 const initialGlobalConfig: GlobalCanvasConfig = {
@@ -52,13 +58,6 @@ const initialNodes: Node<CustomNodeData>[] = [
 ];
 const initialEdges: Edge[] = [];
 
-import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { convertEngineToCanvas, isEngineFormat, isCanvasFormat } from '../utils/flowConverter';
-import { autoLayoutNodes } from '../utils/autoLayout';
-import TestModePanel from '../components/canvas/TestModePanel';
-import { useFlowWebSocket, type FlowEvent } from '../hooks/useFlowWebSocket';
-
 const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
   const { id: flowId } = useParams<{ id: string }>();
@@ -84,6 +83,7 @@ const CanvasPage: React.FC = () => {
   const [clickedEdge, setClickedEdge] = useState<string | null>(null);
   const [lastClickedEdgeId, setLastClickedEdgeId] = useState<string | null>(null);
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
+  const [decisionLogs, setDecisionLogs] = useState<DecisionLog[]>([]);
 
   // Stats tracking
   const [lastMessageStats, setLastMessageStats] = useState<{
@@ -181,6 +181,32 @@ const CanvasPage: React.FC = () => {
           }]);
           setIsLoadingResponse(false);
         }
+        break;
+      case 'decision_step':
+        // Handle decision step event - build decision log
+        console.log('Received decision_step event:', event);
+        const decisionLog: DecisionLog = {
+          id: `${event.timestamp}-${event.node_id}`,
+          timestamp: event.timestamp,
+          stepName: event.step_name || 'Decision',
+          nodeId: event.node_id || '',
+          nodeName: event.node_name,
+          nodePrompt: event.node_prompt,
+          previousNodeId: event.previous_node_id,
+          previousNodeName: event.previous_node_name,
+          availablePathways: event.available_pathways || [],
+          chosenPathway: event.chosen_pathway,
+          pathwayConfidence: event.pathway_confidence,
+          llmReasoning: event.llm_reasoning,
+          variablesExtracted: event.variables_extracted,
+          variablesStatus: event.variables_status,
+          assistantResponse: event.assistant_response,
+          timingMs: event.timing_ms,
+          tokensUsed: event.tokens_used,
+          costUsd: event.cost_usd,
+          modelName: event.model_name,
+        };
+        setDecisionLogs(prev => [...prev, decisionLog]);
         break;
     }
   };
@@ -525,6 +551,7 @@ const CanvasPage: React.FC = () => {
     setActiveNodeId(null);
     setIsLoadingResponse(false);
     setLastMessageStats(null);
+    setDecisionLogs([]);
     setConversationStats({
       totalResponseTime: 0,
       totalTokens: 0,
@@ -848,6 +875,7 @@ const CanvasPage: React.FC = () => {
         isLoading={isLoadingResponse}
         lastMessageStats={lastMessageStats}
         conversationStats={conversationStats}
+        decisionLogs={decisionLogs}
       />
     </Box>
   );

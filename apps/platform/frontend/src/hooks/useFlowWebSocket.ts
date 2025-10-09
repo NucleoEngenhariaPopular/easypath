@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+export interface PathwayOption {
+  label: string;
+  description: string;
+  target: string;
+}
+
 export interface FlowEvent {
   event_type: string;
   timestamp: string;
@@ -14,6 +20,9 @@ export interface FlowEvent {
   connection_id?: string;
   connection_label?: string;
   reasoning?: string;
+  confidence_score?: number;
+  available_pathways?: PathwayOption[];
+  llm_response?: string;
   variable_name?: string;
   variable_value?: any;
   all_variables?: Record<string, any>;
@@ -22,6 +31,52 @@ export interface FlowEvent {
   error_message?: string;
   error_type?: string;
   tokens_used?: number;
+  // DecisionStepEvent fields
+  step_name?: string;
+  node_prompt?: {
+    context: string;
+    objective: string;
+    notes: string;
+    examples: string;
+  };
+  previous_node_id?: string;
+  previous_node_name?: string;
+  chosen_pathway?: string;
+  pathway_confidence?: number;
+  llm_reasoning?: string;
+  variables_extracted?: Record<string, any>;
+  variables_status?: Record<string, boolean>;
+  assistant_response?: string;
+  timing_ms?: number;
+  cost_usd?: number;
+  model_name?: string;
+}
+
+export interface DecisionLog {
+  id: string; // timestamp-based unique ID
+  timestamp: string;
+  stepName: string;
+  nodeId: string;
+  nodeName?: string;
+  nodePrompt?: {
+    context: string;
+    objective: string;
+    notes: string;
+    examples: string;
+  };
+  previousNodeId?: string;
+  previousNodeName?: string;
+  availablePathways: PathwayOption[];
+  chosenPathway?: string;
+  pathwayConfidence?: number;
+  llmReasoning?: string;
+  variablesExtracted?: Record<string, any>;
+  variablesStatus?: Record<string, boolean>;
+  assistantResponse?: string;
+  timingMs?: number;
+  tokensUsed?: number;
+  costUsd?: number;
+  modelName?: string;
 }
 
 export interface FlowExecutionState {
