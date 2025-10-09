@@ -184,11 +184,16 @@ const NodeModal: FC<NodeModalProps> = ({
         sx={{
           position: 'relative',
           width: { xs: '95%', sm: 650, md: 800 },
+          maxWidth: '95vw',
+          minWidth: { xs: '95%', sm: 500 },
           maxHeight: '90vh',
+          minHeight: '400px',
           overflowY: 'auto',
           bgcolor: 'background.paper',
           borderRadius: 4,
           boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+          resize: 'both',
+          overflow: 'auto',
           '&::-webkit-scrollbar': {
             width: '8px',
           },
@@ -299,22 +304,6 @@ const NodeModal: FC<NodeModalProps> = ({
                 </Typography>
               </Box>
 
-              <Box sx={{
-                p: 2.5,
-                mb: 3,
-                bgcolor: 'primary.lighter',
-                borderRadius: 2,
-                borderLeft: '4px solid',
-                borderColor: 'primary.main',
-              }}>
-                <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-                  💡 <strong>Prompt Guide</strong>
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Define the prompt fields that will be passed to the LLM to generate responses at this node.
-                </Typography>
-              </Box>
-
               <TextField
                 label="Context"
                 fullWidth
@@ -322,7 +311,13 @@ const NodeModal: FC<NodeModalProps> = ({
                 rows={3}
                 value={selectedNode.data.prompt?.context || ''}
                 onChange={(e) => handlePromptFieldChange('context', e.target.value)}
-                sx={{ mb: 2 }}
+                sx={{
+                  mb: 2,
+                  '& .MuiInputBase-root': {
+                    resize: 'vertical',
+                    overflow: 'auto',
+                  }
+                }}
                 helperText="What's happening at this step in the conversation flow"
               />
 
@@ -333,7 +328,13 @@ const NodeModal: FC<NodeModalProps> = ({
                 rows={3}
                 value={selectedNode.data.prompt?.objective || ''}
                 onChange={(e) => handlePromptFieldChange('objective', e.target.value)}
-                sx={{ mb: 2 }}
+                sx={{
+                  mb: 2,
+                  '& .MuiInputBase-root': {
+                    resize: 'vertical',
+                    overflow: 'auto',
+                  }
+                }}
                 helperText="What should the LLM accomplish at this node"
               />
 
@@ -344,7 +345,13 @@ const NodeModal: FC<NodeModalProps> = ({
                 rows={2}
                 value={selectedNode.data.prompt?.notes || ''}
                 onChange={(e) => handlePromptFieldChange('notes', e.target.value)}
-                sx={{ mb: 2 }}
+                sx={{
+                  mb: 2,
+                  '& .MuiInputBase-root': {
+                    resize: 'vertical',
+                    overflow: 'auto',
+                  }
+                }}
                 helperText="Important considerations, tone, style guidelines"
               />
 
@@ -355,7 +362,13 @@ const NodeModal: FC<NodeModalProps> = ({
                 rows={3}
                 value={selectedNode.data.prompt?.examples || ''}
                 onChange={(e) => handlePromptFieldChange('examples', e.target.value)}
-                sx={{ mb: 2 }}
+                sx={{
+                  mb: 2,
+                  '& .MuiInputBase-root': {
+                    resize: 'vertical',
+                    overflow: 'auto',
+                  }
+                }}
                 helperText="Sample responses or example outputs"
               />
 
@@ -379,7 +392,13 @@ const NodeModal: FC<NodeModalProps> = ({
                         rows={2}
                         value={field.value}
                         onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)}
-                        sx={{ flex: 1 }}
+                        sx={{
+                          flex: 1,
+                          '& .MuiInputBase-root': {
+                            resize: 'vertical',
+                            overflow: 'auto',
+                          }
+                        }}
                       />
                       <IconButton
                         onClick={() => handleRemoveCustomField(index)}
@@ -479,6 +498,12 @@ const NodeModal: FC<NodeModalProps> = ({
                     rows={3}
                     value={selectedNode.data.condition || ''}
                     onChange={handleSimpleChange}
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        resize: 'vertical',
+                        overflow: 'auto',
+                      }
+                    }}
                     helperText="Describe when this node should loop or continue"
                   />
                 )}
@@ -549,6 +574,12 @@ const NodeModal: FC<NodeModalProps> = ({
                             rows={2}
                             value={variable.description}
                             onChange={(e) => handleVariableChange(index, 'description', e.target.value)}
+                            sx={{
+                              '& .MuiInputBase-root': {
+                                resize: 'vertical',
+                                overflow: 'auto',
+                              }
+                            }}
                             helperText="Describe what this variable represents and how to extract it"
                           />
                         </Grid>

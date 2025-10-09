@@ -8,12 +8,14 @@ interface EnginePrompt {
   objective: string;
   notes: string;
   examples: string;
+  custom_fields?: Record<string, string>;
 }
 
 interface EngineVariableExtraction {
   name: string;
   description: string;
   required: boolean;
+  var_type?: string;
 }
 
 interface EngineNode {
@@ -27,7 +29,8 @@ interface EngineNode {
   extract_vars: EngineVariableExtraction[];
   temperature: number;
   skip_user_response: boolean;
-  overrides_global_pathway: boolean;
+  loop_enabled?: boolean;
+  overrides_global_pathway?: boolean;
   loop_condition: string;
 }
 
@@ -88,20 +91,12 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
       }
     }
 
-    // Create prompt text from engine prompt object (for editing/details)
-    const promptParts = [];
-    if (engineNode.prompt.context) promptParts.push(`Context: ${engineNode.prompt.context}`);
-    if (engineNode.prompt.objective) promptParts.push(`Objective: ${engineNode.prompt.objective}`);
-    if (engineNode.prompt.notes) promptParts.push(`Notes: ${engineNode.prompt.notes}`);
-    if (engineNode.prompt.examples) promptParts.push(`Examples: ${engineNode.prompt.examples}`);
-    const prompt = promptParts.join('\n\n');
-
     // Convert extract_vars format
     const extractVars: ExtractVarItem[] = engineNode.extract_vars.map(v => ({
-      varName: v.name,
-      varType: 'string', // Default to string, engine doesn't specify type
+      name: v.name,
+      varType: (v.var_type || 'string') as any, // Use var_type from engine, default to string
       description: v.description,
-      defaultValue: undefined,
+      required: v.required,
     }));
 
     // Map node_type to canvas type
@@ -116,14 +111,20 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
 
     const nodeData: CustomNodeData = {
       name: displayName,
-      prompt: prompt,
+      prompt: {
+        context: engineNode.prompt.context || '',
+        objective: engineNode.prompt.objective || '',
+        notes: engineNode.prompt.notes || '',
+        examples: engineNode.prompt.examples || '',
+        custom_fields: engineNode.prompt.custom_fields || {},
+      },
       isStart: engineNode.is_start,
       modelOptions: {
         temperature: engineNode.temperature,
         skipUserResponse: engineNode.skip_user_response,
-        conditionOverridesGlobalPathway: engineNode.overrides_global_pathway,
       },
       extractVars: extractVars,
+      loopEnabled: engineNode.loop_enabled || false,
       condition: engineNode.loop_condition,
     };
 

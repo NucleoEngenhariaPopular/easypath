@@ -265,10 +265,14 @@ const CanvasPage: React.FC = () => {
   ) => {
     if (selectedNode) {
       let updatedNodeData = { ...selectedNode.data };
+      let updatedNodeType = selectedNode.type;
 
       fieldWithPath = fieldWithPath.toString()
 
-      if (fieldWithPath.startsWith('modelOptions.')) {
+      // Handle node type change (updates the node's type property, not data)
+      if (fieldWithPath === 'nodeType') {
+        updatedNodeType = value;
+      } else if (fieldWithPath.startsWith('modelOptions.')) {
         const subField = fieldWithPath.split('.')[1] as keyof ModelOptions;
         updatedNodeData.modelOptions = {
           ...(updatedNodeData.modelOptions || {}),
@@ -300,11 +304,11 @@ const CanvasPage: React.FC = () => {
       setNodes((nds) =>
         nds.map((node) =>
           node.id === selectedNode.id
-            ? { ...node, data: updatedNodeData }
+            ? { ...node, type: updatedNodeType, data: updatedNodeData }
             : node
         )
       );
-      setSelectedNode((prev) => (prev ? { ...prev, data: updatedNodeData } : null));
+      setSelectedNode((prev) => (prev ? { ...prev, type: updatedNodeType, data: updatedNodeData } : null));
     }
   };
 
