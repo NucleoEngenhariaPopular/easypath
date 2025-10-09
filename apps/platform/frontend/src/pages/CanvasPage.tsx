@@ -57,6 +57,7 @@ import { convertEngineToCanvas, isEngineFormat, isCanvasFormat } from '../utils/
 import { autoLayoutNodes } from '../utils/autoLayout';
 import TestModePanel from '../components/canvas/TestModePanel';
 import { useFlowWebSocket, type FlowEvent } from '../hooks/useFlowWebSocket';
+import { v6 as uuidv6 } from 'uuid';
 
 const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
@@ -75,7 +76,7 @@ const CanvasPage: React.FC = () => {
 
   // Test mode state
   const [isTestMode, setIsTestMode] = useState(false);
-  const [testSessionId] = useState(`test-${Date.now()}`);
+  const [testSessionId] = useState(uuidv6());
   const [testMessages, setTestMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string; timestamp: string }>>([]);
   const [testVariables, setTestVariables] = useState<Record<string, any>>({});
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
