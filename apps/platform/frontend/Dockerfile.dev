@@ -3,17 +3,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy dependency files first (for efficient caching)
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
-# Copy source code
+# Copy all source files
 COPY . .
 
 # Expose Vite dev server port
 EXPOSE 5173
 
-# Start dev server with host 0.0.0.0 to allow external access
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Ensure dependencies are up to date and start Vite
+CMD ["sh", "-c", "npm ci --prefer-offline && npm run dev -- --host 0.0.0.0"]

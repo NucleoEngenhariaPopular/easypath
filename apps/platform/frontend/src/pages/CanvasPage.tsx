@@ -25,6 +25,7 @@ import type { GlobalCanvasConfig, CustomNodeData, ModelOptions, ExtractVarItem }
 import NodeModal from '../components/canvas/NodeModal';
 import EdgeModal from '../components/canvas/EdgeModal';
 import { useTranslation } from 'react-i18next';
+import { v6 as uuidv6 } from 'uuid';
 
 const initialGlobalConfig: GlobalCanvasConfig = {
   globalPrompt: 'Default global prompt: Be helpful and concise.',
@@ -57,7 +58,6 @@ import { convertEngineToCanvas, isEngineFormat, isCanvasFormat } from '../utils/
 import { autoLayoutNodes } from '../utils/autoLayout';
 import TestModePanel from '../components/canvas/TestModePanel';
 import { useFlowWebSocket, type FlowEvent } from '../hooks/useFlowWebSocket';
-import { v6 as uuidv6 } from 'uuid';
 
 const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
