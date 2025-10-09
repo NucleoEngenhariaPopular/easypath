@@ -1,9 +1,9 @@
 /* Custom ReactFlow Styles */
 
-/* Animated edge glow effect */
+/* Default edge styling - lighter tone */
 .react-flow__edge-path {
   stroke-linecap: round;
-  filter: drop-shadow(0 2px 4px rgba(102, 126, 234, 0.3));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 /* Custom edge animation */
@@ -116,13 +116,13 @@
 }
 
 .react-flow__edge:hover .react-flow__edge-path {
-  stroke: #764ba2;
-  stroke-width: 3;
+  stroke: #667eea;
+  stroke-width: 2.5;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: #764ba2;
-  stroke-width: 3.5;
+  stroke: #667eea;
+  stroke-width: 3;
 }
 
 /* Edge label becomes more visible on hover */
@@ -187,4 +187,42 @@
 .react-flow__edge.animating-edge .react-flow__edge-text {
   fill: white;
   font-weight: 700;
+}
+
+/* Clicked Edge Animation - travels from start to end */
+@keyframes edgeClickHighlight {
+  0% {
+    stroke-dashoffset: 100;
+    stroke: #667eea;
+    stroke-width: 3;
+  }
+  50% {
+    stroke: #43e97b;
+    stroke-width: 4;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    stroke: #667eea;
+    stroke-width: 3;
+  }
+}
+
+.react-flow__edge.clicked-edge .react-flow__edge-path {
+  stroke: #667eea !important;
+  stroke-width: 3 !important;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: edgeClickHighlight 1s ease-out infinite;
+  filter: drop-shadow(0 0 8px rgba(102, 126, 234, 0.6));
+}
+
+.react-flow__edge.clicked-edge .react-flow__edge-textbg {
+  fill: #667eea;
+  transition: fill 0.3s ease;
+}
+
+.react-flow__edge.clicked-edge .react-flow__edge-text {
+  fill: white;
+  font-weight: 700;
+  transition: all 0.3s ease;
 }

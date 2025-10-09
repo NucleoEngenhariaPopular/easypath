@@ -80,6 +80,8 @@ const CanvasPage: React.FC = () => {
   const [testVariables, setTestVariables] = useState<Record<string, any>>({});
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [animatingEdge, setAnimatingEdge] = useState<string | null>(null);
+  const [clickedEdge, setClickedEdge] = useState<string | null>(null);
+  const [lastClickedEdgeId, setLastClickedEdgeId] = useState<string | null>(null);
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
 
   // Stats tracking
@@ -192,9 +194,19 @@ const CanvasPage: React.FC = () => {
   }, []);
 
   const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
-    setSelectedEdge(edge);
-    setIsEdgeModalOpen(true);
-  }, []);
+    // Check if this is the second click on the same edge
+    if (lastClickedEdgeId === edge.id) {
+      // Second click - open modal and clear animation
+      setSelectedEdge(edge);
+      setIsEdgeModalOpen(true);
+      setLastClickedEdgeId(null);
+      setClickedEdge(null);
+    } else {
+      // First click - start looping animation
+      setClickedEdge(edge.id);
+      setLastClickedEdgeId(edge.id);
+    }
+  }, [lastClickedEdgeId]);
 
   const handleAddNode = (type: string) => {
     // Create appropriate name based on type
@@ -664,11 +676,16 @@ const CanvasPage: React.FC = () => {
             ...node,
             className: node.id === activeNodeId ? 'active-node' : ''
           }))}
-          edges={edges.map(edge => ({
-            ...edge,
-            className: edge.id === animatingEdge ? 'animating-edge' : '',
-            animated: edge.id === animatingEdge
-          }))}
+          edges={edges.map(edge => {
+            let className = '';
+            if (edge.id === animatingEdge) className = 'animating-edge';
+            else if (edge.id === clickedEdge) className = 'clicked-edge';
+            return {
+              ...edge,
+              className,
+              animated: edge.id === animatingEdge
+            };
+          })}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
@@ -681,10 +698,10 @@ const CanvasPage: React.FC = () => {
           fitView
           defaultEdgeOptions={{
             type: 'smoothstep',
-            animated: true,
+            animated: false,
             style: {
-              stroke: '#667eea',
-              strokeWidth: 2.5,
+              stroke: '#c0c9e0',
+              strokeWidth: 2,
             },
             labelStyle: {
               fontSize: 12,
