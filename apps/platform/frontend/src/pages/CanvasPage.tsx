@@ -400,29 +400,33 @@ const CanvasPage: React.FC = () => {
           id: n.id,
           node_type: n.type || 'normal',
           prompt: {
-            context: '',
-            objective: n.data.prompt || '',
-            notes: '',
-            examples: ''
+            context: n.data.prompt?.context || '',
+            objective: n.data.prompt?.objective || '',
+            notes: n.data.prompt?.notes || '',
+            examples: n.data.prompt?.examples || '',
+            custom_fields: n.data.prompt?.custom_fields || {}
           },
           is_start: n.data.isStart || false,
           is_end: n.type === 'end',
           use_llm: true,
-          is_global: false,
+          is_global: n.data.isGlobal || false,
+          node_description: n.data.nodeDescription || '',
+          auto_return_to_previous: n.data.autoReturnToPrevious || false,
           extract_vars: n.data.extractVars?.map(v => ({
-            name: v.varName,
+            name: v.name,
             description: v.description,
-            required: true
+            required: v.required,
+            var_type: v.varType || 'string'
           })) || [],
           temperature: n.data.modelOptions?.temperature || 0.2,
           skip_user_response: n.data.modelOptions?.skipUserResponse || false,
-          overrides_global_pathway: n.data.modelOptions?.conditionOverridesGlobalPathway || false,
+          loop_enabled: n.data.loopEnabled || false,
           loop_condition: n.data.condition || ''
         })),
         connections: edges.map((e, idx) => ({
           id: e.id || `conn-${idx}`,
           label: e.label?.toString() || '',
-          description: e.label?.toString() || '',
+          description: (e.data?.description as string) || e.label?.toString() || '',
           else_option: false,
           source: e.source,
           target: e.target
