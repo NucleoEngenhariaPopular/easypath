@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/unit/test_variable_extraction.py -v --tb=short)",
+      "Bash(python -m pytest tests/unit/test_variable_extraction.py -v)",
+      "Bash(python -m pytest tests/unit/test_variable_extraction.py -q)",
+      "Bash(python -m pytest tests/unit/test_variable_extraction.py --tb=line -q)",
+      "Bash(rm:*)",
+      "Bash(python -m pytest tests/unit -q)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
