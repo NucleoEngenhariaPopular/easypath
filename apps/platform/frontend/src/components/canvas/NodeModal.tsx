@@ -35,6 +35,7 @@ const NODE_TYPES = [
   { value: 'recommendation', label: 'Recommendation' },
   { value: 'summary', label: 'Summary' },
   { value: 'request', label: 'Request' },
+  { value: 'global', label: 'Global' },
   { value: 'end', label: 'End' },
 ];
 
@@ -507,6 +508,75 @@ const NodeModal: FC<NodeModalProps> = ({
                     helperText="Describe when this node should loop or continue"
                   />
                 )}
+              </Paper>
+            </Box>
+          )}
+
+          {/* Global Node Configuration */}
+          {selectedNode.type === 'global' && (
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box sx={{
+                  width: 4,
+                  height: 24,
+                  bgcolor: 'warning.dark',
+                  borderRadius: 1,
+                  mr: 1.5
+                }} />
+                <Typography variant="h6" fontWeight="600" color="text.primary">
+                  Global Node Configuration
+                </Typography>
+              </Box>
+              <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, bgcolor: 'warning.lighter', border: '2px solid', borderColor: 'warning.main' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Global nodes can be triggered from any point in the conversation flow based on specific conditions.
+                </Typography>
+
+                <TextField
+                  label="Node Description"
+                  name="nodeDescription"
+                  fullWidth
+                  multiline
+                  rows={4}
+                  value={selectedNode.data.nodeDescription || ''}
+                  onChange={handleSimpleChange}
+                  sx={{
+                    mb: 3,
+                    '& .MuiInputBase-root': {
+                      resize: 'vertical',
+                      overflow: 'auto',
+                    }
+                  }}
+                  helperText="Describe when this global node should be triggered (e.g., 'When user asks for help' or 'When user wants to cancel')"
+                  placeholder="When should this node be activated?"
+                />
+
+                <Box sx={{
+                  p: 2,
+                  bgcolor: 'background.paper',
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={selectedNode.data.autoReturnToPrevious || false}
+                        onChange={(e) => onNodeDataChange('autoReturnToPrevious', e.target.checked)}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2" fontWeight="600">
+                          Automatically go back to previous node
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          When enabled, the flow returns to the previous node after responding. When disabled, you can define custom pathways from this node.
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </Box>
               </Paper>
             </Box>
           )}

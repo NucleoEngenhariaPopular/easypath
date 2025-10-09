@@ -156,6 +156,10 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
         t_choose = perf_counter() - t_choose
         return "Desculpe, ocorreu um erro ao processar sua solicitação.", _create_error_timings(perf_counter() - t0)
 
+    # Track previous node before updating (for global node auto-return)
+    session.previous_node_id = old_node_id
+    logger.debug("Session previous_node_id set to: %s", old_node_id)
+
     # Update session with new node
     session.current_node_id = next_node_id
     logger.debug("Session current_node_id updated to: %s", next_node_id)
@@ -201,6 +205,13 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
     except Exception as e:
         logger.error("Failed to add assistant message to session: %s", e, exc_info=True)
         # Continue anyway since we have the response
+
+    # Handle auto-return for global nodes
+    if next_node.auto_return_to_previous and session.previous_node_id:
+        logger.info("Global node %s has auto_return_to_previous enabled, returning to %s",
+                   next_node_id, session.previous_node_id)
+        session.current_node_id = session.previous_node_id
+        logger.debug("Session current_node_id restored to previous: %s", session.current_node_id)
 
     t_total = perf_counter() - t0
 

@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from .message import Message
 
@@ -6,6 +6,7 @@ from .message import Message
 class ChatSession(BaseModel):
     session_id: str
     current_node_id: str
+    previous_node_id: Optional[str] = None  # Track previous node for global node auto-return
     history: List[Message] = Field(default_factory=list)
     extracted_variables: Dict[str, Any] = Field(default_factory=dict)
 

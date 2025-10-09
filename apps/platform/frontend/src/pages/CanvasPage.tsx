@@ -247,10 +247,10 @@ const CanvasPage: React.FC = () => {
     setSelectedEdge(null);
   };
 
-  const handleEdgeUpdate = (edgeId: string, label: string) => {
+  const handleEdgeUpdate = (edgeId: string, label: string, description: string) => {
     setEdges((eds) =>
       eds.map((edge) =>
-        edge.id === edgeId ? { ...edge, label } : edge
+        edge.id === edgeId ? { ...edge, label, data: { ...edge.data, description } } : edge
       )
     );
   };

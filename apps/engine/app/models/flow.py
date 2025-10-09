@@ -25,6 +25,8 @@ class Node(BaseModel):
     is_end: bool = False
     use_llm: bool = True
     is_global: bool = False
+    node_description: str = ""  # Description of when this global node should be triggered
+    auto_return_to_previous: bool = False  # If True, returns to previous node after responding
     extract_vars: List[VariableExtraction] = []
     temperature: float = 0.2
     skip_user_response: bool = False

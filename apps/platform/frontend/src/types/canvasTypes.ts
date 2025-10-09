@@ -37,6 +37,9 @@ export interface CustomNodeData {
   url?: string;
   method?: string;
   isStart?: boolean;
+  isGlobal?: boolean;
+  nodeDescription?: string;  // For global nodes: when to trigger this node
+  autoReturnToPrevious?: boolean;  // For global nodes: auto-return after responding
   modelOptions?: ModelOptions;
   condition?: string;
   loopEnabled?: boolean;

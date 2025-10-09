@@ -14,6 +14,7 @@ def _format_prompt(flow: Flow, current_node_id: str) -> tuple[str, list[Connecti
     connections_list_string = ""
     connection_counter = 1
 
+    # Add regular connections from current node
     for connection in flow.connections:
         if connection.source == current_node_id:
             connections_list_string += (
@@ -22,11 +23,30 @@ def _format_prompt(flow: Flow, current_node_id: str) -> tuple[str, list[Connecti
             connections_list.append(connection)
             connection_counter += 1
 
+    # Add global nodes as always-available options
+    global_nodes_string = ""
+    for node in flow.nodes:
+        if node.is_global:
+            # Create a virtual connection for the global node
+            virtual_connection = Connection(
+                id=f"global-{node.id}",
+                label=node.id,  # Use node ID as label for matching
+                description=node.node_description or f"Global node: {node.id}",
+                else_option=False,
+                source=current_node_id,
+                target=node.id
+            )
+            global_nodes_string += (
+                f"\n{connection_counter}) - Nome: {node.id}\nDescrição: {node.node_description or 'Nó global disponível a qualquer momento'}"
+            )
+            connections_list.append(virtual_connection)
+            connection_counter += 1
+
     prompt = (
         "Você deve escolher o melhor caminho a ser tomado nesse fluxo de conversa\n"
         "Para isso, analise o histórico da conversa, especialmente a última mensagem, e as opções de caminho a serem tomadas a seguir\n"
         "Ao escolher o melhor caminho, retorne apenas o nome desse caminho para sinalizar sua escolha. Não retorne nenhum texto além do nome do caminho.\n\n"
-        f"Opções de caminho:{connections_list_string}"
+        f"Opções de caminho:{connections_list_string}{global_nodes_string}"
     )
 
     return prompt, connections_list

@@ -26,6 +26,8 @@ interface EngineNode {
   is_end: boolean;
   use_llm: boolean;
   is_global: boolean;
+  node_description?: string;
+  auto_return_to_previous?: boolean;
   extract_vars: EngineVariableExtraction[];
   temperature: number;
   skip_user_response: boolean;
@@ -100,11 +102,11 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
     }));
 
     // Map node_type to canvas type
-    // Keep the node_type as-is since we now support: start, end, normal, message, extraction, validation, recommendation, summary, request
+    // Keep the node_type as-is since we now support: start, end, normal, message, extraction, validation, recommendation, summary, request, global
     let nodeType = engineNode.node_type;
 
     // Only map 'normal' if it doesn't match any of our known types
-    const validTypes = ['start', 'end', 'message', 'extraction', 'validation', 'recommendation', 'summary', 'request'];
+    const validTypes = ['start', 'end', 'message', 'extraction', 'validation', 'recommendation', 'summary', 'request', 'global'];
     if (!validTypes.includes(nodeType)) {
       nodeType = 'normal';
     }
@@ -119,6 +121,9 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
         custom_fields: engineNode.prompt.custom_fields || {},
       },
       isStart: engineNode.is_start,
+      isGlobal: engineNode.is_global,
+      nodeDescription: engineNode.node_description || '',
+      autoReturnToPrevious: engineNode.auto_return_to_previous || false,
       modelOptions: {
         temperature: engineNode.temperature,
         skipUserResponse: engineNode.skip_user_response,
@@ -141,7 +146,8 @@ export function convertEngineToCanvas(engineFlow: EngineFlow): CanvasFlow {
     id: conn.id,
     source: conn.source,
     target: conn.target,
-    label: conn.description || conn.label, // Use description for better readability
+    label: conn.label,
+    data: { description: conn.description },
     type: 'smoothstep',
   }));
 

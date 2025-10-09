@@ -17,7 +17,7 @@ interface EdgeModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedEdge: Edge | null;
-  onEdgeUpdate: (edgeId: string, label: string) => void;
+  onEdgeUpdate: (edgeId: string, label: string, description: string) => void;
   onEdgeDelete: (edgeId: string) => void;
 }
 
@@ -29,16 +29,18 @@ const EdgeModal: React.FC<EdgeModalProps> = ({
   onEdgeDelete,
 }) => {
   const [label, setLabel] = useState('');
+  const [description, setDescription] = useState('');
 
   useEffect(() => {
     if (selectedEdge) {
       setLabel(selectedEdge.label as string || '');
+      setDescription((selectedEdge.data?.description as string) || '');
     }
   }, [selectedEdge]);
 
   const handleSave = () => {
     if (selectedEdge) {
-      onEdgeUpdate(selectedEdge.id, label);
+      onEdgeUpdate(selectedEdge.id, label, description);
       onClose();
     }
   };
@@ -137,11 +139,44 @@ const EdgeModal: React.FC<EdgeModalProps> = ({
           placeholder="Enter a label for this connection..."
           variant="outlined"
           sx={{
+            mb: 3,
             '& .MuiOutlinedInput-root': {
               borderRadius: 2,
             }
           }}
           helperText="This label will be displayed on the connection arrow"
+        />
+
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Box sx={{
+            width: 4,
+            height: 24,
+            bgcolor: 'primary.main',
+            borderRadius: 1,
+            mr: 1.5
+          }} />
+          <Typography variant="h6" fontWeight="600" color="text.primary">
+            Connection Description
+          </Typography>
+        </Box>
+
+        <TextField
+          label="Description"
+          fullWidth
+          multiline
+          rows={4}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Describe when to choose this path..."
+          variant="outlined"
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              resize: 'vertical',
+              overflow: 'auto',
+            }
+          }}
+          helperText="This description helps the LLM decide when to follow this path"
         />
       </DialogContent>
 

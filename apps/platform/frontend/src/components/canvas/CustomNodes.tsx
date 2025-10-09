@@ -9,6 +9,7 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import RecommendIcon from '@mui/icons-material/Recommend';
 import SummarizeIcon from '@mui/icons-material/Summarize';
+import PublicIcon from '@mui/icons-material/Public';
 import { type CSSProperties } from 'react';
 import type { CustomNodeData } from '../../types/canvasTypes';
 
@@ -367,6 +368,45 @@ export const nodeTypes = {
         }}
       >
         {props.data.name || 'Message Node'}
+      </Typography>
+      <Handle type="target" position={Position.Top} style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} style={handleStyle} />
+    </Box>
+  ),
+  global: (props: NodeProps<Node<CustomNodeData>>) => (
+    <Box
+      sx={{
+        ...nodeBaseStyle,
+        background: 'linear-gradient(135deg, #ff9a56 0%, #ff6a00 100%)',
+        minWidth: 170,
+        maxWidth: 280,
+        borderRadius: '8px',
+        clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+        '&:hover': {
+          transform: 'translateY(-2px) scale(1.02)',
+          boxShadow: '0 8px 20px rgba(255, 154, 86, 0.5), 0 3px 8px rgba(0,0,0,0.2)',
+        },
+      }}
+    >
+      <PublicIcon sx={{ fontSize: 26, mb: 1, color: 'rgba(255,255,255,0.95)' }} />
+      <Typography
+        variant="body2"
+        sx={{
+          userSelect: 'none',
+          wordBreak: 'break-word',
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          lineHeight: 1.4,
+          fontWeight: 600,
+          color: 'white',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+        }}
+      >
+        {props.data.name || 'Global Node'}
       </Typography>
       <Handle type="target" position={Position.Top} style={handleStyle} />
       <Handle type="source" position={Position.Bottom} style={handleStyle} />
