@@ -513,18 +513,30 @@ const NodeModal: FC<NodeModalProps> = ({
 
           {/* Variable Extraction */}
           <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Box sx={{
-                width: 4,
-                height: 24,
-                bgcolor: 'warning.main',
-                borderRadius: 1,
-                mr: 1.5
-              }} />
-              <Typography variant="h6" fontWeight="600" color="text.primary">
-                Variable Extraction
-              </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box sx={{
+                  width: 4,
+                  height: 24,
+                  bgcolor: 'warning.main',
+                  borderRadius: 1,
+                  mr: 1.5
+                }} />
+                <Typography variant="h6" fontWeight="600" color="text.primary">
+                  Variable Extraction
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAddVariable}
+                size="small"
+                sx={{ borderRadius: 2 }}
+              >
+                Add Variable
+              </Button>
             </Box>
+
             <Paper variant="outlined" sx={{
               p: 3,
               bgcolor: showExtractionFields ? 'warning.lighter' : 'background.paper',
@@ -532,26 +544,49 @@ const NodeModal: FC<NodeModalProps> = ({
               borderColor: showExtractionFields ? 'warning.main' : 'divider',
               borderWidth: showExtractionFields ? 2 : 1,
             }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 Define variables to extract from user messages at this node.
               </Typography>
 
-              {(selectedNode.data.extractVars || []).length > 0 && (
-                <Box sx={{ mb: 2 }}>
+              {(selectedNode.data.extractVars || []).length > 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {(selectedNode.data.extractVars || []).map((variable, index) => (
-                    <Paper key={index} variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'background.default' }}>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
+                    <Paper
+                      key={index}
+                      elevation={2}
+                      sx={{
+                        p: 3,
+                        bgcolor: 'background.paper',
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        position: 'relative'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="subtitle2" color="text.secondary" fontWeight="600">
+                          Variable {index + 1}
+                        </Typography>
+                        <IconButton
+                          onClick={() => handleRemoveVariable(index)}
+                          color="error"
+                          size="small"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box sx={{ display: 'flex', gap: 2 }}>
                           <TextField
                             label="Variable Name"
-                            fullWidth
                             value={variable.name}
                             onChange={(e) => handleVariableChange(index, 'name', e.target.value)}
                             placeholder="e.g., user_email"
+                            size="small"
+                            sx={{ flex: 1 }}
                           />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <FormControl fullWidth>
+                          <FormControl size="small" sx={{ minWidth: 140 }}>
                             <InputLabel>Type</InputLabel>
                             <Select
                               value={variable.varType}
@@ -565,58 +600,52 @@ const NodeModal: FC<NodeModalProps> = ({
                               ))}
                             </Select>
                           </FormControl>
-                        </Grid>
-                        <Grid item xs={12}>
-                          <TextField
-                            label="Description"
-                            fullWidth
-                            multiline
-                            rows={2}
-                            value={variable.description}
-                            onChange={(e) => handleVariableChange(index, 'description', e.target.value)}
-                            sx={{
-                              '& .MuiInputBase-root': {
-                                resize: 'vertical',
-                                overflow: 'auto',
-                              }
-                            }}
-                            helperText="Describe what this variable represents and how to extract it"
-                          />
-                        </Grid>
-                        <Grid item xs={12}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={variable.required}
-                                  onChange={(e) => handleVariableChange(index, 'required', e.target.checked)}
-                                />
-                              }
-                              label="Required"
+                        </Box>
+
+                        <TextField
+                          label="Description"
+                          fullWidth
+                          multiline
+                          rows={3}
+                          value={variable.description}
+                          onChange={(e) => handleVariableChange(index, 'description', e.target.value)}
+                          size="small"
+                          sx={{
+                            '& .MuiInputBase-root': {
+                              resize: 'vertical',
+                              overflow: 'auto',
+                            }
+                          }}
+                          placeholder="Describe what this variable represents and how to extract it"
+                        />
+
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={variable.required}
+                              onChange={(e) => handleVariableChange(index, 'required', e.target.checked)}
                             />
-                            <IconButton
-                              onClick={() => handleRemoveVariable(index)}
-                              color="error"
-                              size="small"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Box>
-                        </Grid>
-                      </Grid>
+                          }
+                          label="Required variable (must be extracted before moving forward)"
+                        />
+                      </Box>
                     </Paper>
                   ))}
                 </Box>
+              ) : (
+                <Box sx={{
+                  py: 4,
+                  textAlign: 'center',
+                  borderRadius: 2,
+                  bgcolor: 'action.hover',
+                  border: '2px dashed',
+                  borderColor: 'divider'
+                }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No variables defined yet. Click "Add Variable" to get started.
+                  </Typography>
+                </Box>
               )}
-
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={handleAddVariable}
-                sx={{ borderRadius: 2 }}
-              >
-                Add Variable
-              </Button>
             </Paper>
           </Box>
 
