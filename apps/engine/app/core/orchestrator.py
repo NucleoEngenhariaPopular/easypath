@@ -129,6 +129,34 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
                 }
             }
 
+            # Emit decision step event for variable extraction loop
+            try:
+                EventEmitter.emit_decision_step(
+                    session_id=session.session_id,
+                    step_name="Variable Extraction Loop",
+                    node_id=current_node.id,
+                    node_name=current_node.prompt.objective if current_node.prompt else current_node.id,
+                    node_prompt={
+                        "context": current_node.prompt.context if current_node.prompt else "",
+                        "objective": current_node.prompt.objective if current_node.prompt else "",
+                        "notes": current_node.prompt.notes if current_node.prompt else "",
+                        "examples": current_node.prompt.examples if current_node.prompt else ""
+                    },
+                    previous_node_id=None,  # Staying on same node
+                    available_pathways=[],  # No pathways when looping
+                    chosen_pathway=None,  # Not choosing a pathway
+                    llm_reasoning=f"Staying on node to collect required variables: {', '.join([v.name for v in missing_vars])}",
+                    variables_extracted=session.extracted_variables,
+                    variables_status={var.name: var.name in session.extracted_variables for var in current_node.extract_vars},
+                    assistant_response=assistant_reply,
+                    timing_ms=round(t_extract * 1000, 1),
+                    tokens_used=0,
+                    cost_usd=0.0,
+                    model_name="none"
+                )
+            except Exception as e:
+                logger.warning("Failed to emit decision step event for variable extraction: %s", e)
+
             logger.info("Staying on node %s for variable extraction", session.current_node_id)
             logger.info("RUN_STEP COMPLETED (extraction loop)")
             logger.info("=" * 80)
@@ -237,6 +265,33 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
                 total_cost,
                 current_node.id,
             )
+
+            # Emit decision step event for explicit loop
+            try:
+                EventEmitter.emit_decision_step(
+                    session_id=session.session_id,
+                    step_name="Explicit Loop Condition",
+                    node_id=current_node.id,
+                    node_name=current_node.prompt.objective if current_node.prompt else current_node.id,
+                    node_prompt={
+                        "context": current_node.prompt.context if current_node.prompt else "",
+                        "objective": current_node.prompt.objective if current_node.prompt else "",
+                        "notes": current_node.prompt.notes if current_node.prompt else "",
+                        "examples": current_node.prompt.examples if current_node.prompt else ""
+                    },
+                    previous_node_id=None,  # Staying on same node
+                    available_pathways=[],  # No pathways when looping
+                    chosen_pathway=None,  # Not choosing a pathway
+                    llm_reasoning=loop_llm_info.get("reasoning") or f"Loop condition met: {current_node.loop_condition}",
+                    variables_extracted=session.extracted_variables if session.extracted_variables else None,
+                    assistant_response=assistant_reply,
+                    timing_ms=round(t_loop_eval * 1000, 1),
+                    tokens_used=loop_llm_info.get("total_tokens", 0) + exec_llm_info.get("total_tokens", 0),
+                    cost_usd=loop_llm_info.get("estimated_cost_usd", 0.0) + exec_llm_info.get("estimated_cost_usd", 0.0),
+                    model_name=loop_llm_info.get("model_name")
+                )
+            except Exception as e:
+                logger.warning("Failed to emit decision step event for explicit loop: %s", e)
 
             logger.info("RUN_STEP COMPLETED (explicit loop)")
             logger.info("=" * 80)

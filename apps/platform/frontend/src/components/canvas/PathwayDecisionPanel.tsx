@@ -56,7 +56,9 @@ const PathwayDecisionPanel: React.FC<PathwayDecisionPanelProps> = ({ decisionLog
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            PATHWAY DECISION INFO
+            {decisionLog.stepName === "Variable Extraction Loop" || decisionLog.stepName === "Explicit Loop Condition"
+              ? "LOOP DECISION INFO"
+              : "PATHWAY DECISION INFO"}
           </Typography>
           <Chip
             label={new Date(decisionLog.timestamp).toLocaleTimeString()}
@@ -109,8 +111,8 @@ const PathwayDecisionPanel: React.FC<PathwayDecisionPanelProps> = ({ decisionLog
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Previous Node */}
-          {decisionLog.previousNodeId && (
+          {/* Previous Node or Loop Indicator */}
+          {decisionLog.previousNodeId ? (
             <>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mb: 0.5 }}>
@@ -119,6 +121,17 @@ const PathwayDecisionPanel: React.FC<PathwayDecisionPanelProps> = ({ decisionLog
                 <Typography variant="body2">
                   {decisionLog.previousNodeName || decisionLog.previousNodeId}
                 </Typography>
+              </Box>
+              <Divider sx={{ my: 2 }} />
+            </>
+          ) : (
+            <>
+              <Box sx={{ mb: 2 }}>
+                <Alert severity="warning" sx={{ py: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    ⟳ Stayed on same node (loop condition)
+                  </Typography>
+                </Alert>
               </Box>
               <Divider sx={{ my: 2 }} />
             </>
