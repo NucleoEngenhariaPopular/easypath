@@ -114,7 +114,25 @@ Available test flows:
 - `/app/fixtures/greeting_flow.json` - Simple greeting and name collection
 - `/app/fixtures/sample_flow.json` - More complex example
 - `/app/fixtures/simple_extraction_flow.json` - **RECOMMENDED** - Simple variable extraction flow collecting user name and location
+- `/app/fixtures/math_quiz_flow.json` - **NEW** - Math quiz with 3 questions demonstrating explicit loop conditions
 - `/app/fixtures/address_extraction_flow.json` - Advanced flow with detailed address extraction and recommendations
+
+## Loop Functionality
+
+EasyPath supports **two types of loops**:
+
+1. **Automatic Extraction Loops** - Stays on node until required variables are collected (free)
+2. **Explicit Condition Loops** - LLM-based validation for quizzes and conditional logic
+
+**Example: Quiz with Loop**
+```json
+{
+  "loop_enabled": true,
+  "loop_condition": "Continue until user answers '10'"
+}
+```
+
+**See `apps/engine/README.md` for comprehensive loop documentation and examples.**
 
 ## Run tests
 

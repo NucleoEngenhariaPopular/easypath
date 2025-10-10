@@ -50,17 +50,21 @@ The project consists of three main components:
 **Core workflow:**
 1. Receives message via `POST /chat/message` (session_id, flow_path, user_message)
 2. Loads/creates session from Redis and reads flow JSON
-3. `pathway_selector`: Chooses next node via LLM + fuzzy matching
-4. `variable_extractor`: Extracts variables from user messages if configured
-5. `flow_executor`: Generates assistant response via LLM
-6. Updates and persists session, returns response
-7. **Emits real-time WebSocket events** for flow visualization (optional)
+3. `variable_extractor`: Extracts variables from user messages if configured
+4. **Automatic extraction loop**: If required variables missing, stays on current node
+5. `loop_evaluator`: Evaluates explicit loop conditions (if `loop_enabled` is true)
+6. **Explicit condition loop**: If loop condition met, stays on current node
+7. `pathway_selector`: Chooses next node via LLM + fuzzy matching (if not looping)
+8. `flow_executor`: Generates assistant response via LLM
+9. Updates and persists session, returns response
+10. **Emits real-time WebSocket events** for flow visualization (optional)
 
 **Key modules:**
 - `app/core/orchestrator.py`: Coordinates conversation steps
 - `app/core/pathway_selector.py`: Decides next node using LLM
 - `app/core/flow_executor.py`: Generates responses
 - `app/core/variable_extractor.py`: Extracts variables from messages
+- `app/core/loop_evaluator.py`: Evaluates explicit loop conditions using LLM
 - `app/llm/`: LLM client implementations (DeepSeek, Gemini)
 - `app/storage/`: Redis session store and flow repository
 - `app/models/flow.py`: Flow schema (Prompt, Node, Connection, Flow, VariableExtraction)
@@ -159,12 +163,14 @@ Flows are defined as JSON files following the schema in `apps/engine/app/models/
 
 **Important node properties:**
 - `extract_vars`: List of variables to extract from user input
+- `loop_enabled`: Enable explicit loop condition evaluation (default false)
+- `loop_condition`: Natural language description of when to loop (requires `loop_enabled: true`)
 - `temperature`: LLM creativity control (default 0.2)
 - `use_llm`: Whether to use LLM for response generation
 - `skip_user_response`: Auto-advance without user input
 - `overrides_global_pathway`: Whether node-level pathway selection overrides global config
 
-See `apps/engine/tests/fixtures/sample_flow.json` for reference.
+See `apps/engine/tests/fixtures/sample_flow.json` and `apps/engine/tests/fixtures/math_quiz_flow.json` for reference.
 
 ## Environment Variables
 
@@ -182,14 +188,117 @@ See `apps/engine/tests/fixtures/sample_flow.json` for reference.
 - `SUPABASE_URL`: Supabase project URL
 - `SUPABASE_JWT_SECRET`: Supabase JWT validation secret
 
+## Loop Functionality
+
+The engine supports **two complementary types of loops** that allow nodes to repeat until certain conditions are met:
+
+### 1. Automatic Variable Extraction Loop
+- **Trigger:** Node has `extract_vars` with `required: true` variables
+- **Behavior:** Stays on current node until all required variables are extracted
+- **Cost:** Free (no additional LLM calls)
+- **Use Case:** Collecting user information (name, email, age, etc.)
+
+**Example:**
+```json
+{
+  "id": "collect-name",
+  "extract_vars": [
+    {
+      "name": "user_name",
+      "description": "User's full name",
+      "required": true
+    }
+  ]
+}
+```
+
+### 2. Explicit Loop Condition (LLM-Based)
+- **Trigger:** Node has `loop_enabled: true` and `loop_condition` set
+- **Behavior:** LLM evaluates natural language condition, returns "LOOP" or "PROCEED"
+- **Cost:** ~$0.00001-0.0001 per evaluation (~40-100 tokens)
+- **Use Case:** Answer validation, quiz questions, conditional logic
+
+**Example:**
+```json
+{
+  "id": "quiz-question",
+  "loop_enabled": true,
+  "loop_condition": "Continue asking until user answers '10' or 'dez'. Give hints if wrong.",
+  "prompt": {
+    "objective": "Ask 'What is 5 + 5?' and validate the answer"
+  }
+}
+```
+
+### Execution Order
+
+When both loop types are configured on the same node:
+
+1. **Variable Extraction Loop** (checked first)
+   - If required variables missing → loop (stay on node)
+   - If all required variables present → continue to step 2
+
+2. **Explicit Loop Condition** (checked second)
+   - Only evaluated if all required variables are present
+   - LLM evaluates `loop_condition` against conversation history
+   - If condition returns "LOOP" → loop (stay on node)
+   - If condition returns "PROCEED" → continue to step 3
+
+3. **Pathway Selection** (only if not looping)
+   - Choose next node based on connections
+
+### Safety Features
+
+- **Safe Fallback:** LLM errors or unclear responses default to "PROCEED" (prevents infinite loops)
+- **Empty Condition Ignored:** If `loop_condition` is empty string, loop is skipped
+- **Disabled by Default:** `loop_enabled` defaults to `false`
+- **Comprehensive Logging:** All loop evaluations logged with reasoning
+
+### Performance Metrics
+
+Loop evaluation metrics are tracked in response timing data:
+- `loop_evaluation_tokens`: Input/output/total tokens used
+- `loop_evaluation_time`: Execution time in seconds
+- `loop_evaluation_model`: Model used for evaluation (e.g., "deepseek-chat")
+- `loop_evaluation_cost_usd`: Estimated cost
+
+Frontend displays loop evaluation stats in Test Mode when tokens > 0.
+
+### Example Use Cases
+
+**Quiz/Test Questions:**
+```json
+{
+  "id": "math-question",
+  "loop_enabled": true,
+  "loop_condition": "Repeat until answer is 'Paris'",
+  "prompt": {
+    "objective": "Ask: What is the capital of France?"
+  }
+}
+```
+
+**Age Validation:**
+```json
+{
+  "id": "verify-age",
+  "loop_enabled": true,
+  "loop_condition": "Continue until user_age >= 18",
+  "extract_vars": [{"name": "user_age", "required": true}]
+}
+```
+
+**See `apps/engine/tests/fixtures/math_quiz_flow.json` for a complete example with 3 progressive questions.**
+
 ## Key Design Patterns
 
 1. **Separation of Concerns:** Platform backend handles CRUD/auth, Engine handles real-time execution with LLM
 2. **Flow as Data:** Conversation flows are declarative JSON (import/export friendly, version-controllable)
 3. **Stateless by Default:** Engine can run without Redis, loads session data on-demand
 4. **Variable Extraction:** Nodes can define variables to extract from user messages, with required/optional flags
-5. **Pathway Selection:** Uses LLM to understand user intent and choose next conversation node, with fuzzy matching validation
-6. **Global vs Node Config:** Global flow settings (objective, tone) can be overridden at node level
+5. **Loop Control:** Two complementary loop mechanisms (automatic extraction + explicit conditions)
+6. **Pathway Selection:** Uses LLM to understand user intent and choose next conversation node, with fuzzy matching validation
+7. **Global vs Node Config:** Global flow settings (objective, tone) can be overridden at node level
 
 ## Real-Time Flow Visualization (WebSocket)
 
@@ -252,6 +361,10 @@ const { isConnected, lastEvent, executionState } = useFlowWebSocket({
 - Engine is designed for independent scaling (can use GPU hardware for LLM inference)
 - Tests mock LLM calls for reproducibility
 - Flow definitions include connection descriptions to help LLM pathway selection
-- Variable extraction loops on same node until all required variables are collected
-- Token usage and timing information tracked for cost estimation
+- **Two loop types:**
+  - Automatic variable extraction loops (free, instant)
+  - Explicit condition loops (LLM-based, flexible)
+- Loop conditions are written in natural language and evaluated by LLM
+- Loops stay on the same node (no visual loop-back connections needed)
+- Token usage and timing information tracked for cost estimation (including loop evaluation)
 - **WebSocket events are optional** - engine works normally without active WebSocket connections

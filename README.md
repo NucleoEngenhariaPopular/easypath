@@ -26,15 +26,17 @@ EasyPath is a comprehensive platform for creating, testing, and deploying AI-pow
 ### 🤖 AI-Powered Intelligence
 - **LLM-driven pathway selection** - automatically chooses next conversation step based on user intent
 - **Smart variable extraction** - pulls structured data from natural language
+- **Dual loop system** - automatic extraction loops + explicit condition loops for validation
 - **Multi-model support** - DeepSeek and Google Gemini
 - **Configurable per-node** - different models for different steps
 
 ### 📊 Advanced Features
-- **Variable extraction with retry logic** - ensures required data is collected
+- **Automatic extraction loops** - stays on node until required variables are collected (free, instant)
+- **Explicit condition loops** - LLM-based validation for quizzes, tests, and conditional logic
 - **Global and node-level prompts** - fine-tune responses at every level
 - **Session management** - Redis-backed state persistence
 - **Multi-language support** - English and Portuguese (i18n ready)
-- **Cost tracking** - monitor token usage and LLM costs in real-time
+- **Cost tracking** - monitor token usage and LLM costs in real-time (including loop evaluation)
 
 ## 🏗️ Architecture
 
@@ -106,10 +108,11 @@ EasyPath follows a **microservices architecture** with three main components:
 - **Purpose:** Real-time flow execution engine
 - **Features:**
   - LLM-powered pathway selection
-  - Smart variable extraction
+  - Smart variable extraction with automatic loops
+  - Explicit loop conditions for validation and quizzes
   - WebSocket event streaming
   - Multi-model support (DeepSeek, Gemini)
-  - Cost and performance tracking
+  - Cost and performance tracking (including loop evaluation)
 
 ## 🚀 Quick Start
 
@@ -232,13 +235,15 @@ Test mode provides a **live chat interface** with **real-time visualization**:
   - Prompt (what the bot should say/do)
   - LLM model and temperature
   - Whether to wait for user response
+  - Loop conditions for validation (optional)
 
 #### **Extraction Node**
 - Extracts structured data from user messages
 - Configure:
   - Variable name and description
   - Required vs optional
-  - Retry logic for missing variables
+  - Automatic retry logic for missing variables
+  - Additional validation loops (optional)
 
 #### **End Node**
 - Terminates the conversation
@@ -278,8 +283,43 @@ Variables let you capture structured information from natural language:
 The engine will:
 1. Use LLM to extract variables from user message
 2. Store in session state
-3. Loop if required variables are missing
+3. **Automatic loop** if required variables are missing (stays on same node)
 4. Continue flow once all required variables collected
+
+### Loop Functionality
+
+EasyPath supports **two types of loops** for powerful conversation control:
+
+#### **1. Automatic Extraction Loops** (Free, Instant)
+- Automatically stays on a node until all required variables are collected
+- No additional LLM calls or cost
+- Perfect for data collection
+
+#### **2. Explicit Condition Loops** (LLM-Based, Flexible)
+- Custom validation logic written in natural language
+- LLM evaluates conditions and decides to loop or proceed
+- Perfect for quizzes, answer validation, and conditional logic
+
+**Example: Quiz Question with Loop**
+```json
+{
+  "id": "quiz-question",
+  "loop_enabled": true,
+  "loop_condition": "Continue asking until user answers 'Paris'. Give hints if wrong.",
+  "prompt": {
+    "objective": "Ask: What is the capital of France?"
+  }
+}
+```
+
+**Flow:**
+- User: "London" → Bot: "Not correct, try again!" (loops)
+- User: "Berlin" → Bot: "Still wrong..." (loops)
+- User: "Paris" → Bot: "Correct!" (proceeds to next node)
+
+See `apps/engine/tests/fixtures/math_quiz_flow.json` for a complete example with 3 progressive math questions.
+
+**See `apps/engine/README.md` for detailed loop documentation.**
 
 ## 🧪 Development
 
