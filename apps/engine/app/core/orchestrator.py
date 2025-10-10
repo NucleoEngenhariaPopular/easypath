@@ -1,6 +1,7 @@
 from .pathway_selector import choose_next
 from .flow_executor import generate_response
 from .variable_extractor import extract_variables, should_continue_extraction
+from .loop_evaluator import should_loop
 from ..models.session import ChatSession
 from ..models.flow import Flow
 from ..ws.emitter import EventEmitter
@@ -109,15 +110,21 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             step_timings = {
                 "choose_next": 0.0,
                 "generate_response": 0.0,
+                "loop_evaluation": 0.0,
                 "total": round(t_total, 3),
                 "choose_next_llm_ms": 0.0,
                 "generate_response_llm_ms": 0.0,
+                "loop_evaluation_llm_ms": 0.0,
                 "choose_next_model": "none",
                 "generate_response_model": "none",
+                "loop_evaluation_model": "none",
                 "choose_next_tokens": {
                     "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
                 },
                 "generate_response_tokens": {
+                    "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
+                },
+                "loop_evaluation_tokens": {
                     "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
                 }
             }
@@ -126,6 +133,117 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             logger.info("RUN_STEP COMPLETED (extraction loop)")
             logger.info("=" * 80)
             return assistant_reply, step_timings
+
+    # Evaluate explicit loop condition (if configured)
+    # This happens AFTER variable extraction but BEFORE choosing next node
+    if current_node.loop_enabled and current_node.loop_condition:
+        logger.info("Evaluating loop condition for node %s", current_node.id)
+        t_loop_eval = perf_counter()
+
+        try:
+            continue_loop, loop_llm_info = should_loop(current_node, session)
+            t_loop_eval = perf_counter() - t_loop_eval
+            logger.debug("Loop evaluation completed: %.3fs, result: %s", t_loop_eval, continue_loop)
+        except Exception as e:
+            logger.error("Failed to evaluate loop condition: %s", e, exc_info=True)
+            t_loop_eval = perf_counter() - t_loop_eval
+            continue_loop = False  # On error, proceed to avoid infinite loop
+            loop_llm_info = {
+                "timing_ms": 0.0,
+                "model_name": "error",
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "estimated_cost_usd": 0.0,
+                "reasoning": None,
+                "condition_met": False
+            }
+
+        if continue_loop:
+            # Loop condition met - stay on current node, generate response
+            logger.info("Loop condition met - staying on node %s", current_node.id)
+            t_exec = perf_counter()
+
+            try:
+                assistant_reply, exec_llm_info = generate_response(flow, session, current_node.id)
+                t_exec = perf_counter() - t_exec
+                logger.info("Response generated for loop (took %.3fs): %s", t_exec, assistant_reply[:100])
+
+                # Emit WebSocket event for response generation
+                EventEmitter.emit_response_generated(
+                    session.session_id,
+                    current_node.id,
+                    assistant_reply,
+                    exec_llm_info.get("total_tokens")
+                )
+            except Exception as e:
+                logger.error("Failed to generate response for loop: %s", e, exc_info=True)
+                t_exec = perf_counter() - t_exec
+                return "Desculpe, não consegui gerar uma resposta.", _create_error_timings(perf_counter() - t0)
+
+            # Add assistant message to session
+            try:
+                session.add_assistant_message(assistant_reply)
+                EventEmitter.emit_assistant_message(session.session_id, assistant_reply, current_node.id)
+            except Exception as e:
+                logger.error("Failed to add assistant message to session: %s", e, exc_info=True)
+
+            t_total = perf_counter() - t0
+
+            step_timings = {
+                "choose_next": 0.0,
+                "generate_response": round(t_exec, 3),
+                "loop_evaluation": round(t_loop_eval, 3),
+                "total": round(t_total, 3),
+                "choose_next_llm_ms": 0.0,
+                "generate_response_llm_ms": exec_llm_info["timing_ms"],
+                "loop_evaluation_llm_ms": loop_llm_info["timing_ms"],
+                "choose_next_model": "none",
+                "generate_response_model": exec_llm_info["model_name"],
+                "loop_evaluation_model": loop_llm_info["model_name"],
+                "choose_next_tokens": {
+                    "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
+                },
+                "generate_response_tokens": {
+                    "input": exec_llm_info["input_tokens"],
+                    "output": exec_llm_info["output_tokens"],
+                    "total": exec_llm_info["total_tokens"],
+                    "cost_usd": exec_llm_info["estimated_cost_usd"]
+                },
+                "loop_evaluation_tokens": {
+                    "input": loop_llm_info["input_tokens"],
+                    "output": loop_llm_info["output_tokens"],
+                    "total": loop_llm_info["total_tokens"],
+                    "cost_usd": loop_llm_info["estimated_cost_usd"]
+                }
+            }
+
+            total_cost = exec_llm_info["estimated_cost_usd"] + loop_llm_info["estimated_cost_usd"]
+            total_tokens = exec_llm_info["total_tokens"] + loop_llm_info["total_tokens"]
+
+            logger.info(
+                "Loop step completed: loop_eval=%.3fs(llm=%.1fms,tokens=%d,cost=$%.6f,%s) generate_response=%.3fs(llm=%.1fms,tokens=%d,cost=$%.6f,%s) total=%.3fs total_cost=$%.6f node=%s",
+                t_loop_eval,
+                loop_llm_info["timing_ms"],
+                loop_llm_info["total_tokens"],
+                loop_llm_info["estimated_cost_usd"],
+                loop_llm_info["model_name"],
+                t_exec,
+                exec_llm_info["timing_ms"],
+                exec_llm_info["total_tokens"],
+                exec_llm_info["estimated_cost_usd"],
+                exec_llm_info["model_name"],
+                t_total,
+                total_cost,
+                current_node.id,
+            )
+
+            logger.info("RUN_STEP COMPLETED (explicit loop)")
+            logger.info("=" * 80)
+            return assistant_reply, step_timings
+
+        # Loop condition not met - proceed to next node
+        logger.info("Loop condition not met - proceeding to next node")
 
     # Choose next node in the flow
     logger.info("Choosing next node from current node: %s", session.current_node_id)
@@ -252,11 +370,14 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
     step_timings = {
         "choose_next": round(t_choose, 3),
         "generate_response": round(t_exec, 3),
+        "loop_evaluation": 0.0,
         "total": round(t_total, 3),
         "choose_next_llm_ms": choose_llm_info["timing_ms"],
         "generate_response_llm_ms": exec_llm_info["timing_ms"],
+        "loop_evaluation_llm_ms": 0.0,
         "choose_next_model": choose_llm_info["model_name"],
         "generate_response_model": exec_llm_info["model_name"],
+        "loop_evaluation_model": "none",
         "choose_next_tokens": {
             "input": choose_llm_info["input_tokens"],
             "output": choose_llm_info["output_tokens"],
@@ -268,6 +389,9 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             "output": exec_llm_info["output_tokens"],
             "total": exec_llm_info["total_tokens"],
             "cost_usd": exec_llm_info["estimated_cost_usd"]
+        },
+        "loop_evaluation_tokens": {
+            "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
         }
     }
 
@@ -348,15 +472,21 @@ def _create_error_timings(total_time: float) -> Dict[str, Any]:
     return {
         "choose_next": 0.0,
         "generate_response": 0.0,
+        "loop_evaluation": 0.0,
         "total": round(total_time, 3),
         "choose_next_llm_ms": 0.0,
         "generate_response_llm_ms": 0.0,
+        "loop_evaluation_llm_ms": 0.0,
         "choose_next_model": "error",
         "generate_response_model": "error",
+        "loop_evaluation_model": "error",
         "choose_next_tokens": {
             "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
         },
         "generate_response_tokens": {
+            "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
+        },
+        "loop_evaluation_tokens": {
             "input": 0, "output": 0, "total": 0, "cost_usd": 0.0
         }
     }

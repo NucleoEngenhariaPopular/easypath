@@ -1,0 +1,220 @@
+{
+  "first_node_id": "welcome",
+  "nodes": [
+    {
+      "id": "welcome",
+      "node_type": "start",
+      "prompt": {
+        "context": "Início do quiz de matemática - dar boas-vindas e explicar o desafio",
+        "objective": "Dar boas-vindas calorosas e explicar que o usuário vai responder 3 perguntas de matemática de diferentes níveis de dificuldade",
+        "notes": "Ser encorajador e criar expectativa positiva. Explicar que vamos de perguntas simples até conceitos mais complexos.",
+        "examples": "Bem-vindo ao Quiz de Matemática! 🧮\n\nVou te desafiar com 3 perguntas interessantes, começando do básico até conceitos mais profundos. Você precisa acertar cada pergunta para avançar!\n\nPronto para começar? Vamos lá!"
+      },
+      "is_start": true,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.3,
+      "skip_user_response": false,
+      "loop_enabled": false,
+      "loop_condition": ""
+    },
+    {
+      "id": "question1",
+      "node_type": "normal",
+      "prompt": {
+        "context": "Primeira pergunta - aritmética básica",
+        "objective": "Perguntar 'Quanto é 5 + 5?' e validar se a resposta está correta",
+        "notes": "Aceitar apenas '10' ou 'dez' como resposta correta. Se errado, dar uma dica gentil. Se correto, confirmar e preparar para explicação.",
+        "examples": "Pergunta 1: Quanto é 5 + 5?\n\nPense bem e me diga o resultado! | Ops, não é isso! Pense novamente: 5 + 5 = ? | Isso mesmo! A resposta é 10! ✓"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.2,
+      "skip_user_response": false,
+      "loop_enabled": true,
+      "loop_condition": "Continuar fazendo a pergunta até que o usuário responda '10' ou 'dez'. Se responder qualquer outra coisa, dar uma dica e perguntar novamente."
+    },
+    {
+      "id": "explain1",
+      "node_type": "message",
+      "prompt": {
+        "context": "Explicação sobre adição básica",
+        "objective": "Explicar brevemente o conceito de adição e parabenizar pelo acerto",
+        "notes": "Ser educativo mas conciso. Conectar conceitos simples com aplicações práticas.",
+        "examples": "Perfeito! 🎉\n\nAdição é uma das operações matemáticas fundamentais. Quando somamos 5 + 5, estamos combinando dois grupos de 5 elementos, resultando em 10 elementos no total. É a base para toda matemática mais complexa!\n\nVamos para a próxima pergunta?"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.4,
+      "skip_user_response": false,
+      "loop_enabled": false,
+      "loop_condition": ""
+    },
+    {
+      "id": "question2",
+      "node_type": "normal",
+      "prompt": {
+        "context": "Segunda pergunta - constante matemática pi",
+        "objective": "Perguntar 'Quais são os primeiros dígitos de pi?' e validar se a resposta contém 3.14 ou aproximação",
+        "notes": "Aceitar respostas como '3.14', '3,14', '3.1415', '3.14159', etc. Se errado, dar dica sobre círculos. Se correto, confirmar.",
+        "examples": "Pergunta 2: Quais são os primeiros dígitos de pi (π)?\n\nVocê pode me dar pelo menos os 3 primeiros! | Não é bem isso... Lembre-se que pi está relacionado com círculos! | Excelente! Pi começa com 3.14... ✓"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.2,
+      "skip_user_response": false,
+      "loop_enabled": true,
+      "loop_condition": "Continuar perguntando até que a resposta do usuário contenha '3.14' ou variações como '3,14', '3.1415', '3.14159'. Aceitar qualquer aproximação que comece com 3.14."
+    },
+    {
+      "id": "explain2",
+      "node_type": "message",
+      "prompt": {
+        "context": "Explicação sobre a constante pi",
+        "objective": "Explicar o que é pi, sua importância e aplicações",
+        "notes": "Ser fascinante e inspirador. Mencionar que pi é infinito e não-periódico.",
+        "examples": "Muito bem! 🎯\n\nPi (π ≈ 3.14159...) é uma das constantes mais importantes da matemática! É a razão entre a circunferência de um círculo e seu diâmetro. O fascinante é que pi é um número irracional - seus dígitos continuam infinitamente sem nunca repetir um padrão!\n\nPi aparece em física, engenharia, e até na probabilidade. Calculamos órbitas de planetas, ondas sonoras e muitos outros fenômenos naturais usando pi.\n\nAgora vem a pergunta mais desafiadora..."
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.5,
+      "skip_user_response": false,
+      "loop_enabled": false,
+      "loop_condition": ""
+    },
+    {
+      "id": "question3",
+      "node_type": "normal",
+      "prompt": {
+        "context": "Terceira pergunta - teoria dos conjuntos e cardinalidade de infinitos",
+        "objective": "Perguntar 'Qual infinito é maior: o conjunto dos números inteiros ou o conjunto dos números naturais?' e validar resposta",
+        "notes": "A resposta correta é que são do MESMO TAMANHO (ambos são infinitos contáveis/enumeráveis). Aceitar respostas como 'mesma', 'igual', 'mesmo tamanho', 'ambos iguais', 'são iguais'. Se errado, dar dica sobre correspondência um-a-um.",
+        "examples": "Pergunta 3 (Desafio!): Qual infinito é maior - o conjunto dos números inteiros ou o conjunto dos números naturais?\n\nPense sobre isso... há um infinito maior que o outro? | Hmm, não é bem assim... Pense: conseguimos fazer uma correspondência um-a-um entre eles? | Isso! Ambos têm o MESMO TAMANHO (são infinitos enumeráveis)! ✓"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.2,
+      "skip_user_response": false,
+      "loop_enabled": true,
+      "loop_condition": "Continuar perguntando até que o usuário responda que são do MESMO tamanho, iguais, ou equivalentes. Aceitar variações como 'mesma', 'igual', 'mesmo tamanho', 'são iguais', 'ambos iguais', 'mesma cardinalidade'. Rejeitar respostas que dizem que um é maior que o outro."
+    },
+    {
+      "id": "explain3",
+      "node_type": "message",
+      "prompt": {
+        "context": "Explicação sobre cardinalidade de conjuntos infinitos",
+        "objective": "Explicar o conceito de infinitos enumeráveis e a descoberta de Cantor",
+        "notes": "Ser profundo mas acessível. Mencionar que existem DIFERENTES TIPOS de infinito. Explicar cardinalidade.",
+        "examples": "Incrível! Você acertou a pergunta mais difícil! 🌟\n\nEssa é uma descoberta fascinante do matemático Georg Cantor (século XIX). Os conjuntos dos números naturais {1, 2, 3, ...} e dos inteiros {..., -2, -1, 0, 1, 2, ...} têm o MESMO TAMANHO, mesmo que os inteiros pareçam ter 'mais' números!\n\nComo isso é possível? Podemos criar uma correspondência um-a-um:\n• Naturais: 1,  2,  3,  4,  5,  6, ...\n• Inteiros:  0,  1, -1,  2, -2,  3, ...\n\nAmbos são 'infinitos enumeráveis' (ou contáveis). A mente vai explodir ainda mais: Cantor provou que o conjunto dos números REAIS é um infinito MAIOR (não-enumerável)! Existem diferentes 'tamanhos' de infinito!\n\nISSO é matemática pura no seu melhor! 🎓"
+      },
+      "is_start": false,
+      "is_end": false,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.6,
+      "skip_user_response": false,
+      "loop_enabled": false,
+      "loop_condition": ""
+    },
+    {
+      "id": "congratulations",
+      "node_type": "end",
+      "prompt": {
+        "context": "Finalização do quiz com parabenização",
+        "objective": "Parabenizar o usuário por completar todas as 3 perguntas e incentivá-lo a continuar estudando matemática",
+        "notes": "Ser muito celebratório e inspirador. Destacar a jornada de conceitos básicos a avançados.",
+        "examples": "🏆 PARABÉNS! 🏆\n\nVocê completou o Quiz de Matemática com sucesso!\n\nVocê começou com aritmética básica (5+5=10), passou por constantes matemáticas fundamentais (π), e chegou até conceitos profundos da teoria dos conjuntos (cardinalidade de infinitos)!\n\nEssa jornada mostra como a matemática é fascinante - desde o simples até o profundamente abstrato. Continue explorando, questionando e se maravilhando com os números!\n\nAté a próxima! ✨📐"
+      },
+      "is_start": false,
+      "is_end": true,
+      "use_llm": true,
+      "is_global": false,
+      "extract_vars": [],
+      "temperature": 0.5,
+      "skip_user_response": false,
+      "loop_enabled": false,
+      "loop_condition": ""
+    }
+  ],
+  "connections": [
+    {
+      "id": "c1",
+      "label": "start-quiz",
+      "description": "Iniciar o quiz com a primeira pergunta",
+      "else_option": false,
+      "source": "welcome",
+      "target": "question1"
+    },
+    {
+      "id": "c2",
+      "label": "question1-answered",
+      "description": "Primeira pergunta respondida corretamente, ir para explicação",
+      "else_option": false,
+      "source": "question1",
+      "target": "explain1"
+    },
+    {
+      "id": "c3",
+      "label": "next-question",
+      "description": "Após explicação, ir para segunda pergunta",
+      "else_option": false,
+      "source": "explain1",
+      "target": "question2"
+    },
+    {
+      "id": "c4",
+      "label": "question2-answered",
+      "description": "Segunda pergunta respondida corretamente, ir para explicação",
+      "else_option": false,
+      "source": "question2",
+      "target": "explain2"
+    },
+    {
+      "id": "c5",
+      "label": "final-question",
+      "description": "Após explicação, ir para terceira pergunta (desafio)",
+      "else_option": false,
+      "source": "explain2",
+      "target": "question3"
+    },
+    {
+      "id": "c6",
+      "label": "question3-answered",
+      "description": "Terceira pergunta respondida corretamente, ir para explicação final",
+      "else_option": false,
+      "source": "question3",
+      "target": "explain3"
+    },
+    {
+      "id": "c7",
+      "label": "finish",
+      "description": "Quiz completo, parabenizar usuário",
+      "else_option": false,
+      "source": "explain3",
+      "target": "congratulations"
+    }
+  ],
+  "global_objective": "Conduzir um quiz de matemática educativo com 3 perguntas de dificuldade crescente, usando loops para garantir que cada pergunta seja respondida corretamente antes de avançar. Cada resposta correta é seguida de uma explicação educativa do conceito.",
+  "global_tone": "educativo, encorajador e entusiasmado",
+  "global_language": "pt-BR",
+  "global_behaviour": "paciente e pedagógico - dar dicas quando o usuário errar, celebrar acertos, e sempre explicar os conceitos de forma clara e inspiradora",
+  "global_values": "educação através da descoberta, paciência com o aprendizado, celebração do conhecimento matemático"
+}

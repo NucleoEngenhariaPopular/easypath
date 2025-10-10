@@ -106,6 +106,14 @@ const CanvasPage: React.FC = () => {
       cost: number;
       model: string;
     };
+    loopEvaluation: {
+      time: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      cost: number;
+      model: string;
+    };
   } | null>(null);
   const [conversationStats, setConversationStats] = useState({
     totalResponseTime: 0,
@@ -499,12 +507,18 @@ const CanvasPage: React.FC = () => {
         // Extract timing and cost information
         if (responseData.timing && responseData.timing.step_details) {
           const stepDetails = responseData.timing.step_details;
+
+          // Include loop_evaluation_tokens (may be 0 if no loop occurred)
+          const loopTokens = stepDetails.loop_evaluation_tokens || { total: 0, cost_usd: 0 };
+
           const totalTokens =
             stepDetails.choose_next_tokens.total +
-            stepDetails.generate_response_tokens.total;
+            stepDetails.generate_response_tokens.total +
+            loopTokens.total;
           const totalCost =
             stepDetails.choose_next_tokens.cost_usd +
-            stepDetails.generate_response_tokens.cost_usd;
+            stepDetails.generate_response_tokens.cost_usd +
+            loopTokens.cost_usd;
           const responseTime = responseData.timing.total;
 
           // Update last message stats with detailed breakdown
@@ -527,6 +541,14 @@ const CanvasPage: React.FC = () => {
               totalTokens: stepDetails.generate_response_tokens.total,
               cost: stepDetails.generate_response_tokens.cost_usd,
               model: stepDetails.generate_response_model,
+            },
+            loopEvaluation: {
+              time: stepDetails.loop_evaluation || 0,
+              inputTokens: loopTokens.input || 0,
+              outputTokens: loopTokens.output || 0,
+              totalTokens: loopTokens.total || 0,
+              cost: loopTokens.cost_usd || 0,
+              model: stepDetails.loop_evaluation_model || 'none',
             },
           });
 

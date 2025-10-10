@@ -58,6 +58,14 @@ interface TestModePanelProps {
       cost: number;
       model: string;
     };
+    loopEvaluation: {
+      time: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      cost: number;
+      model: string;
+    };
   } | null;
   conversationStats?: {
     totalResponseTime: number;
@@ -341,7 +349,7 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
                     </Box>
 
                     {/* Response Generation */}
-                    <Box>
+                    <Box sx={{ mb: lastMessageStats.loopEvaluation && lastMessageStats.loopEvaluation.totalTokens > 0 ? 1 : 0 }}>
                       <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5, color: 'success.main' }}>
                         2. Response Generation ({lastMessageStats.responseGeneration.model})
                       </Typography>
@@ -363,6 +371,37 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
                         </Box>
                       </Box>
                     </Box>
+
+                    {/* Loop Evaluation - Only show if tokens > 0 */}
+                    {lastMessageStats.loopEvaluation && lastMessageStats.loopEvaluation.totalTokens > 0 && (
+                      <Box>
+                        <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5, color: 'warning.main' }}>
+                          3. Loop Evaluation ({lastMessageStats.loopEvaluation.model})
+                        </Typography>
+                        <Box sx={{ pl: 1 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
+                            <Typography variant="caption" color="text.secondary">Time:</Typography>
+                            <Typography variant="caption">{lastMessageStats.loopEvaluation.time.toFixed(2)}s</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
+                            <Typography variant="caption" color="text.secondary">Tokens:</Typography>
+                            <Typography variant="caption">
+                              {lastMessageStats.loopEvaluation.totalTokens.toLocaleString()}
+                              <span style={{ opacity: 0.6 }}> ({lastMessageStats.loopEvaluation.inputTokens} in / {lastMessageStats.loopEvaluation.outputTokens} out)</span>
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" color="text.secondary">Cost:</Typography>
+                            <Typography variant="caption">${lastMessageStats.loopEvaluation.cost.toFixed(6)}</Typography>
+                          </Box>
+                        </Box>
+                        <Box sx={{ mt: 0.5, px: 1 }}>
+                          <Typography variant="caption" sx={{ display: 'block', fontStyle: 'italic', color: 'warning.main', opacity: 0.8 }}>
+                            ⚠️ Loop condition evaluated - stayed on current node
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
                   </Box>
                 )}
 
