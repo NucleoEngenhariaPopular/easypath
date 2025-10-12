@@ -75,7 +75,7 @@ const CanvasPage: React.FC = () => {
 
   // Test mode state
   const [isTestMode, setIsTestMode] = useState(false);
-  const [testSessionId] = useState(uuidv6());
+  const [testSessionId, setTestSessionId] = useState(uuidv6());
   const [testMessages, setTestMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string; timestamp: string }>>([]);
   const [testVariables, setTestVariables] = useState<Record<string, any>>({});
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
@@ -568,6 +568,8 @@ const CanvasPage: React.FC = () => {
   };
 
   const handleResetTestSession = () => {
+    // Generate new session ID for fresh conversation
+    setTestSessionId(uuidv6());
     setTestMessages([]);
     setTestVariables({});
     setActiveNodeId(null);
@@ -890,6 +892,7 @@ const CanvasPage: React.FC = () => {
       />
 
       <TestModePanel
+        key={testSessionId}
         open={isTestMode}
         onClose={() => setIsTestMode(false)}
         sessionId={testSessionId}

@@ -753,7 +753,27 @@ const NodeModal: FC<NodeModalProps> = ({
                   value={selectedNode.data.modelOptions?.temperature ?? 0.2}
                   onChange={handleModelOptionsChange}
                   helperText="Controls randomness in LLM responses (0 = deterministic, 2 = very creative)"
-                  sx={{ maxWidth: 300 }}
+                  sx={{ maxWidth: 300, mb: 3 }}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      name="skipUserResponse"
+                      checked={selectedNode.data.modelOptions?.skipUserResponse || false}
+                      onChange={handleModelOptionsChange}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2" fontWeight="600">
+                        Skip User Response
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        When enabled, the flow will automatically advance to the next node without waiting for user input
+                      </Typography>
+                    </Box>
+                  }
                 />
               </Paper>
             </Box>

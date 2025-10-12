@@ -54,7 +54,7 @@
       "is_global": false,
       "extract_vars": [],
       "temperature": 0.4,
-      "skip_user_response": false,
+      "skip_user_response": true,
       "loop_enabled": false,
       "loop_condition": ""
     },
@@ -92,7 +92,7 @@
       "is_global": false,
       "extract_vars": [],
       "temperature": 0.5,
-      "skip_user_response": false,
+      "skip_user_response": true,
       "loop_enabled": false,
       "loop_condition": ""
     },
@@ -130,7 +130,7 @@
       "is_global": false,
       "extract_vars": [],
       "temperature": 0.6,
-      "skip_user_response": false,
+      "skip_user_response": true,
       "loop_enabled": false,
       "loop_condition": ""
     },
