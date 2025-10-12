@@ -892,7 +892,6 @@ const CanvasPage: React.FC = () => {
       />
 
       <TestModePanel
-        key={testSessionId}
         open={isTestMode}
         onClose={() => setIsTestMode(false)}
         sessionId={testSessionId}

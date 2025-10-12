@@ -180,12 +180,29 @@ export function useFlowWebSocket({
 
   useEffect(() => {
     if (enabled && sessionId) {
-      connect();
-    }
+      console.log('WebSocket effect running - session:', sessionId.substring(0, 8), 'enabled:', enabled);
+      console.log('Current WebSocket state:', wsRef.current?.readyState);
 
-    return () => {
+      // Disconnect existing connection if any before connecting with new sessionId
+      if (wsRef.current) {
+        console.log('Disconnecting existing WebSocket before reconnect');
+        disconnect();
+      }
+
+      // Small delay to ensure clean disconnect before reconnecting
+      const timer = setTimeout(() => {
+        console.log('Attempting to connect to new session:', sessionId.substring(0, 8));
+        connect();
+      }, 50);
+
+      return () => {
+        console.log('WebSocket effect cleanup timer - clearing timeout');
+        clearTimeout(timer);
+      };
+    } else if (!enabled) {
+      console.log('WebSocket disabled, disconnecting');
       disconnect();
-    };
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, sessionId]);
 
