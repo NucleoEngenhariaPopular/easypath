@@ -43,13 +43,16 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
         error_message = "Desculpe, não consegui processar sua mensagem. Por favor, tente novamente."
         return error_message, _create_error_timings(perf_counter() - t0)
 
-    # Add user message to session
+    # Add user message to session (skip for auto-advance marker)
     try:
-        session.add_user_message(user_message)
-        logger.debug("User message added to session history")
+        if user_message != "[AUTO_ADVANCE]":
+            session.add_user_message(user_message)
+            logger.debug("User message added to session history")
 
-        # Emit WebSocket event
-        EventEmitter.emit_user_message(session.session_id, user_message, session.current_node_id)
+            # Emit WebSocket event
+            EventEmitter.emit_user_message(session.session_id, user_message, session.current_node_id)
+        else:
+            logger.debug("Skipping [AUTO_ADVANCE] marker from session history")
     except Exception as e:
         logger.error("Failed to add user message to session: %s", e, exc_info=True)
         return "Erro ao processar mensagem.", _create_error_timings(perf_counter() - t0)
@@ -500,12 +503,16 @@ def _validate_run_step_inputs(flow: Flow, session: ChatSession, user_message: st
     if not isinstance(user_message, str):
         raise ValueError(f"User message must be string, got {type(user_message)}")
 
-    # Validate message content
-    if not user_message.strip():
-        raise ValueError("User message cannot be whitespace-only")
+    # Allow special [AUTO_ADVANCE] marker for skip_user_response functionality
+    if user_message == "[AUTO_ADVANCE]":
+        logger.debug("Auto-advance message detected, skipping content validation")
+    else:
+        # Validate message content
+        if not user_message.strip():
+            raise ValueError("User message cannot be whitespace-only")
 
-    if len(user_message) > 10000:
-        raise ValueError(f"User message too long: {len(user_message)} characters")
+        if len(user_message) > 10000:
+            raise ValueError(f"User message too long: {len(user_message)} characters")
 
     # Validate session has current_node_id
     if not session.current_node_id:

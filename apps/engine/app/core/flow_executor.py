@@ -19,10 +19,13 @@ def _format_prompts(flow: Flow, current_node_id: str, session: ChatSession) -> t
     )
 
     node_prompt = (
-        f"\nContexto da mensagem atual: {node.prompt.context}\n"
-        f"Objetivo da mensagem atual: {node.prompt.objective}\n"
+        f"\n**INSTRUÇÕES IMPORTANTES - SIGA EXATAMENTE:**\n"
+        f"Contexo da mensagem atual: {node.prompt.context}\n"
+        f"Objetivo da mensagem atual (SIGA ESTE OBJETIVO EXATAMENTE): {node.prompt.objective}\n"
         f"Observações da mensagem atual: {node.prompt.notes}\n"
-        f"Exemplos da mensagem atual: {node.prompt.examples}"
+        f"Exemplos da mensagem atual: {node.prompt.examples}\n"
+        f"\nNÃO invente perguntas ou respostas diferentes do objetivo definido acima. "
+        f"Sua resposta deve seguir EXATAMENTE o objetivo especificado para esta mensagem."
     )
 
     # Add custom prompt fields if present
@@ -43,10 +46,11 @@ def _format_prompts(flow: Flow, current_node_id: str, session: ChatSession) -> t
 def generate_response(flow: Flow, session: ChatSession, current_node_id: str) -> Tuple[str, Dict[str, Any]]:
     prompt, temperature = _format_prompts(flow, current_node_id, session)
     llm = get_llm()
-    
+
     start_time = perf_counter()
+    # Place system prompt FIRST (before conversation history) for stronger influence
     llm_answer = llm.chat(
-        messages=session.to_llm_messages() + [{"content": prompt, "role": "system"}],
+        messages=[{"content": prompt, "role": "system"}] + session.to_llm_messages(),
         temperature=temperature,
     )
     llm_time_ms = llm_answer.timing_ms or ((perf_counter() - start_time) * 1000)

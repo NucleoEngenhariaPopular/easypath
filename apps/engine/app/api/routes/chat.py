@@ -83,6 +83,29 @@ async def post_message(payload: ChatRequest):
     reply, step_timings = run_step(flow, session, payload.user_message)
     t_run_step = perf_counter() - t0
 
+    # Auto-advance through nodes with skip_user_response enabled
+    max_auto_advances = 10  # Safety limit to prevent infinite loops
+    auto_advance_count = 0
+    while auto_advance_count < max_auto_advances:
+        current_node = flow.get_node_by_id(session.current_node_id)
+        if current_node and current_node.skip_user_response:
+            logging.info(
+                "Node %s has skip_user_response=True, auto-advancing to next node",
+                session.current_node_id
+            )
+            t0 = perf_counter()
+            reply, step_timings = run_step(flow, session, "[AUTO_ADVANCE]")
+            t_run_step += perf_counter() - t0
+            auto_advance_count += 1
+        else:
+            break
+
+    if auto_advance_count >= max_auto_advances:
+        logging.warning(
+            "Auto-advance limit reached (%d). Stopping to prevent infinite loop.",
+            max_auto_advances
+        )
+
     t0 = perf_counter()
     await save_session(session)
     t_save = perf_counter() - t0
@@ -156,6 +179,29 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
     t0 = perf_counter()
     reply, step_timings = run_step(flow, session, payload.user_message)
     t_run_step = perf_counter() - t0
+
+    # Auto-advance through nodes with skip_user_response enabled
+    max_auto_advances = 10  # Safety limit to prevent infinite loops
+    auto_advance_count = 0
+    while auto_advance_count < max_auto_advances:
+        current_node = flow.get_node_by_id(session.current_node_id)
+        if current_node and current_node.skip_user_response:
+            logging.info(
+                "Node %s has skip_user_response=True, auto-advancing to next node",
+                session.current_node_id
+            )
+            t0 = perf_counter()
+            reply, step_timings = run_step(flow, session, "[AUTO_ADVANCE]")
+            t_run_step += perf_counter() - t0
+            auto_advance_count += 1
+        else:
+            break
+
+    if auto_advance_count >= max_auto_advances:
+        logging.warning(
+            "Auto-advance limit reached (%d). Stopping to prevent infinite loop.",
+            max_auto_advances
+        )
 
     t0 = perf_counter()
     await save_session(session)
