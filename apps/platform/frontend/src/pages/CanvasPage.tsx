@@ -758,7 +758,12 @@ const CanvasPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'background.default' }}>
-      <EasyPathAppBar appBarHeight="small" />
+      <EasyPathAppBar
+        appBarHeight="small"
+        title={flowName}
+        onTitleChange={setFlowName}
+        titlePlaceholder="Untitled Flow"
+      />
       <GlobalConfigSidebar
         open={isGlobalConfigSidebarOpen}
         onClose={() => setIsGlobalConfigSidebarOpen(false)}

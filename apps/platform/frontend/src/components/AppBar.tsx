@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import ThemeToggleButton from './ThemeToggleButton';
 import { styled } from '@mui/material/styles';
 import LanguageSwitcherButton from './LanguageSwtichButton';
+import InlineEditableTitle from './canvas/InlineEditableTitle';
 
 // TODO: Placeholder para a logo. Substituir com a logo de verdade no futuro.
 const LogoPlaceholder = styled(Box)(({ theme }) => ({
@@ -24,10 +25,19 @@ const LogoPlaceholder = styled(Box)(({ theme }) => ({
 
 interface EasyPathAppBarProps {
   appBarHeight: 'small' | 'large';
+  title?: string;
+  onTitleChange?: (title: string) => void;
+  titlePlaceholder?: string;
 }
 
-const EasyPathAppBar: React.FC<EasyPathAppBarProps> = ({ appBarHeight }) => {
+const EasyPathAppBar: React.FC<EasyPathAppBarProps> = ({
+  appBarHeight,
+  title,
+  onTitleChange,
+  titlePlaceholder = 'Untitled Flow'
+}) => {
   const height = appBarHeight === 'small' ? 64 : 80;
+  const showTitle = title !== undefined && onTitleChange !== undefined;
 
   return (
     <MuiAppBar
@@ -47,19 +57,30 @@ const EasyPathAppBar: React.FC<EasyPathAppBarProps> = ({ appBarHeight }) => {
               EP
             </LogoPlaceholder>
           </a>
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              color: 'text.primary',
-              fontWeight: 600,
-              fontSize: appBarHeight === 'small' ? '1.2rem' : '1.5rem',
-              transition: 'font-size 0.3s ease-in-out',
-            }}
-          >
-            EasyPath
-          </Typography>
+          {!showTitle && (
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                color: 'text.primary',
+                fontWeight: 600,
+                fontSize: appBarHeight === 'small' ? '1.2rem' : '1.5rem',
+                transition: 'font-size 0.3s ease-in-out',
+              }}
+            >
+              EasyPath
+            </Typography>
+          )}
         </Box>
+        {showTitle && (
+          <Box sx={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+            <InlineEditableTitle
+              value={title}
+              onChange={onTitleChange}
+              placeholder={titlePlaceholder}
+            />
+          </Box>
+        )}
         <LanguageSwitcherButton />
         <ThemeToggleButton />
       </Toolbar>
