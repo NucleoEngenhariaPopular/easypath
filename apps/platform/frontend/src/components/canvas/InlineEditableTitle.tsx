@@ -74,23 +74,36 @@ const InlineEditableTitle: React.FC<InlineEditableTitleProps> = ({
       }}
     >
       {isEditing ? (
-        <TextField
-          inputRef={inputRef}
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          variant="standard"
-          fullWidth
-          placeholder={placeholder}
-          InputProps={{
-            disableUnderline: false,
-            sx: {
-              fontSize: '1.25rem',
-              fontWeight: 600,
-            },
-          }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexGrow: 1 }}>
+          <TextField
+            inputRef={inputRef}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            variant="standard"
+            placeholder={placeholder}
+            sx={{ flexGrow: 1 }}
+            InputProps={{
+              disableUnderline: false,
+              sx: {
+                fontSize: '1.25rem',
+                fontWeight: 600,
+              },
+            }}
+          />
+          <IconButton
+            size="small"
+            disabled
+            sx={{
+              opacity: 0.3,
+              ml: 0,
+              p: '8px',
+            }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Box>
       ) : (
         // Combine Typography and IconButton in a flex Box for tighter layout
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexGrow: 1 }}>

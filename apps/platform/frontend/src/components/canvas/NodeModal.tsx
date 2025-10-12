@@ -226,25 +226,14 @@ const NodeModal: FC<NodeModalProps> = ({
           minWidth: { xs: '95%', sm: 500 },
           maxHeight: '90vh',
           minHeight: '400px',
-          overflowY: 'auto',
+          height: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
           bgcolor: 'background.paper',
           borderRadius: 4,
           boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
           resize: 'both',
-          overflow: 'auto',
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: 'transparent',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: '#888',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            background: '#555',
-          },
+          overflow: 'hidden', // Changed from 'auto' to 'hidden' to prevent double scrollbars
         }}>
 
         {/* Header */}
@@ -280,7 +269,24 @@ const NodeModal: FC<NodeModalProps> = ({
           </IconButton>
         </Box>
 
-        <Box sx={{ p: 4 }}>
+        <Box sx={{
+          p: 4,
+          flex: 1,
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#888',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: '#555',
+          },
+        }}>
           {/* Basic Information */}
           <Box sx={{ mb: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -360,16 +366,13 @@ const NodeModal: FC<NodeModalProps> = ({
                 label="Context"
                 fullWidth
                 multiline
-                rows={3}
+                minRows={3}
+                maxRows={12}
                 value={selectedNode.data.prompt?.context || ''}
                 onChange={(value) => handlePromptFieldChange('context', value)}
                 availableVariables={availableVariables}
                 sx={{
                   mb: 2,
-                  '& .MuiInputBase-root': {
-                    resize: 'vertical',
-                    overflow: 'auto',
-                  }
                 }}
                 helperText="What's happening at this step in the conversation flow"
               />
@@ -378,16 +381,13 @@ const NodeModal: FC<NodeModalProps> = ({
                 label="Objective"
                 fullWidth
                 multiline
-                rows={3}
+                minRows={3}
+                maxRows={12}
                 value={selectedNode.data.prompt?.objective || ''}
                 onChange={(value) => handlePromptFieldChange('objective', value)}
                 availableVariables={availableVariables}
                 sx={{
                   mb: 2,
-                  '& .MuiInputBase-root': {
-                    resize: 'vertical',
-                    overflow: 'auto',
-                  }
                 }}
                 helperText="What should the LLM accomplish at this node"
               />
@@ -396,16 +396,13 @@ const NodeModal: FC<NodeModalProps> = ({
                 label="Notes"
                 fullWidth
                 multiline
-                rows={2}
+                minRows={2}
+                maxRows={10}
                 value={selectedNode.data.prompt?.notes || ''}
                 onChange={(value) => handlePromptFieldChange('notes', value)}
                 availableVariables={availableVariables}
                 sx={{
                   mb: 2,
-                  '& .MuiInputBase-root': {
-                    resize: 'vertical',
-                    overflow: 'auto',
-                  }
                 }}
                 helperText="Important considerations, tone, style guidelines"
               />
@@ -414,16 +411,13 @@ const NodeModal: FC<NodeModalProps> = ({
                 label="Examples"
                 fullWidth
                 multiline
-                rows={3}
+                minRows={3}
+                maxRows={12}
                 value={selectedNode.data.prompt?.examples || ''}
                 onChange={(value) => handlePromptFieldChange('examples', value)}
                 availableVariables={availableVariables}
                 sx={{
                   mb: 2,
-                  '& .MuiInputBase-root': {
-                    resize: 'vertical',
-                    overflow: 'auto',
-                  }
                 }}
                 helperText="Sample responses or example outputs"
               />
@@ -445,16 +439,11 @@ const NodeModal: FC<NodeModalProps> = ({
                       <TextField
                         label="Field Value"
                         multiline
-                        rows={2}
+                        minRows={2}
+                        maxRows={4}
                         value={field.value}
                         onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)}
-                        sx={{
-                          flex: 1,
-                          '& .MuiInputBase-root': {
-                            resize: 'vertical',
-                            overflow: 'auto',
-                          }
-                        }}
+                        sx={{ flex: 1 }}
                       />
                       <IconButton
                         onClick={() => handleRemoveCustomField(index)}
@@ -551,16 +540,11 @@ const NodeModal: FC<NodeModalProps> = ({
                     name="condition"
                     fullWidth
                     multiline
-                    rows={3}
+                    minRows={3}
+                    maxRows={10}
                     value={selectedNode.data.condition || ''}
                     onChange={(value) => onNodeDataChange('condition', value)}
                     availableVariables={availableVariables}
-                    sx={{
-                      '& .MuiInputBase-root': {
-                        resize: 'vertical',
-                        overflow: 'auto',
-                      }
-                    }}
                     helperText="Describe when this node should loop or continue"
                   />
                 )}
@@ -593,16 +577,11 @@ const NodeModal: FC<NodeModalProps> = ({
                   name="nodeDescription"
                   fullWidth
                   multiline
-                  rows={4}
+                  minRows={4}
+                  maxRows={6}
                   value={selectedNode.data.nodeDescription || ''}
                   onChange={handleSimpleChange}
-                  sx={{
-                    mb: 3,
-                    '& .MuiInputBase-root': {
-                      resize: 'vertical',
-                      overflow: 'auto',
-                    }
-                  }}
+                  sx={{ mb: 3 }}
                   helperText="Describe when this global node should be triggered (e.g., 'When user asks for help' or 'When user wants to cancel')"
                   placeholder="When should this node be activated?"
                 />
@@ -732,16 +711,11 @@ const NodeModal: FC<NodeModalProps> = ({
                           label="Description"
                           fullWidth
                           multiline
-                          rows={3}
+                          minRows={3}
+                          maxRows={5}
                           value={variable.description}
                           onChange={(e) => handleVariableChange(index, 'description', e.target.value)}
                           size="small"
-                          sx={{
-                            '& .MuiInputBase-root': {
-                              resize: 'vertical',
-                              overflow: 'auto',
-                            }
-                          }}
                           placeholder="Describe what this variable represents and how to extract it"
                         />
 
@@ -852,15 +826,17 @@ const NodeModal: FC<NodeModalProps> = ({
                               </Box>
                             }
                             secondary={
-                              <Box>
-                                <Typography variant="caption" display="block">
+                              <Box component="div">
+                                <Typography variant="caption" display="block" component="div">
                                   {variable.description}
                                 </Typography>
-                                <Typography variant="caption" color="text.disabled" display="block">
+                                <Typography variant="caption" color="text.disabled" display="block" component="div">
                                   {t('variableInspector.sourceLabel')} {variable.sourceNodeName}
                                 </Typography>
                               </Box>
                             }
+                            primaryTypographyProps={{ component: 'div' }}
+                            secondaryTypographyProps={{ component: 'div', sx: { mt: 0.75 } }}
                           />
                         </ListItem>
                       ))}

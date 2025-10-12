@@ -676,15 +676,21 @@ const CanvasPage: React.FC = () => {
             if (isEngineFormat(importedData)) {
               console.log('Detected engine format, converting...');
               const converted = convertEngineToCanvas(importedData);
-              setNodes(converted.nodes);
+              // Auto-layout imported nodes to prevent overlaps
+              const layoutedNodes = autoLayoutNodes(converted.nodes, converted.edges);
+              setNodes(layoutedNodes);
               setEdges(converted.edges);
               setGlobalConfig(converted.globalConfig);
             }
             // Check if it's canvas format
             else if (isCanvasFormat(importedData)) {
               console.log('Detected canvas format, loading...');
-              if (importedData.nodes) setNodes(importedData.nodes);
-              if (importedData.edges) setEdges(importedData.edges);
+              if (importedData.nodes && importedData.edges) {
+                // Auto-layout imported nodes to prevent overlaps
+                const layoutedNodes = autoLayoutNodes(importedData.nodes, importedData.edges);
+                setNodes(layoutedNodes);
+                setEdges(importedData.edges);
+              }
               if (importedData.globalConfig) setGlobalConfig(importedData.globalConfig);
             }
             else {

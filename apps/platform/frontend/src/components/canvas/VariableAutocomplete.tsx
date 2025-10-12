@@ -11,6 +11,7 @@ import {
   Typography,
   Chip,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import type { TextFieldProps } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import type { VariableInfo } from '../../types/canvasTypes';
@@ -28,6 +29,7 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
   ...textFieldProps
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
   const [filteredVariables, setFilteredVariables] = useState<VariableInfo[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -42,29 +44,31 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
 
     const cursorPosition = inputRef.current.selectionStart || 0;
     const textBeforeCursor = value.substring(0, cursorPosition);
-    
+
     // Check for {{ trigger
     const lastTriggerIndex = textBeforeCursor.lastIndexOf('{{');
-    
+
     if (lastTriggerIndex !== -1) {
       // Check if we have a closing }} after the trigger
       const textAfterTrigger = textBeforeCursor.substring(lastTriggerIndex + 2);
       const hasClosing = textAfterTrigger.includes('}}');
-      
+
       if (!hasClosing) {
         // We're in an open {{ without closing
-        const search = textAfterTrigger.trim().toLowerCase();
+        const search = textAfterTrigger.toLowerCase();
         setSearchTerm(search);
         setTriggerPosition(lastTriggerIndex);
-        
-        // Filter variables
-        const filtered = availableVariables.filter(v =>
-          v.name.toLowerCase().includes(search) ||
-          v.description.toLowerCase().includes(search)
-        );
-        
+
+        // Filter variables (show all if search is empty)
+        const filtered = search.length === 0
+          ? availableVariables
+          : availableVariables.filter(v =>
+              v.name.toLowerCase().includes(search) ||
+              v.description.toLowerCase().includes(search)
+            );
+
         setFilteredVariables(filtered);
-        setShowDropdown(filtered.length > 0);
+        setShowDropdown(true); // Always show dropdown when {{ is detected
         setSelectedIndex(0);
       } else {
         setShowDropdown(false);
@@ -105,13 +109,13 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
     const cursorPosition = inputRef.current.selectionStart || 0;
     const textBeforeTrigger = value.substring(0, triggerPosition);
     const textAfterCursor = value.substring(cursorPosition);
-    
+
     const newValue = `${textBeforeTrigger}{{${variable.name}}}${textAfterCursor}`;
     onChange(newValue);
-    
+
     setShowDropdown(false);
     setTriggerPosition(null);
-    
+
     // Set cursor position after the inserted variable
     setTimeout(() => {
       if (inputRef.current) {
@@ -126,6 +130,10 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
     onChange(e.target.value);
   };
 
+  // Count variables in text
+  const variableMatches = value.match(/\{\{[^}]+\}\}/g) || [];
+  const variableCount = variableMatches.length;
+
   return (
     <Box position="relative">
       <TextField
@@ -135,13 +143,63 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        multiline
+        minRows={(textFieldProps.minRows as number | undefined) ?? 3}
+        maxRows={(textFieldProps.maxRows as number | undefined) ?? 6}
         helperText={
-          availableVariables.length > 0
-            ? t('variableAutocomplete.helperText', { count: availableVariables.length })
-            : textFieldProps.helperText
+          textFieldProps.helperText || (
+            availableVariables.length > 0 ? (
+              <Box component="span">
+                Type <Box component="span" sx={{
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  px: 0.5,
+                  py: 0.25,
+                  borderRadius: 0.5,
+                  fontFamily: 'monospace',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  mx: 0.5
+                }}>
+                  {'{{'}
+                </Box> to insert variables
+                {variableCount > 0 && (
+                  <Box component="span" sx={{ ml: 1, color: 'success.main', fontWeight: 600 }}>
+                    ({variableCount} variable{variableCount !== 1 ? 's' : ''} used)
+                  </Box>
+                )}
+              </Box>
+            ) : undefined
+          )
         }
+        InputProps={{
+          ...textFieldProps.InputProps,
+          sx: {
+            fontFamily: '"Roboto Mono", "Courier New", monospace',
+            fontSize: '0.9rem',
+            lineHeight: 1.6,
+            ...(textFieldProps.InputProps?.sx || {}),
+          }
+        }}
+        sx={{
+          ...textFieldProps.sx,
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 2,
+            ...(textFieldProps.sx?.['& .MuiOutlinedInput-root'] as any || {}),
+          },
+          '& .MuiInputBase-root': {
+            borderLeft: variableCount > 0 ? `3px solid ${theme.palette.primary.main}` : undefined,
+            backgroundColor: theme.palette.mode === 'dark'
+              ? 'rgba(0, 0, 0, 0.2)'
+              : 'rgba(0, 0, 0, 0.02)',
+            ...(textFieldProps.sx?.['& .MuiInputBase-root'] as any || {}),
+          },
+          '& .MuiInputBase-input': {
+            color: theme.palette.text.primary,
+          }
+        }}
       />
-      
+
       <Popper
         open={showDropdown}
         anchorEl={textFieldRef.current}
@@ -150,11 +208,18 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
       >
         <Paper elevation={8} sx={{ maxHeight: 300, overflow: 'auto', mt: 0.5 }}>
           <List dense>
-            {filteredVariables.length === 0 ? (
+            {filteredVariables.length === 0 && searchTerm.length > 0 ? (
               <ListItem>
                 <ListItemText
                   primary={t('variableAutocomplete.noVariablesFound')}
                   secondary={t('variableAutocomplete.searchedFor', { term: searchTerm })}
+                />
+              </ListItem>
+            ) : filteredVariables.length === 0 ? (
+              <ListItem>
+                <ListItemText
+                  primary="No variables available"
+                  secondary="Define variables in previous nodes to use them here"
                 />
               </ListItem>
             ) : (
@@ -190,19 +255,19 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
                             color="warning"
                             sx={{ height: 18, fontSize: '0.7rem' }}
                           />
-                                )}
-                              </Box>
-                            }
-                            secondary={
-                              <Box>
-                                <Typography variant="caption" display="block">
-                                  {variable.description}
-                                </Typography>
-                                <Typography variant="caption" color="text.disabled" display="block">
-                                  {t('variableAutocomplete.fromLabel')} {variable.sourceNodeName}
-                                </Typography>
-                              </Box>
-                            }
+                        )}
+                      </Box>
+                    }
+                    secondary={
+                      <Box>
+                        <Typography variant="caption" display="block">
+                          {variable.description}
+                        </Typography>
+                        <Typography variant="caption" color="text.disabled" display="block">
+                          {t('variableAutocomplete.fromLabel')} {variable.sourceNodeName}
+                        </Typography>
+                      </Box>
+                    }
                   />
                 </ListItemButton>
               ))
@@ -215,4 +280,3 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
 };
 
 export default VariableAutocomplete;
-

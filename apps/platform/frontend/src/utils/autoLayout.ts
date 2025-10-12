@@ -22,11 +22,11 @@ export function autoLayoutNodes(
     g.setGraph({
       rankdir: 'TB', // Top to bottom layout
       align: 'UL', // Align nodes to upper-left
-      nodesep: 100, // Horizontal spacing between nodes in same rank
-      edgesep: 50, // Spacing between edges
-      ranksep: 180, // Vertical spacing between ranks
-      marginx: 80,
-      marginy: 80,
+      nodesep: 150, // Horizontal spacing between nodes in same rank (increased from 100)
+      edgesep: 80, // Spacing between edges (increased from 50)
+      ranksep: 250, // Vertical spacing between ranks (increased from 180)
+      marginx: 100,
+      marginy: 100,
       ranker: 'network-simplex', // Better ranking algorithm
     });
 
@@ -191,8 +191,8 @@ function simpleHierarchicalLayout(
   });
 
   // Calculate positions
-  const HORIZONTAL_SPACING = 300;
-  const VERTICAL_SPACING = 200;
+  const HORIZONTAL_SPACING = 350; // Increased from 300
+  const VERTICAL_SPACING = 250; // Increased from 200
   const START_Y = 100;
 
   const positionedNodes = nodes.map(node => {
