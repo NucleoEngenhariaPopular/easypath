@@ -109,20 +109,39 @@ def choose_next(flow: Flow, session: ChatSession, current_node_id: str) -> Tuple
         llm_info["confidence_score"] = score
         llm_info["reasoning"] = llm_answer.response
 
-        if score >= FUZZY_THRESHOLD:
-            for connection in connection_list:
-                if connection.label == best_match:
-                    return connection.target, llm_info
+        # Find the connection for the best match
+        selected_connection = None
+        for connection in connection_list:
+            if connection.label == best_match:
+                selected_connection = connection
+                break
+
+        if selected_connection:
+            if score >= FUZZY_THRESHOLD:
+                # High confidence - use the match
+                return selected_connection.target, llm_info
+            else:
+                # Low confidence - still use the best match but log warning
+                # This prevents infinite loops in auto-advance scenarios
+                logging.warning(
+                    "Pathway selection: baixa confianca (score=%s < %s) para resposta='%s' - usando melhor match '%s' -> '%s' llm_time=%.1fms tokens=%d/%d cost=$%.6f model=%s",
+                    score,
+                    FUZZY_THRESHOLD,
+                    llm_answer.response,
+                    best_match,
+                    selected_connection.target,
+                    llm_info["timing_ms"],
+                    llm_info["input_tokens"],
+                    llm_info["output_tokens"],
+                    llm_info["estimated_cost_usd"],
+                    llm_info["model_name"],
+                )
+                return selected_connection.target, llm_info
+
+        # No match found at all
         logging.warning(
-            "Pathway selection: baixa confianca (score=%s < %s) para resposta='%s' llm_time=%.1fms tokens=%d/%d cost=$%.6f model=%s",
-            score,
-            FUZZY_THRESHOLD,
-            llm_answer.response,
-            llm_info["timing_ms"],
-            llm_info["input_tokens"],
-            llm_info["output_tokens"],
-            llm_info["estimated_cost_usd"],
-            llm_info["model_name"],
+            "Pathway selection: nenhuma conexao encontrada para best_match='%s'",
+            best_match
         )
     else:
         logging.warning(

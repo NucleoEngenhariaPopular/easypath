@@ -19,13 +19,19 @@ def _format_prompts(flow: Flow, current_node_id: str, session: ChatSession) -> t
     )
 
     node_prompt = (
-        f"\n**INSTRUÇÕES IMPORTANTES - SIGA EXATAMENTE:**\n"
-        f"Contexo da mensagem atual: {node.prompt.context}\n"
-        f"Objetivo da mensagem atual (SIGA ESTE OBJETIVO EXATAMENTE): {node.prompt.objective}\n"
-        f"Observações da mensagem atual: {node.prompt.notes}\n"
-        f"Exemplos da mensagem atual: {node.prompt.examples}\n"
-        f"\nNÃO invente perguntas ou respostas diferentes do objetivo definido acima. "
-        f"Sua resposta deve seguir EXATAMENTE o objetivo especificado para esta mensagem."
+        f"\n**INSTRUÇÕES CRÍTICAS - OBEDEÇA RIGOROSAMENTE:**\n\n"
+        f"🎯 OBJETIVO OBRIGATÓRIO DA SUA PRÓXIMA RESPOSTA:\n"
+        f"'{node.prompt.objective}'\n\n"
+        f"📋 Contexto: {node.prompt.context}\n"
+        f"📝 Observações: {node.prompt.notes}\n"
+        f"💡 Exemplos de como responder: {node.prompt.examples}\n\n"
+        f"⚠️ REGRAS ABSOLUTAS:\n"
+        f"1. Sua resposta deve seguir EXATAMENTE o objetivo acima\n"
+        f"2. NÃO invente perguntas ou tópicos diferentes\n"
+        f"3. NÃO siga padrões implícitos da conversa anterior\n"
+        f"4. NÃO crie conteúdo fora do objetivo especificado\n"
+        f"5. Se o objetivo diz 'Perguntar X', pergunte EXATAMENTE X\n"
+        f"\nQualquer desvio do objetivo acima é estritamente PROIBIDO."
     )
 
     # Add custom prompt fields if present
@@ -47,10 +53,26 @@ def generate_response(flow: Flow, session: ChatSession, current_node_id: str) ->
     prompt, temperature = _format_prompts(flow, current_node_id, session)
     llm = get_llm()
 
+    # Get the current node to extract objective for reinforcement
+    node = next((node for node in flow.nodes if node.id == current_node_id))
+
+    # Create a reinforcement message to place AFTER conversation history
+    # This ensures the LLM sees the objective immediately before generating
+    reinforcement_prompt = (
+        f"ATENÇÃO: Sua próxima resposta deve seguir EXATAMENTE este objetivo:\n"
+        f"'{node.prompt.objective}'\n\n"
+        f"NÃO invente perguntas diferentes. NÃO siga padrões da conversa anterior. "
+        f"Responda SOMENTE conforme o objetivo acima."
+    )
+
     start_time = perf_counter()
-    # Place system prompt FIRST (before conversation history) for stronger influence
+    # Sandwich approach: System prompt at START + Reinforcement at END
     llm_answer = llm.chat(
-        messages=[{"content": prompt, "role": "system"}] + session.to_llm_messages(),
+        messages=[
+            {"content": prompt, "role": "system"}
+        ] + session.to_llm_messages() + [
+            {"content": reinforcement_prompt, "role": "system"}
+        ],
         temperature=temperature,
     )
     llm_time_ms = llm_answer.timing_ms or ((perf_counter() - start_time) * 1000)

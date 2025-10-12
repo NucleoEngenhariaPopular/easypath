@@ -190,6 +190,7 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
   const [drawerWidth, setDrawerWidth] = useState(DEFAULT_DRAWER_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -199,10 +200,21 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
     scrollToBottom();
   }, [messages, isLoading]);
 
+  // Refocus input after response is received
+  useEffect(() => {
+    if (!isLoading && isConnected) {
+      inputRef.current?.focus();
+    }
+  }, [isLoading, isConnected]);
+
   const handleSend = () => {
     if (inputMessage.trim()) {
       onSendMessage(inputMessage.trim());
       setInputMessage('');
+      // Refocus input after sending message
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
     }
   };
 
@@ -526,6 +538,7 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
             disabled={!isConnected || isLoading}
             multiline
             maxRows={3}
+            inputRef={inputRef}
           />
           <IconButton
             color="primary"
