@@ -16,6 +16,7 @@ import React, { useCallback, useState } from 'react';
 
 import SettingsIcon from '@mui/icons-material/Settings';
 import DeleteIcon from '@mui/icons-material/Delete';
+import DataObjectIcon from '@mui/icons-material/DataObject';
 import { Box, Fab, Tooltip, Typography } from '@mui/material';
 import EasyPathAppBar from '../components/AppBar';
 import CanvasToolbar from '../components/canvas/CanvasToolbar';
@@ -24,6 +25,7 @@ import { nodeTypes } from '../components/canvas/CustomNodes';
 import type { GlobalCanvasConfig, CustomNodeData, ModelOptions, ExtractVarItem } from '../types/canvasTypes';
 import NodeModal from '../components/canvas/NodeModal';
 import EdgeModal from '../components/canvas/EdgeModal';
+import VariableInspectorPanel from '../components/canvas/VariableInspectorPanel';
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
@@ -72,6 +74,7 @@ const CanvasPage: React.FC = () => {
   const [globalConfig, setGlobalConfig] = useState<GlobalCanvasConfig>(initialGlobalConfig);
   const [flowName, setFlowName] = useState('Untitled Flow');
   const [flowDescription, setFlowDescription] = useState('');
+  const [isVariableInspectorOpen, setIsVariableInspectorOpen] = useState(false);
 
   // Test mode state
   const [isTestMode, setIsTestMode] = useState(false);
@@ -873,6 +876,17 @@ const CanvasPage: React.FC = () => {
               <SettingsIcon />
             </Fab>
           </Tooltip>
+          {/* Variable Inspector Button */}
+          <Tooltip title={t('canvasPage.variableInspectorTooltip')}>
+            <Fab
+              color="success"
+              size="small"
+              sx={{ position: 'absolute', top: 72, left: 16, zIndex: 10 }}
+              onClick={() => setIsVariableInspectorOpen(!isVariableInspectorOpen)}
+            >
+              <DataObjectIcon />
+            </Fab>
+          </Tooltip>
           {/* Delete Button */}
           {flowId !== 'new' && (
             <Tooltip title={t('canvasPage.deleteTooltip')}>
@@ -908,6 +922,8 @@ const CanvasPage: React.FC = () => {
           selectedNode={selectedNode}
           onNodeDataChange={handleNodeDataChange}
           onNodeDelete={handleNodeDelete}
+          allNodes={nodes}
+          allEdges={edges}
         />
       )}
 
@@ -933,6 +949,15 @@ const CanvasPage: React.FC = () => {
         lastMessageStats={lastMessageStats}
         conversationStats={conversationStats}
         decisionLogs={decisionLogs}
+      />
+
+      <VariableInspectorPanel
+        open={isVariableInspectorOpen}
+        onClose={() => setIsVariableInspectorOpen(false)}
+        nodes={nodes}
+        edges={edges}
+        currentNodeId={activeNodeId || undefined}
+        runtimeVariables={testVariables}
       />
     </Box>
   );

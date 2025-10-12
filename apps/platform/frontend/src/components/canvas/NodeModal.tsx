@@ -9,13 +9,24 @@ import {
   Paper,
   Select,
   Switch,
-  TextField, Typography
+  TextField, Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  List,
+  ListItem,
+  ListItemText,
+  Chip,
+  Tooltip,
 } from "@mui/material";
-import type { Node } from "@xyflow/react";
+import { ExpandMore as ExpandMoreIcon, ContentCopy as ContentCopyIcon } from "@mui/icons-material";
+import type { Node, Edge } from "@xyflow/react";
 import type { FC } from "react";
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CustomNodeData, ExtractVarItem, ModelOptions, PromptData } from "../../types/canvasTypes";
+import VariableAutocomplete from './VariableAutocomplete';
+import { getAvailableVariablesAtNode } from '../../utils/flowAnalyzer';
 
 interface NodeModalProps {
   isOpen: boolean;
@@ -23,6 +34,8 @@ interface NodeModalProps {
   selectedNode: Node<CustomNodeData> | null;
   onNodeDataChange: (field: keyof CustomNodeData | `modelOptions.${keyof ModelOptions}` | `extractVars.${number}.${keyof ExtractVarItem}`, value: any) => void;
   onNodeDelete: (nodeId: string) => void;
+  allNodes?: Node<CustomNodeData>[];
+  allEdges?: Edge[];
 }
 
 type InputMode = 'prompt' | 'staticText';
@@ -48,10 +61,25 @@ const NodeModal: FC<NodeModalProps> = ({
   selectedNode,
   onNodeDataChange,
   onNodeDelete,
+  allNodes = [],
+  allEdges = [],
 }) => {
   const { t } = useTranslation();
   const [inputMode, setInputMode] = useState<InputMode>('prompt');
   const [customPromptFields, setCustomPromptFields] = useState<Array<{ key: string; value: string }>>([]);
+  const [copiedVar, setCopiedVar] = useState<string | null>(null);
+
+  // Get available variables for this node
+  const availableVariables = selectedNode
+    ? getAvailableVariablesAtNode(selectedNode.id, allNodes, allEdges)
+    : [];
+
+  // Handle copy variable to clipboard
+  const handleCopyVariable = (variableName: string) => {
+    navigator.clipboard.writeText(`{{${variableName}}}`);
+    setCopiedVar(variableName);
+    setTimeout(() => setCopiedVar(null), 2000);
+  };
 
   useEffect(() => {
     if (selectedNode?.data) {
@@ -328,13 +356,14 @@ const NodeModal: FC<NodeModalProps> = ({
                 </Typography>
               </Box>
 
-              <TextField
+              <VariableAutocomplete
                 label="Context"
                 fullWidth
                 multiline
                 rows={3}
                 value={selectedNode.data.prompt?.context || ''}
-                onChange={(e) => handlePromptFieldChange('context', e.target.value)}
+                onChange={(value) => handlePromptFieldChange('context', value)}
+                availableVariables={availableVariables}
                 sx={{
                   mb: 2,
                   '& .MuiInputBase-root': {
@@ -345,13 +374,14 @@ const NodeModal: FC<NodeModalProps> = ({
                 helperText="What's happening at this step in the conversation flow"
               />
 
-              <TextField
+              <VariableAutocomplete
                 label="Objective"
                 fullWidth
                 multiline
                 rows={3}
                 value={selectedNode.data.prompt?.objective || ''}
-                onChange={(e) => handlePromptFieldChange('objective', e.target.value)}
+                onChange={(value) => handlePromptFieldChange('objective', value)}
+                availableVariables={availableVariables}
                 sx={{
                   mb: 2,
                   '& .MuiInputBase-root': {
@@ -362,13 +392,14 @@ const NodeModal: FC<NodeModalProps> = ({
                 helperText="What should the LLM accomplish at this node"
               />
 
-              <TextField
+              <VariableAutocomplete
                 label="Notes"
                 fullWidth
                 multiline
                 rows={2}
                 value={selectedNode.data.prompt?.notes || ''}
-                onChange={(e) => handlePromptFieldChange('notes', e.target.value)}
+                onChange={(value) => handlePromptFieldChange('notes', value)}
+                availableVariables={availableVariables}
                 sx={{
                   mb: 2,
                   '& .MuiInputBase-root': {
@@ -379,13 +410,14 @@ const NodeModal: FC<NodeModalProps> = ({
                 helperText="Important considerations, tone, style guidelines"
               />
 
-              <TextField
+              <VariableAutocomplete
                 label="Examples"
                 fullWidth
                 multiline
                 rows={3}
                 value={selectedNode.data.prompt?.examples || ''}
-                onChange={(e) => handlePromptFieldChange('examples', e.target.value)}
+                onChange={(value) => handlePromptFieldChange('examples', value)}
+                availableVariables={availableVariables}
                 sx={{
                   mb: 2,
                   '& .MuiInputBase-root': {
@@ -514,14 +546,15 @@ const NodeModal: FC<NodeModalProps> = ({
                   Define the condition in which the model should loop back or move to the next node
                 </Typography>
                 {selectedNode.data.loopEnabled && (
-                  <TextField
+                  <VariableAutocomplete
                     label="Loop Condition"
                     name="condition"
                     fullWidth
                     multiline
                     rows={3}
                     value={selectedNode.data.condition || ''}
-                    onChange={handleSimpleChange}
+                    onChange={(value) => onNodeDataChange('condition', value)}
+                    availableVariables={availableVariables}
                     sx={{
                       '& .MuiInputBase-root': {
                         resize: 'vertical',
@@ -741,6 +774,102 @@ const NodeModal: FC<NodeModalProps> = ({
               )}
             </Paper>
           </Box>
+
+          {/* Available Variables Section */}
+          {showContentFields && availableVariables.length > 0 && (
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box sx={{
+                  width: 4,
+                  height: 24,
+                  bgcolor: 'success.main',
+                  borderRadius: 1,
+                  mr: 1.5
+                }} />
+                <Typography variant="h6" fontWeight="600" color="text.primary">
+                  {t('nodeModal.availableVariablesTitle')}
+                  <Chip
+                    label={availableVariables.length}
+                    size="small"
+                    color="success"
+                    sx={{ ml: 1, height: 22 }}
+                  />
+                </Typography>
+              </Box>
+              <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, borderColor: 'divider' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  {t('nodeModal.availableVariablesDesc')}
+                </Typography>
+                <Accordion>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle2">
+                      {t('nodeModal.viewAllVariables', { count: availableVariables.length })}
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <List dense>
+                      {availableVariables.map((variable) => (
+                        <ListItem
+                          key={variable.name}
+                          sx={{
+                            bgcolor: 'background.default',
+                            mb: 1,
+                            borderRadius: 1,
+                            border: 1,
+                            borderColor: 'divider',
+                          }}
+                          secondaryAction={
+                            <Tooltip title={copiedVar === variable.name ? t('nodeModal.variableCopied') : t('nodeModal.copyVariable')}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleCopyVariable(variable.name)}
+                                color={copiedVar === variable.name ? 'success' : 'default'}
+                              >
+                                <ContentCopyIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          }
+                        >
+                          <ListItemText
+                            primary={
+                              <Box display="flex" alignItems="center" gap={0.5} flexWrap="wrap">
+                                <Typography variant="body2" fontWeight="bold" component="span">
+                                  {`{{${variable.name}}}`}
+                                </Typography>
+                                <Chip
+                                  label={variable.type}
+                                  size="small"
+                                  sx={{ height: 18, fontSize: '0.65rem' }}
+                                />
+                                {variable.required && (
+                                  <Chip
+                                    label={t('variableInspector.requiredChip')}
+                                    size="small"
+                                    color="warning"
+                                    sx={{ height: 18, fontSize: '0.65rem' }}
+                                  />
+                                )}
+                              </Box>
+                            }
+                            secondary={
+                              <Box>
+                                <Typography variant="caption" display="block">
+                                  {variable.description}
+                                </Typography>
+                                <Typography variant="caption" color="text.disabled" display="block">
+                                  {t('variableInspector.sourceLabel')} {variable.sourceNodeName}
+                                </Typography>
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </AccordionDetails>
+                </Accordion>
+              </Paper>
+            </Box>
+          )}
 
           {/* Advanced Options */}
           {showAdvancedFields && (

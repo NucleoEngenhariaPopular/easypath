@@ -56,3 +56,17 @@ export interface GlobalCanvasConfig {
   behaviorAndFallbacks?: string;
   placeholdersAndVariables?: string;
 }
+
+export interface VariableInfo {
+  name: string;
+  type: string;
+  description: string;
+  required: boolean;
+  sourceNodeId: string;
+  sourceNodeName: string;
+}
+
+export interface VariableAvailability {
+  static: VariableInfo[]; // From flow analysis
+  runtime: Record<string, any>; // From session
+}

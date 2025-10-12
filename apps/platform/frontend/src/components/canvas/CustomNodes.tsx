@@ -1,6 +1,8 @@
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import Tooltip from '@mui/material/Tooltip';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
@@ -10,8 +12,43 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import RecommendIcon from '@mui/icons-material/Recommend';
 import SummarizeIcon from '@mui/icons-material/Summarize';
 import PublicIcon from '@mui/icons-material/Public';
+import DataObjectIcon from '@mui/icons-material/DataObject';
 import { type CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { CustomNodeData } from '../../types/canvasTypes';
+
+// Variable Badge Component
+const VariableBadge = ({ data }: { data: CustomNodeData }) => {
+  const { t } = useTranslation();
+  const varCount = data.extractVars?.length || 0;
+  if (varCount === 0) return null;
+
+  const varNames = data.extractVars?.map(v => v.name).join(', ') || '';
+
+  return (
+    <Tooltip title={`${t('variableInspector.extractsLabel')} ${varNames}`} placement="top">
+      <Chip
+        icon={<DataObjectIcon sx={{ fontSize: '0.75rem !important', color: 'white !important' }} />}
+        label={varCount}
+        size="small"
+        sx={{
+          position: 'absolute',
+          top: -8,
+          right: -8,
+          height: 20,
+          fontSize: '0.7rem',
+          fontWeight: 'bold',
+          backgroundColor: '#4caf50',
+          color: 'white',
+          '& .MuiChip-icon': {
+            marginLeft: '4px',
+          },
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+        }}
+      />
+    </Tooltip>
+  );
+};
 
 const nodeBaseStyle: CSSProperties = {
   color: 'white',
@@ -92,12 +129,14 @@ export const nodeTypes = {
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         minWidth: 170,
         maxWidth: 280,
+        position: 'relative',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
         },
       }}
     >
+      <VariableBadge data={props.data} />
       <ChatBubbleOutlineIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
       <Typography
         variant="body2"
@@ -158,12 +197,14 @@ export const nodeTypes = {
         background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
         minWidth: 170,
         maxWidth: 280,
+        position: 'relative',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 6px 16px rgba(250, 112, 154, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
         },
       }}
     >
+      <VariableBadge data={props.data} />
       <HttpIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
       <Typography
         variant="body2"
@@ -195,12 +236,14 @@ export const nodeTypes = {
         background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
         minWidth: 170,
         maxWidth: 280,
+        position: 'relative',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 6px 16px rgba(240, 147, 251, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
         },
       }}
     >
+      <VariableBadge data={props.data} />
       <FilterAltIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
       <Typography
         variant="body2"
@@ -232,12 +275,14 @@ export const nodeTypes = {
         background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
         minWidth: 170,
         maxWidth: 280,
+        position: 'relative',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 6px 16px rgba(79, 172, 254, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
         },
       }}
     >
+      <VariableBadge data={props.data} />
       <CheckCircleOutlineIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
       <Typography
         variant="body2"
@@ -269,12 +314,14 @@ export const nodeTypes = {
         background: 'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)',
         minWidth: 170,
         maxWidth: 280,
+        position: 'relative',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 6px 16px rgba(252, 203, 144, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
         },
       }}
     >
+      <VariableBadge data={props.data} />
       <RecommendIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
       <Typography
         variant="body2"
@@ -306,12 +353,14 @@ export const nodeTypes = {
         background: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
         minWidth: 170,
         maxWidth: 280,
+        position: 'relative',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 6px 16px rgba(224, 195, 252, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
         },
       }}
     >
+      <VariableBadge data={props.data} />
       <SummarizeIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
       <Typography
         variant="body2"
@@ -343,12 +392,14 @@ export const nodeTypes = {
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         minWidth: 170,
         maxWidth: 280,
+        position: 'relative',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4), 0 2px 6px rgba(0,0,0,0.15)',
         },
       }}
     >
+      <VariableBadge data={props.data} />
       <ChatBubbleOutlineIcon sx={{ fontSize: 24, mb: 1, color: 'rgba(255,255,255,0.9)' }} />
       <Typography
         variant="body2"

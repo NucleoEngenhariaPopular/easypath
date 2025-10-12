@@ -146,6 +146,7 @@
     "initialGlobalPrompt": "Default global prompt: Be helpful and concise.",
     "exportFileName": "canvas-state.json",
     "globalSettingsTooltip": "Global Settings",
+    "variableInspectorTooltip": "Variable Inspector",
     "saveTooltip": "Save Flow",
     "deleteTooltip": "Delete Flow",
     "confirmDelete": "Are you sure you want to delete this flow? This action cannot be undone.",
@@ -153,6 +154,44 @@
     "deleteFailed": "Failed to delete the flow. Please try again.",
     "exportTooltip": "Export to JSON",
     "exportButtonText": "Export"
+  },
+  "variableInspector": {
+    "title": "Variable Inspector",
+    "searchPlaceholder": "Search variables...",
+    "definedCount": "{{count}} defined",
+    "extractedCount": "{{count}} extracted",
+    "availableAtNode": "{{count}} available at current node",
+    "noVariablesAlert": "No variables defined in this flow yet. Add extraction configuration to nodes to create variables.",
+    "runtimeVariablesTitle": "Runtime Variables",
+    "runtimeVariablesDesc": "Variables extracted during test mode execution",
+    "staticVariablesTitle": "Static Variables",
+    "staticVariablesDesc": "Variables defined in flow configuration",
+    "copyReference": "Copy reference",
+    "copied": "Copied!",
+    "valueLabel": "Value:",
+    "availableChip": "available",
+    "requiredChip": "required",
+    "noMatchesFound": "No variables match \"{{term}}\"",
+    "helpTitle": "💡 How to use variables",
+    "helpText": "1. Click the copy icon to copy a variable reference\n2. Paste it into prompt fields, conditions, or notes\n3. Variables are replaced with actual values during execution\n4. Type {{ in text fields for autocomplete suggestions",
+    "sourceLabel": "Source:",
+    "extractsLabel": "Extracts:"
+  },
+  "variableAutocomplete": {
+    "helperText": "Type {{ to insert variables ({{count}} available)",
+    "noVariablesFound": "No variables found",
+    "searchedFor": "Searched for: \"{{term}}\"",
+    "fromLabel": "From:"
+  },
+  "nodeModal": {
+    "availableVariablesTitle": "Available Variables",
+    "availableVariablesCount": "{{count}} variable",
+    "availableVariablesCount_plural": "{{count}} variables",
+    "availableVariablesDesc": "These variables are available from previous nodes in the flow. Click to copy the reference.",
+    "viewAllVariables": "View all {{count}} variable",
+    "viewAllVariables_plural": "View all {{count}} variables",
+    "copyVariable": "Copy {{{{variable}}}}",
+    "variableCopied": "Copied!"
   },
   "appBar": {
     "logoText": "EP",
