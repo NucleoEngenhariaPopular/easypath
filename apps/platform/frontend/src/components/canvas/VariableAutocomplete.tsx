@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from 'react';
 import {
   TextField,
   Popper,
@@ -12,6 +12,7 @@ import {
   Chip,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import type { SxProps, Theme } from '@mui/material/styles';
 import type { TextFieldProps } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import type { VariableInfo } from '../../types/canvasTypes';
@@ -22,6 +23,38 @@ interface VariableAutocompleteProps extends Omit<TextFieldProps, 'onChange'> {
   availableVariables: VariableInfo[];
 }
 
+const escapeHtml = (text: string) =>
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const getHighlightedMarkup = (text: string) => {
+  if (!text) {
+    return '&nbsp;';
+  }
+
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\{\{([\s\S]*?)\}\}/g, (_match, token) =>
+    `<span class="variable-token">{{${token}}}</span>`,
+  );
+};
+
+const mergeSx = (
+  ...styles: Array<SxProps<Theme> | undefined>
+): SxProps<Theme> => {
+  const filtered = styles.filter(Boolean) as SxProps<Theme>[];
+  if (filtered.length === 0) {
+    return {};
+  }
+  if (filtered.length === 1) {
+    return filtered[0];
+  }
+  return filtered as unknown as SxProps<Theme>;
+};
+
 const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
   value,
   onChange,
@@ -30,6 +63,7 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
+  const isBrowser = typeof window !== 'undefined';
   const [showDropdown, setShowDropdown] = useState(false);
   const [filteredVariables, setFilteredVariables] = useState<VariableInfo[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -37,6 +71,21 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const textFieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const verticalPadding = textFieldProps.size === 'small' ? 8.5 : 16.5;
+  const [overlayMetrics, setOverlayMetrics] = useState({
+    top: verticalPadding,
+    left: 14,
+    width: 0,
+    height: 0,
+    paddingTop: 0,
+    paddingRight: 0,
+    paddingBottom: 0,
+    paddingLeft: 0,
+  });
+
+  const highlightedMarkup = useMemo(() => getHighlightedMarkup(value), [value]);
 
   // Detect {{ trigger and show autocomplete
   useEffect(() => {
@@ -130,12 +179,129 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
     onChange(e.target.value);
   };
 
+  const updateOverlayMetrics = useCallback(() => {
+    if (!isBrowser) return;
+    const textarea = inputRef.current;
+    const highlightHost = highlightRef.current;
+    const container = containerRef.current;
+    if (!textarea || !highlightHost || !container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const textareaRect = textarea.getBoundingClientRect();
+
+    const computed = window.getComputedStyle(textarea);
+    const paddingTop = parseFloat(computed.paddingTop || '0');
+    const paddingRight = parseFloat(computed.paddingRight || '0');
+    const paddingBottom = parseFloat(computed.paddingBottom || '0');
+    const paddingLeft = parseFloat(computed.paddingLeft || '0');
+
+    setOverlayMetrics({
+      top: textareaRect.top - containerRect.top,
+      left: textareaRect.left - containerRect.left,
+      width: textarea.clientWidth,
+      height: textarea.clientHeight,
+      paddingTop,
+      paddingRight,
+      paddingBottom,
+      paddingLeft,
+    });
+  }, [isBrowser]);
+
+  useLayoutEffect(() => {
+    updateOverlayMetrics();
+  }, [updateOverlayMetrics, value, textFieldProps.size]);
+
+  useEffect(() => {
+    if (!isBrowser) return;
+    const textarea = inputRef.current;
+    const container = containerRef.current;
+    if (!textarea || !container || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver(() => {
+      updateOverlayMetrics();
+    });
+
+    observer.observe(textarea);
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [updateOverlayMetrics, isBrowser]);
+
+  useEffect(() => {
+    if (!isBrowser) return;
+    const handleResize = () => updateOverlayMetrics();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [updateOverlayMetrics, isBrowser]);
+
+  useEffect(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    const syncScroll = () => {
+      if (!highlightRef.current) return;
+      highlightRef.current.scrollTop = textarea.scrollTop;
+      highlightRef.current.scrollLeft = textarea.scrollLeft;
+    };
+
+    textarea.addEventListener('scroll', syncScroll);
+
+    return () => {
+      textarea.removeEventListener('scroll', syncScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!highlightRef.current || !inputRef.current) return;
+    highlightRef.current.scrollTop = inputRef.current.scrollTop;
+    highlightRef.current.scrollLeft = inputRef.current.scrollLeft;
+  }, [value]);
+
   // Count variables in text
   const variableMatches = value.match(/\{\{[^}]+\}\}/g) || [];
   const variableCount = variableMatches.length;
 
   return (
-    <Box position="relative">
+    <Box position="relative" ref={containerRef}>
+      <Box
+        ref={highlightRef}
+        aria-hidden
+        sx={{
+          position: 'absolute',
+          top: overlayMetrics.width ? `${overlayMetrics.top}px` : 0,
+          left: overlayMetrics.width ? `${overlayMetrics.left}px` : 0,
+          width: overlayMetrics.width ? `${overlayMetrics.width}px` : undefined,
+          height: overlayMetrics.height ? `${overlayMetrics.height}px` : undefined,
+          paddingTop: overlayMetrics.width ? `${overlayMetrics.paddingTop}px` : `${verticalPadding}px`,
+          paddingRight: overlayMetrics.width ? `${overlayMetrics.paddingRight}px` : '14px',
+          paddingBottom: overlayMetrics.width ? `${overlayMetrics.paddingBottom}px` : `${verticalPadding}px`,
+          paddingLeft: overlayMetrics.width ? `${overlayMetrics.paddingLeft}px` : '14px',
+          pointerEvents: 'none',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          overflow: 'hidden',
+          color: 'transparent',
+          fontFamily: '"Roboto Mono", "Courier New", monospace',
+          fontSize: '0.9rem',
+          lineHeight: 1.6,
+          borderRadius: 8,
+          zIndex: 0,
+          '& .variable-token': {
+            backgroundColor: theme.palette.mode === 'dark'
+              ? 'rgba(102, 126, 234, 0.35)'
+              : 'rgba(102, 126, 234, 0.18)',
+            borderRadius: 4,
+            boxShadow: theme.palette.mode === 'dark'
+              ? '0 0 0 1px rgba(102, 126, 234, 0.5)'
+              : '0 0 0 1px rgba(102, 126, 234, 0.35)',
+          },
+        }}
+        dangerouslySetInnerHTML={{ __html: highlightedMarkup }}
+      />
       <TextField
         {...textFieldProps}
         ref={textFieldRef}
@@ -172,32 +338,30 @@ const VariableAutocomplete: React.FC<VariableAutocompleteProps> = ({
             ) : undefined
           )
         }
-        InputProps={{
-          ...textFieldProps.InputProps,
-          sx: {
-            fontFamily: '"Roboto Mono", "Courier New", monospace',
-            fontSize: '0.9rem',
-            lineHeight: 1.6,
-            ...(textFieldProps.InputProps?.sx || {}),
-          }
-        }}
-        sx={{
-          ...textFieldProps.sx,
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 2,
-            ...(textFieldProps.sx?.['& .MuiOutlinedInput-root'] as any || {}),
-          },
-          '& .MuiInputBase-root': {
-            borderLeft: variableCount > 0 ? `3px solid ${theme.palette.primary.main}` : undefined,
-            backgroundColor: theme.palette.mode === 'dark'
-              ? 'rgba(0, 0, 0, 0.2)'
-              : 'rgba(0, 0, 0, 0.02)',
-            ...(textFieldProps.sx?.['& .MuiInputBase-root'] as any || {}),
-          },
-          '& .MuiInputBase-input': {
-            color: theme.palette.text.primary,
-          }
-        }}
+        sx={
+          mergeSx(
+            {
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+              },
+              '& .MuiInputBase-root': {
+                borderLeft: variableCount > 0 ? `3px solid ${theme.palette.primary.main}` : undefined,
+                backgroundColor: theme.palette.mode === 'dark'
+                  ? 'rgba(0, 0, 0, 0.2)'
+                  : 'rgba(0, 0, 0, 0.02)',
+                position: 'relative',
+                zIndex: 1,
+              },
+              '& .MuiInputBase-input': {
+                fontFamily: '"Roboto Mono", "Courier New", monospace',
+                fontSize: '0.9rem',
+                lineHeight: 1.6,
+                color: theme.palette.text.primary,
+              },
+            },
+            textFieldProps.sx,
+          )
+        }
       />
 
       <Popper
