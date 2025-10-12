@@ -281,6 +281,20 @@ const NodeModal: FC<NodeModalProps> = ({
               }}
               helperText="This is the display name shown on the canvas"
             />
+            <TextField
+              label="Node ID"
+              name="nodeId"
+              fullWidth
+              value={selectedNode.id || ""}
+              onChange={handleSimpleChange}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                }
+              }}
+              helperText="⚠️ Unique identifier for this node (changing this may break connections)"
+            />
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Node Type</InputLabel>
               <Select

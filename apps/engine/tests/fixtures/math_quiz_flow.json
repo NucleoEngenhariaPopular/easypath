@@ -7,7 +7,7 @@
       "prompt": {
         "context": "Início do quiz de matemática - dar boas-vindas e explicar o desafio",
         "objective": "Dar boas-vindas calorosas e explicar que o usuário vai responder 3 perguntas de matemática de diferentes níveis de dificuldade",
-        "notes": "Ser encorajador e criar expectativa positiva. Explicar que vamos de perguntas simples até conceitos mais complexos.",
+        "notes": "Ser encorajador e criar expectativa positiva. Explicar que vamos de perguntas simples até conceitos mais complexos. RESPOSTA CURTA: máximo 3-4 linhas.",
         "examples": "Bem-vindo ao Quiz de Matemática! 🧮\n\nVou te desafiar com 3 perguntas interessantes, começando do básico até conceitos mais profundos. Você precisa acertar cada pergunta para avançar!\n\nPronto para começar? Vamos lá!"
       },
       "is_start": true,
@@ -45,7 +45,7 @@
       "prompt": {
         "context": "Explicação sobre adição básica",
         "objective": "Explicar brevemente o conceito de adição e parabenizar pelo acerto",
-        "notes": "Ser educativo mas conciso. Conectar conceitos simples com aplicações práticas.",
+        "notes": "Ser educativo mas MUITO conciso. Conectar conceitos simples com aplicações práticas. RESPOSTA CURTA: máximo 2-3 linhas. Estilo conversacional de WhatsApp.",
         "examples": "Perfeito! 🎉\n\nAdição é uma das operações matemáticas fundamentais. Quando somamos 5 + 5, estamos combinando dois grupos de 5 elementos, resultando em 10 elementos no total. É a base para toda matemática mais complexa!\n\nVamos para a próxima pergunta?"
       },
       "is_start": false,
@@ -83,7 +83,7 @@
       "prompt": {
         "context": "Explicação sobre a constante pi",
         "objective": "Explicar o que é pi, sua importância e aplicações",
-        "notes": "Ser fascinante e inspirador. Mencionar que pi é infinito e não-periódico.",
+        "notes": "Ser fascinante e inspirador mas CONCISO. Mencionar que pi é infinito e não-periódico. RESPOSTA CURTA: máximo 3-4 linhas. Estilo conversacional.",
         "examples": "Muito bem! 🎯\n\nPi (π ≈ 3.14159...) é uma das constantes mais importantes da matemática! É a razão entre a circunferência de um círculo e seu diâmetro. O fascinante é que pi é um número irracional - seus dígitos continuam infinitamente sem nunca repetir um padrão!\n\nPi aparece em física, engenharia, e até na probabilidade. Calculamos órbitas de planetas, ondas sonoras e muitos outros fenômenos naturais usando pi.\n\nAgora vem a pergunta mais desafiadora..."
       },
       "is_start": false,
@@ -121,7 +121,7 @@
       "prompt": {
         "context": "Explicação sobre cardinalidade de conjuntos infinitos",
         "objective": "Explicar o conceito de infinitos enumeráveis e a descoberta de Cantor",
-        "notes": "Ser profundo mas acessível. Mencionar que existem DIFERENTES TIPOS de infinito. Explicar cardinalidade.",
+        "notes": "Ser profundo mas acessível e CONCISO. Mencionar que existem DIFERENTES TIPOS de infinito. Explicar cardinalidade. RESPOSTA CURTA: máximo 4-5 linhas. Estilo conversacional.",
         "examples": "Incrível! Você acertou a pergunta mais difícil! 🌟\n\nEssa é uma descoberta fascinante do matemático Georg Cantor (século XIX). Os conjuntos dos números naturais {1, 2, 3, ...} e dos inteiros {..., -2, -1, 0, 1, 2, ...} têm o MESMO TAMANHO, mesmo que os inteiros pareçam ter 'mais' números!\n\nComo isso é possível? Podemos criar uma correspondência um-a-um:\n• Naturais: 1,  2,  3,  4,  5,  6, ...\n• Inteiros:  0,  1, -1,  2, -2,  3, ...\n\nAmbos são 'infinitos enumeráveis' (ou contáveis). A mente vai explodir ainda mais: Cantor provou que o conjunto dos números REAIS é um infinito MAIOR (não-enumerável)! Existem diferentes 'tamanhos' de infinito!\n\nISSO é matemática pura no seu melhor! 🎓"
       },
       "is_start": false,
@@ -140,7 +140,7 @@
       "prompt": {
         "context": "Finalização do quiz com parabenização",
         "objective": "Parabenizar o usuário por completar todas as 3 perguntas e incentivá-lo a continuar estudando matemática",
-        "notes": "Ser muito celebratório e inspirador. Destacar a jornada de conceitos básicos a avançados.",
+        "notes": "Ser muito celebratório e inspirador mas CONCISO. Destacar a jornada de conceitos básicos a avançados. RESPOSTA CURTA: máximo 3-4 linhas. Estilo conversacional.",
         "examples": "🏆 PARABÉNS! 🏆\n\nVocê completou o Quiz de Matemática com sucesso!\n\nVocê começou com aritmética básica (5+5=10), passou por constantes matemáticas fundamentais (π), e chegou até conceitos profundos da teoria dos conjuntos (cardinalidade de infinitos)!\n\nEssa jornada mostra como a matemática é fascinante - desde o simples até o profundamente abstrato. Continue explorando, questionando e se maravilhando com os números!\n\nAté a próxima! ✨📐"
       },
       "is_start": false,
@@ -213,8 +213,8 @@
     }
   ],
   "global_objective": "Conduzir um quiz de matemática educativo com 3 perguntas de dificuldade crescente, usando loops para garantir que cada pergunta seja respondida corretamente antes de avançar. Cada resposta correta é seguida de uma explicação educativa do conceito.",
-  "global_tone": "educativo, encorajador e entusiasmado",
+  "global_tone": "educativo, encorajador, entusiasmado e CONVERSACIONAL",
   "global_language": "pt-BR",
-  "global_behaviour": "paciente e pedagógico - dar dicas quando o usuário errar, celebrar acertos, e sempre explicar os conceitos de forma clara e inspiradora",
-  "global_values": "educação através da descoberta, paciência com o aprendizado, celebração do conhecimento matemático"
+  "global_behaviour": "paciente e pedagógico - dar dicas quando o usuário errar, celebrar acertos, e sempre explicar os conceitos de forma clara e inspiradora. IMPORTANTE: Manter respostas CURTAS e DIRETAS, como em uma conversa natural por WhatsApp. Evitar textos longos e prolixos.",
+  "global_values": "educação através da descoberta, paciência com o aprendizado, celebração do conhecimento matemático, clareza e objetividade na comunicação"
 }

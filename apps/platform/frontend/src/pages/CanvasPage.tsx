@@ -338,6 +338,34 @@ const CanvasPage: React.FC = () => {
 
       fieldWithPath = fieldWithPath.toString()
 
+      // Handle node ID change (requires updating edges too)
+      if (fieldWithPath === 'nodeId') {
+        const oldId = selectedNode.id;
+        const newId = value;
+
+        // Update node ID
+        setNodes((nds) =>
+          nds.map((node) =>
+            node.id === oldId
+              ? { ...node, id: newId }
+              : node
+          )
+        );
+
+        // Update edges that reference this node
+        setEdges((eds) =>
+          eds.map((edge) => ({
+            ...edge,
+            source: edge.source === oldId ? newId : edge.source,
+            target: edge.target === oldId ? newId : edge.target,
+          }))
+        );
+
+        // Update selected node
+        setSelectedNode((prev) => (prev ? { ...prev, id: newId } : null));
+        return;
+      }
+
       // Handle node type change (updates the node's type property, not data)
       if (fieldWithPath === 'nodeType') {
         updatedNodeType = value;

@@ -336,9 +336,10 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
             sx={{ mr: 1 }}
           />
           <Chip
-            label={`Session: ${sessionId.substring(0, 8)}...`}
+            label={`Session: ${sessionId}`}
             size="small"
             variant="outlined"
+            sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}
           />
         </Box>
 
