@@ -3,8 +3,12 @@ import MuiAppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import ChatIcon from '@mui/icons-material/Chat';
 import ThemeToggleButton from './ThemeToggleButton';
 import { styled } from '@mui/material/styles';
+import { useNavigate, useLocation } from 'react-router-dom';
 import LanguageSwitcherButton from './LanguageSwtichButton';
 import InlineEditableTitle from './canvas/InlineEditableTitle';
 
@@ -38,6 +42,8 @@ const EasyPathAppBar: React.FC<EasyPathAppBarProps> = ({
 }) => {
   const height = appBarHeight === 'small' ? 64 : 80;
   const showTitle = title !== undefined && onTitleChange !== undefined;
+  const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <MuiAppBar
@@ -58,18 +64,45 @@ const EasyPathAppBar: React.FC<EasyPathAppBarProps> = ({
             </LogoPlaceholder>
           </a>
           {!showTitle && (
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{
-                color: 'text.primary',
-                fontWeight: 600,
-                fontSize: appBarHeight === 'small' ? '1.2rem' : '1.5rem',
-                transition: 'font-size 0.3s ease-in-out',
-              }}
-            >
-              EasyPath
-            </Typography>
+            <>
+              <Typography
+                variant="h6"
+                component="div"
+                sx={{
+                  color: 'text.primary',
+                  fontWeight: 600,
+                  fontSize: appBarHeight === 'small' ? '1.2rem' : '1.5rem',
+                  transition: 'font-size 0.3s ease-in-out',
+                }}
+              >
+                EasyPath
+              </Typography>
+              <Box sx={{ ml: 4, display: 'flex', gap: 1 }}>
+                <Button
+                  color={location.pathname === '/dashboard' || location.pathname === '/' ? 'primary' : 'inherit'}
+                  onClick={() => navigate('/dashboard')}
+                  sx={{ color: 'text.primary' }}
+                >
+                  Flows
+                </Button>
+                <Button
+                  color={location.pathname === '/bots' ? 'primary' : 'inherit'}
+                  startIcon={<SmartToyIcon />}
+                  onClick={() => navigate('/bots')}
+                  sx={{ color: 'text.primary' }}
+                >
+                  Bots
+                </Button>
+                <Button
+                  color={location.pathname === '/sessions' ? 'primary' : 'inherit'}
+                  startIcon={<ChatIcon />}
+                  onClick={() => navigate('/sessions')}
+                  sx={{ color: 'text.primary' }}
+                >
+                  Sessions
+                </Button>
+              </Box>
+            </>
           )}
         </Box>
         {showTitle && (

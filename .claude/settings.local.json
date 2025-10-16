@@ -15,7 +15,10 @@
       "Bash(python -c \"import json; f=open(''apps/engine/tests/fixtures/simple_extraction_flow.json''); data=json.load(f); print(f''✓ Valid JSON\\n✓ Nodes: {len(data[\"\"nodes\"\"])}\\n✓ Connections: {len(data[\"\"connections\"\"])}\\n✓ Extraction nodes: {sum(1 for n in data[\"\"nodes\"\"] if n[\"\"extract_vars\"\"])}'')\")",
       "Bash(python -m pytest tests/unit/test_loop_evaluator.py -v)",
       "Bash(python -c \"import json; from app.models.flow import Flow; f=open(''tests/fixtures/simple_extraction_flow.json''); data=json.load(f); flow=Flow(**data); print(f''✓ Flow validates correctly\\n✓ Nodes: {len(flow.nodes)}\\n✓ Connections: {len(flow.connections)}\\n✓ Nodes with loop_enabled: {sum(1 for n in flow.nodes if n.loop_enabled)}'')\")",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(chmod:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker compose:*)"
     ],
     "deny": [],
     "ask": []

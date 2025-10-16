@@ -1,3 +1,6 @@
+# Platform services only (Backend + PostgreSQL)
+# Usage: docker compose -f docker/docker-compose.yml up
+# Or use the helper script: ./scripts/start-platform.sh
 
 services:
   postgres:
@@ -19,12 +22,12 @@ services:
 
   backend:
     build:
-      context: ./apps/platform/backend
+      context: ../apps/platform/backend
     container_name: easypath_backend
     ports:
       - "8000:8000"
     volumes:
-      - ./apps/platform/backend:/app
+      - ../apps/platform/backend:/app
     depends_on:
       postgres:
         condition: service_healthy

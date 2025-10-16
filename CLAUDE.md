@@ -10,7 +10,7 @@ EasyPath is a chatbot conversation flow platform designed to streamline and auto
 
 ## Architecture
 
-The project consists of three main components:
+The project consists of four main components:
 
 ### 1. Platform Frontend (`apps/platform/frontend`)
 - **Tech:** React + Vite + TypeScript + Material UI + @xyflow/react
@@ -69,23 +69,79 @@ The project consists of three main components:
 - `app/storage/`: Redis session store and flow repository
 - `app/models/flow.py`: Flow schema (Prompt, Node, Connection, Flow, VariableExtraction)
 
+### 4. Messaging Gateway (`apps/messaging-gateway`)
+- **Tech:** Python FastAPI + PostgreSQL + Telegram Bot API
+- **Port:** 8082
+- **Bridges messaging platforms (Telegram, WhatsApp) to EasyPath flows**
+- Receives webhooks from messaging platforms
+- Maps platform users to engine sessions
+- Forwards messages to engine for processing
+- Returns responses back to messaging platforms
+
+**Core workflow:**
+1. Receives webhook from Telegram/WhatsApp (e.g., user sends message)
+2. Maps `platform_user_id` → `easypath_session_id` (creates if new user)
+3. Fetches flow definition from platform database
+4. Forwards message to engine via `POST /chat/message-with-flow`
+5. Receives engine response (assistant reply)
+6. Sends reply back to user via platform API
+7. Stores conversation history in database
+
+**Key components:**
+- `app/services/telegram.py`: Telegram webhook handler and message forwarding
+- `app/services/engine_client.py`: Client for communicating with engine
+- `app/api/webhooks.py`: Webhook endpoints for each platform
+- `app/api/bots.py`: REST API for bot management (CRUD operations)
+- `app/models/bot_config.py`: Database models (BotConfig, PlatformConversation, ConversationMessage)
+
+**Database tables:**
+- `bot_configs`: Bot configurations (platform, token, flow_id, owner_id)
+- `platform_conversations`: Maps platform users to engine sessions
+- `conversation_messages`: Complete message history for debugging/analytics
+
+**Supported platforms:**
+- ✅ **Telegram** (fully implemented with webhooks)
+- 🔄 **WhatsApp** (coming soon via Twilio/Meta Cloud API)
+- 🔄 **SMS** (future)
+
+**Security features:**
+- Encrypted bot tokens (Fernet encryption)
+- HTTPS webhooks (required by Telegram)
+- Per-bot webhook secrets (future)
+
 ## Running the Project
 
-### Full Stack (Docker Compose)
+### Full Development Environment (Recommended)
 ```bash
-# Platform (frontend + backend + postgres)
-docker-compose up --build
+# All services: frontend + backend + engine + messaging-gateway + ngrok + postgres + redis
+docker compose -f docker/docker-compose.dev.yml up --build
 
-# Engine (separate compose file)
-docker-compose -f docker-compose.engine.yml up --build
+# Get ngrok public URL for webhook configuration
+./scripts/get-ngrok-url.sh  # Linux/macOS
+# or
+.\scripts\get-ngrok-url.ps1  # Windows PowerShell
 ```
 
 **Services:**
 - Frontend: http://localhost:5173
 - Platform Backend: http://localhost:8000
 - Engine: http://localhost:8081
+- Messaging Gateway: http://localhost:8082
 - PostgreSQL: port 5432
 - Redis: port 6379
+- ngrok Web Interface: http://localhost:4040
+
+### Individual Services (Docker Compose)
+```bash
+# Platform only (frontend + backend + postgres)
+docker compose -f docker/docker-compose.yml up --build
+
+# Engine only (separate compose file)
+docker compose -f docker/docker-compose.engine.yml up --build
+
+# Messaging Gateway only (includes postgres + engine + redis)
+docker compose -f docker/docker-compose.messaging.yml up --build
+```
 
 ### Frontend Development
 ```bash
@@ -99,7 +155,7 @@ npm run preview  # Preview production build
 ### Platform Backend Development
 ```bash
 cd apps/platform/backend
-docker-compose up --build backend
+docker compose -f docker/docker-compose.yml up --build backend
 # Backend runs via Docker, check README.md for local setup
 ```
 
@@ -150,6 +206,48 @@ pytest -q -k "test_name"
 - **Unit tests:** Isolated domain logic, LLM calls mocked, fast and deterministic
 - **Integration tests:** HTTP API via TestClient, requires Redis, validates component integration
 
+### Messaging Gateway Development
+```bash
+cd apps/messaging-gateway
+
+# Setup virtual environment (Windows PowerShell)
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Setup .env from .env.example
+# Generate encryption key:
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+# Set environment variables
+$env:SECRET_KEY = "your-fernet-key-from-above"
+$env:DATABASE_URL = "postgresql://user:password@localhost:5432/easypath"
+$env:ENGINE_API_URL = "http://localhost:8081"
+$env:WEBHOOK_BASE_URL = "https://your-ngrok-url.ngrok-free.app"
+
+# Run database migration (first time only)
+docker exec -i easypath_postgres psql -U user -d easypath < migrations/001_create_bot_tables.sql
+
+# Start messaging gateway
+uvicorn app.main:app --reload --port 8082
+```
+
+**Quick Telegram Setup (5 minutes):**
+1. Copy `apps/messaging-gateway/.env.example` to `apps/messaging-gateway/.env`
+2. Get bot token from [@BotFather](https://t.me/BotFather) and add to `.env`
+3. Start dev environment: `docker compose -f docker/docker-compose.dev.yml up`
+4. Register bot: `./scripts/register-telegram-bot.sh` (or `.ps1` on Windows)
+5. Send message to your bot on Telegram - flow executes automatically!
+
+**Alternative (command-line):**
+```bash
+./scripts/register-telegram-bot.sh YOUR_BOT_TOKEN 1 user-123 "My Bot"
+```
+
+See `TELEGRAM_QUICKSTART.md` for detailed setup guide.
+
 ## Flow Definition Format
 
 Flows are defined as JSON files following the schema in `apps/engine/app/models/flow.py`:
@@ -174,7 +272,21 @@ See `apps/engine/tests/fixtures/sample_flow.json` and `apps/engine/tests/fixture
 
 ## Environment Variables
 
-### Engine (.env)
+### Root .env (Global Configuration)
+Copy `.env.example` to `.env` and configure:
+
+```bash
+# Engine LLM Providers
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your-deepseek-api-key
+GOOGLE_API_KEY=your-google-api-key
+
+# Platform Backend
+SUPABASE_URL=your-supabase-project-url
+SUPABASE_JWT_SECRET=your-supabase-jwt-secret
+```
+
+### Engine (apps/engine/.env)
 - `LOG_LEVEL`: Logging level (default: INFO)
 - `REDIS_URL`: Redis connection (e.g., redis://localhost:6379/0) - optional, runs stateless if not set
 - `LLM_PROVIDER`: deepseek or gemini (default: deepseek)
@@ -182,6 +294,21 @@ See `apps/engine/tests/fixtures/sample_flow.json` and `apps/engine/tests/fixture
 - `GOOGLE_API_KEY`: Google Gemini API key (when using api mode)
 - `GEMINI_PROVIDER_MODE`: api or vertex (default: api)
 - `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `GOOGLE_GEMINI_MODEL`: For Vertex AI mode
+
+### Messaging Gateway (apps/messaging-gateway/.env)
+Copy `apps/messaging-gateway/.env.example` to `apps/messaging-gateway/.env` and configure:
+
+- `SECRET_KEY`: Fernet key for bot token encryption (generate with: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`)
+- `WEBHOOK_BASE_URL`: Public HTTPS URL for webhooks (your ngrok URL in dev, or production domain)
+- `NGROK_AUTHTOKEN`: ngrok authentication token from https://dashboard.ngrok.com (free account works for development)
+- `DATABASE_URL`: PostgreSQL connection string (default: postgresql://user:password@localhost:5432/easypath)
+- `ENGINE_API_URL`: Engine service URL (default: http://localhost:8081)
+- `TELEGRAM_BOT_TOKEN`: Bot token from @BotFather (for use with register script)
+- `FLOW_ID`: Flow ID to connect to bot (default: 1)
+- `OWNER_ID`: Owner ID for bot (default: user-123)
+- `BOT_NAME`: Display name for bot
+
+**Note:** When using docker-compose.dev.yml, the ngrok and messaging-gateway services automatically load from this `.env` file.
 
 ### Platform Backend (docker-compose.yml)
 - `DATABASE_URL`: PostgreSQL connection string

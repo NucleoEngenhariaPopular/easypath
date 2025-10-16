@@ -83,6 +83,9 @@ async def post_message(payload: ChatRequest):
     reply, step_timings = run_step(flow, session, payload.user_message)
     t_run_step = perf_counter() - t0
 
+    # Accumulate replies from all auto-advanced nodes
+    accumulated_replies = [reply]
+
     # Auto-advance through nodes with skip_user_response enabled
     max_auto_advances = 10  # Safety limit to prevent infinite loops
     auto_advance_count = 0
@@ -94,9 +97,11 @@ async def post_message(payload: ChatRequest):
                 session.current_node_id
             )
             t0 = perf_counter()
-            reply, step_timings = run_step(flow, session, "[AUTO_ADVANCE]")
+            auto_reply, step_timings = run_step(flow, session, "[AUTO_ADVANCE]")
             t_run_step += perf_counter() - t0
             auto_advance_count += 1
+            # Accumulate the reply from the auto-advanced node
+            accumulated_replies.append(auto_reply)
         else:
             break
 
@@ -105,6 +110,9 @@ async def post_message(payload: ChatRequest):
             "Auto-advance limit reached (%d). Stopping to prevent infinite loop.",
             max_auto_advances
         )
+
+    # Concatenate all replies with double newline separator
+    reply = "\n\n".join(accumulated_replies)
 
     t0 = perf_counter()
     await save_session(session)
@@ -180,6 +188,9 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
     reply, step_timings = run_step(flow, session, payload.user_message)
     t_run_step = perf_counter() - t0
 
+    # Accumulate replies from all auto-advanced nodes
+    accumulated_replies = [reply]
+
     # Auto-advance through nodes with skip_user_response enabled
     max_auto_advances = 10  # Safety limit to prevent infinite loops
     auto_advance_count = 0
@@ -191,9 +202,11 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
                 session.current_node_id
             )
             t0 = perf_counter()
-            reply, step_timings = run_step(flow, session, "[AUTO_ADVANCE]")
+            auto_reply, step_timings = run_step(flow, session, "[AUTO_ADVANCE]")
             t_run_step += perf_counter() - t0
             auto_advance_count += 1
+            # Accumulate the reply from the auto-advanced node
+            accumulated_replies.append(auto_reply)
         else:
             break
 
@@ -202,6 +215,9 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
             "Auto-advance limit reached (%d). Stopping to prevent infinite loop.",
             max_auto_advances
         )
+
+    # Concatenate all replies with double newline separator
+    reply = "\n\n".join(accumulated_replies)
 
     t0 = perf_counter()
     await save_session(session)

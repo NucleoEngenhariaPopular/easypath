@@ -1,8 +1,8 @@
 # EasyPath 🤖💬
 
-> **Visual conversation flow builder for intelligent WhatsApp chatbots powered by AI**
+> **Visual conversation flow builder for intelligent chatbots powered by AI**
 
-EasyPath is a comprehensive platform for creating, testing, and deploying AI-powered chatbot conversation flows. Design complex conversational experiences visually, test them in real-time, and deploy them to WhatsApp and other messaging platforms.
+EasyPath is a comprehensive platform for creating, testing, and deploying AI-powered chatbot conversation flows. Design complex conversational experiences visually, test them in real-time, and deploy them to Telegram, WhatsApp, and other messaging platforms.
 
 **Conceptually similar to [bland.ai](https://www.bland.ai/) but focused on text messages rather than voice calls.**
 
@@ -40,7 +40,7 @@ EasyPath is a comprehensive platform for creating, testing, and deploying AI-pow
 
 ## 🏗️ Architecture
 
-EasyPath follows a **microservices architecture** with three main components:
+EasyPath follows a **microservices architecture** with four main components:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -66,9 +66,10 @@ EasyPath follows a **microservices architecture** with three main components:
 │  • Flow persistence                                    │
 │                                                         │
 │  Port: 8000                                            │
-└─────────────────────────────────────────────────────────┘
-
-
+└──────────────────┬──────────────────────────────────────┘
+                   │
+                   │ Flow Definitions
+                   ▼
 ┌─────────────────────────────────────────────────────────┐
 │                     ENGINE                              │
 │                                                         │
@@ -79,7 +80,28 @@ EasyPath follows a **microservices architecture** with three main components:
 │  • WebSocket event streaming                           │
 │                                                         │
 │  Port: 8081                                            │
-└─────────────────────────────────────────────────────────┘
+└──────────────────▲──────────────────────────────────────┘
+                   │
+                   │ Message Forwarding
+                   │
+┌─────────────────────────────────────────────────────────┐
+│                MESSAGING GATEWAY                        │
+│                                                         │
+│  Python FastAPI + PostgreSQL + Telegram Bot API        │
+│  • Telegram/WhatsApp webhooks                          │
+│  • Platform user → Session mapping                     │
+│  • Message routing to Engine                           │
+│  • Bot management API                                  │
+│                                                         │
+│  Port: 8082                                            │
+└──────────────────▲──────────────────────────────────────┘
+                   │
+                   │ HTTPS Webhooks (via ngrok in dev)
+                   │
+           ┌───────┴───────┐
+           │   Telegram    │
+           │   WhatsApp    │
+           └───────────────┘
 ```
 
 ### Component Details
@@ -114,33 +136,69 @@ EasyPath follows a **microservices architecture** with three main components:
   - Multi-model support (DeepSeek, Gemini)
   - Cost and performance tracking (including loop evaluation)
 
+#### **4. Messaging Gateway** (`apps/messaging-gateway`)
+- **Tech:** Python FastAPI, PostgreSQL, Telegram Bot API
+- **Purpose:** Bridge between messaging platforms and EasyPath flows
+- **Features:**
+  - ✅ Telegram webhook integration (fully implemented)
+  - 🔄 WhatsApp support (coming soon)
+  - Bot configuration management (API + encrypted token storage)
+  - Platform user to engine session mapping
+  - Message history persistence
+  - HTTPS webhook support via ngrok (development) or custom domain (production)
+
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Docker and Docker Compose
 - Python 3.11+ (for local development)
 - Node.js 18+ (for frontend development)
+- ngrok account (free) for Telegram/WhatsApp testing (optional)
 
-### Run Everything with Docker
+### Full Development Environment (Recommended)
 
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
 cd easypath
 
-# 2. Start Platform (Frontend + Backend + PostgreSQL)
-docker-compose up --build
+# 2. Setup environment variables
+cp .env.example .env
+cp apps/messaging-gateway/.env.example apps/messaging-gateway/.env
+# Edit .env files and add your API keys:
+# - Root .env: DEEPSEEK_API_KEY or GOOGLE_API_KEY
+# - apps/messaging-gateway/.env: NGROK_AUTHTOKEN, SECRET_KEY, TELEGRAM_BOT_TOKEN
 
-# 3. Start Engine (in a separate terminal)
-docker-compose -f docker-compose.engine.yml up --build
+# 3. Start all services (frontend + backend + engine + messaging-gateway + ngrok)
+docker compose -f docker/docker-compose.dev.yml up --build
+
+# 4. Get your ngrok webhook URL (in a new terminal)
+./scripts/get-ngrok-url.sh  # Linux/macOS
+# or
+.\scripts\get-ngrok-url.ps1  # Windows PowerShell
 ```
 
 **Services will be available at:**
 - Frontend: http://localhost:5173
 - Platform Backend: http://localhost:8000
 - Engine: http://localhost:8081
+- Messaging Gateway: http://localhost:8082
 - PostgreSQL: port 5432
 - Redis: port 6379
+- ngrok Web Interface: http://localhost:4040
+
+### Individual Services
+
+```bash
+# Platform only (Frontend + Backend + PostgreSQL)
+docker compose -f docker/docker-compose.yml up --build
+
+# Engine only (separate compose file)
+docker compose -f docker/docker-compose.engine.yml up --build
+
+# Messaging Gateway only (includes postgres + engine + redis)
+docker compose -f docker/docker-compose.messaging.yml up --build
+```
 
 ### Environment Setup
 
@@ -171,7 +229,7 @@ Environment variables are configured in `docker-compose.yml`:
 
 1. **Start the Platform**
    ```bash
-   docker-compose up
+   docker compose -f docker/docker-compose.yml up
    ```
 
 2. **Access the Dashboard**
@@ -221,6 +279,50 @@ Test mode provides a **live chat interface** with **real-time visualization**:
    - Response times
    - LLM costs in real-time
    - Conversation totals
+
+### Testing Flows with Telegram (5 Minutes)
+
+Once you have your flow ready, test it with real Telegram messages:
+
+#### **1. Setup Development Environment**
+```bash
+# Start all services with ngrok
+docker compose -f docker/docker-compose.dev.yml up
+```
+
+#### **2. Create a Telegram Bot**
+1. Open Telegram and message [@BotFather](https://t.me/BotFather)
+2. Send `/newbot` and follow the instructions
+3. Copy your bot token (looks like `1234567890:ABCdefGHIjklMNOpqrsTUVwxyz`)
+4. Add the token to `apps/messaging-gateway/.env` as `TELEGRAM_BOT_TOKEN`
+
+#### **3. Register Your Bot**
+```bash
+# Using environment variables from .env file
+./scripts/register-telegram-bot.sh  # Linux/macOS
+# or
+.\scripts\register-telegram-bot.ps1  # Windows
+
+# Or pass parameters directly
+./scripts/register-telegram-bot.sh YOUR_BOT_TOKEN 1 user-123 "My Test Bot"
+```
+
+The script automatically configures the webhook with your ngrok URL!
+
+#### **4. Chat with Your Bot**
+1. Find your bot on Telegram (search for the name you gave it)
+2. Send `/start` or any message
+3. Your flow executes in real-time!
+4. Watch the conversation flow through your designed nodes
+
+#### **Tips:**
+- Each Telegram user gets their own session automatically
+- Message history is stored in the database
+- Check logs with: `docker compose -f docker/docker-compose.dev.yml logs messaging-gateway`
+- View ngrok requests at: http://localhost:4040
+- Get ngrok URL: `./scripts/get-ngrok-url.sh` (or `.ps1` on Windows)
+
+**See `TELEGRAM_QUICKSTART.md` for detailed setup guide with screenshots.**
 
 ### Configuring Node Types
 
@@ -338,7 +440,7 @@ npm run lint  # Run ESLint
 ```bash
 cd apps/platform/backend
 # Use Docker Compose for easiest setup
-docker-compose up --build backend
+docker compose -f docker/docker-compose.yml up --build backend
 ```
 
 ### Engine Development
@@ -385,19 +487,52 @@ easypath/
 │   │       │   ├── routes/    # API endpoints
 │   │       │   └── auth/      # Supabase integration
 │   │       └── alembic/       # Database migrations
-│   └── engine/               # Flow execution engine
+│   ├── engine/               # Flow execution engine
+│   │   ├── app/
+│   │   │   ├── core/         # Orchestrator, pathway selector, executor
+│   │   │   ├── llm/          # LLM providers (DeepSeek, Gemini)
+│   │   │   ├── models/       # Flow schema, events
+│   │   │   ├── ws/           # WebSocket manager & emitter
+│   │   │   ├── storage/      # Redis session store
+│   │   │   └── api/routes/   # REST + WebSocket endpoints
+│   │   └── tests/
+│   │       ├── unit/         # Fast, isolated tests
+│   │       └── integration/  # E2E API tests
+│   └── messaging-gateway/    # Messaging platform integration
 │       ├── app/
-│       │   ├── core/         # Orchestrator, pathway selector, executor
-│       │   ├── llm/          # LLM providers (DeepSeek, Gemini)
-│       │   ├── models/       # Flow schema, events
-│       │   ├── ws/           # WebSocket manager & emitter
-│       │   ├── storage/      # Redis session store
-│       │   └── api/routes/   # REST + WebSocket endpoints
-│       └── tests/
-│           ├── unit/         # Fast, isolated tests
-│           └── integration/  # E2E API tests
+│       │   ├── models/       # BotConfig, PlatformConversation, Messages
+│       │   ├── services/     # Telegram, WhatsApp handlers
+│       │   │   ├── telegram.py      # Telegram webhook & API
+│       │   │   └── engine_client.py # Engine communication
+│       │   └── api/
+│       │       ├── webhooks.py  # Platform webhook endpoints
+│       │       └── bots.py      # Bot management CRUD
+│       ├── migrations/       # SQL database migrations
+│       └── README.md         # Messaging gateway documentation
+├── docker/                   # Docker Compose configurations
+│   ├── docker-compose.yml       # Platform only (backend + postgres)
+│   ├── docker-compose.dev.yml   # Full dev environment (recommended)
+│   ├── docker-compose.engine.yml# Engine + Redis only
+│   ├── docker-compose.platform.yml # Platform with frontend
+│   ├── docker-compose.messaging.yml# Messaging Gateway + dependencies
+│   └── ngrok.yml                 # ngrok tunnel configuration
+├── scripts/                  # Helper scripts
+│   ├── get-ngrok-url.sh         # Get ngrok public URL (Linux/macOS)
+│   ├── get-ngrok-url.ps1        # Get ngrok public URL (Windows)
+│   ├── register-telegram-bot.sh # Register Telegram bot (Linux/macOS)
+│   ├── register-telegram-bot.ps1# Register Telegram bot (Windows)
+│   ├── list-flows.sh            # List all available flows (Linux/macOS)
+│   ├── list-flows.ps1           # List all available flows (Windows)
+│   ├── switch-flow.sh           # Switch bot to different flow (Linux/macOS)
+│   ├── switch-flow.ps1          # Switch bot to different flow (Windows)
+│   ├── start-dev.sh             # Start full dev environment (Linux/macOS)
+│   ├── start-platform.sh        # Start platform only (Linux/macOS)
+│   ├── start-telegram.sh        # Start with Telegram (Linux/macOS)
+│   └── start-telegram.ps1       # Start with Telegram (Windows)
 ├── CLAUDE.md                 # AI assistant guidance
-└── docker-compose.yml        # Full stack orchestration
+├── TELEGRAM_QUICKSTART.md    # 5-minute Telegram setup guide
+├── .env.example              # Global environment template
+└── README.md                 # This file
 ```
 
 ## 🔧 API Reference
@@ -431,22 +566,59 @@ ws.onmessage = (event) => {
 
 **Event types:** `session_started`, `node_entered`, `node_exited`, `pathway_selected`, `variable_extracted`, `response_generated`, `assistant_message`, `error`
 
+### Messaging Gateway Endpoints
+
+#### `POST /api/bots`
+Create and register a new bot with automatic webhook configuration.
+
+```bash
+curl -X POST http://localhost:8082/api/bots \
+  -H "Content-Type: application/json" \
+  -d '{
+    "platform": "telegram",
+    "bot_name": "My Bot",
+    "bot_token": "YOUR_BOT_TOKEN",
+    "flow_id": 1,
+    "owner_id": "user-123"
+  }'
+```
+
+#### `GET /api/bots`
+List all bots for an owner.
+
+```bash
+curl http://localhost:8082/api/bots?owner_id=user-123
+```
+
+#### `POST /webhooks/telegram/{bot_id}`
+Telegram webhook endpoint (automatically configured by the gateway).
+
+See `apps/messaging-gateway/README.md` for full API documentation.
+
 See [CLAUDE.md](CLAUDE.md) for detailed API documentation.
 
 ## 🛣️ Roadmap
 
+### ✅ Recently Completed
+- [x] Telegram integration with webhooks
+- [x] Messaging Gateway microservice
+- [x] ngrok integration for local development
+- [x] Bot management API with encrypted token storage
+
 ### In Progress
-- [ ] WhatsApp integration
+- [ ] WhatsApp integration (Twilio/Meta Cloud API)
 - [ ] Conditional node type
 - [ ] API integration nodes
 
 ### Planned
 - [ ] Flow templates library
 - [ ] Advanced debugging tools
-- [ ] Multi-channel support (Telegram, Instagram)
-- [ ] Analytics dashboard
+- [ ] SMS support
+- [ ] Instagram Direct Message integration
+- [ ] Analytics dashboard for conversation metrics
 - [ ] Team collaboration features
 - [ ] Flow versioning and rollback
+- [ ] Multi-language flow support
 
 See issues for detailed roadmap.
 

@@ -1,13 +1,17 @@
 #!/bin/bash
 # Start Platform only (Frontend + Backend + PostgreSQL)
 # Lighter version without Engine and Redis
+# Usage: ./scripts/start-platform.sh
+
+# Change to project root directory
+cd "$(dirname "$0")/.." || exit 1
 
 echo "🚀 Starting EasyPath Platform (Frontend + Backend)..."
 echo ""
 
 # Start platform services
 echo "Starting platform services with Docker Compose..."
-docker-compose -f docker-compose.platform.yml up --build
+docker compose -f docker/docker-compose.platform.yml up --build
 
 echo ""
 echo "✅ Platform started!"

@@ -1,7 +1,8 @@
 version: '3.8'
 
-# Development environment - Frontend + Backend + Database + Engine + Redis
-# Usage: docker-compose -f docker-compose.dev.yml up
+# Development environment - Frontend + Backend + Database + Engine + Redis + Messaging Gateway
+# Usage: docker compose -f docker/docker-compose.dev.yml up
+# Or use the helper script: ./scripts/start-dev.sh
 
 services:
   # PostgreSQL database for Platform Backend
@@ -27,13 +28,13 @@ services:
   # Platform Backend (FastAPI)
   backend:
     build:
-      context: ./apps/platform/backend
+      context: ../apps/platform/backend
       dockerfile: Dockerfile
     container_name: easypath_backend
     ports:
       - "8000:8000"
     volumes:
-      - ./apps/platform/backend:/app
+      - ../apps/platform/backend:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,18 +48,20 @@ services:
   # Platform Frontend (React + Vite)
   frontend:
     build:
-      context: ./apps/platform/frontend
+      context: ../apps/platform/frontend
       dockerfile: Dockerfile.dev
     container_name: easypath_frontend
     ports:
       - "5173:5173"
     volumes:
-      - ./apps/platform/frontend:/app
+      - ../apps/platform/frontend:/app
       - /app/node_modules  # Use container's node_modules
     environment:
       VITE_API_URL: "http://backend:8000"
+      VITE_MESSAGING_GATEWAY_URL: "http://messaging-gateway:8082"
     depends_on:
       - backend
+      - messaging-gateway
     networks:
       - easypath-network
     restart: unless-stopped
@@ -83,13 +86,13 @@ services:
   # Engine (FastAPI) - Optional, comment out if not needed
   engine:
     build:
-      context: ./apps/engine
+      context: ../apps/engine
       dockerfile: Dockerfile.dev
     container_name: easypath_engine
     ports:
       - "8081:8081"
     volumes:
-      - ./apps/engine:/app
+      - ../apps/engine:/app
     depends_on:
       redis:
         condition: service_healthy
@@ -100,7 +103,50 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - PLATFORM_API_URL=http://backend:8000
     env_file:
-      - ./apps/engine/.env
+      - ../apps/engine/.env
+    networks:
+      - easypath-network
+    restart: unless-stopped
+
+  # Messaging Gateway (Telegram/WhatsApp Integration)
+  messaging-gateway:
+    build:
+      context: ../apps/messaging-gateway
+      dockerfile: Dockerfile
+    container_name: easypath_messaging_gateway
+    ports:
+      - "8082:8082"
+    volumes:
+      - ../apps/messaging-gateway:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      engine:
+        condition: service_started
+    env_file:
+      - ../apps/messaging-gateway/.env
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/easypath
+      - ENGINE_API_URL=http://engine:8081
+      - HOST=0.0.0.0
+      - PORT=8082
+    networks:
+      - easypath-network
+    restart: unless-stopped
+
+  # ngrok - Exposes messaging-gateway webhooks with HTTPS (for Telegram)
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: easypath_ngrok
+    command:
+      - "http"
+      - "messaging-gateway:8082"
+    ports:
+      - "4040:4040"  # ngrok web interface
+    depends_on:
+      - messaging-gateway
+    env_file:
+      - ../apps/messaging-gateway/.env
     networks:
       - easypath-network
     restart: unless-stopped

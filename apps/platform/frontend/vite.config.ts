@@ -16,7 +16,20 @@ export default defineConfig({
       port: 5173,
     },
     proxy: {
-      // Proxy API requests to backend
+      // Proxy bot and session API requests to messaging gateway
+      '/api/bots': {
+        target: process.env.VITE_MESSAGING_GATEWAY_URL || 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/api/conversations': {
+        target: process.env.VITE_MESSAGING_GATEWAY_URL || 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/api/sessions': {
+        target: process.env.VITE_MESSAGING_GATEWAY_URL || 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      // Proxy other API requests to platform backend
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:8000',
         changeOrigin: true,

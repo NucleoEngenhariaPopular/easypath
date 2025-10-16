@@ -2,7 +2,7 @@ version: '3.8'
 
 # Platform only (Frontend + Backend + Database)
 # Lighter version for testing just the platform without the engine
-# Usage: docker-compose -f docker-compose.platform.yml up
+# Usage: docker compose -f docker/docker-compose.platform.yml up
 
 services:
   postgres:
@@ -26,13 +26,13 @@ services:
 
   backend:
     build:
-      context: ./apps/platform/backend
+      context: ../apps/platform/backend
       dockerfile: Dockerfile
     container_name: easypath_backend
     ports:
       - "8000:8000"
     volumes:
-      - ./apps/platform/backend:/app
+      - ../apps/platform/backend:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,13 +45,13 @@ services:
 
   frontend:
     build:
-      context: ./apps/platform/frontend
+      context: ../apps/platform/frontend
       dockerfile: Dockerfile.dev
     container_name: easypath_frontend
     ports:
       - "5173:5173"
     volumes:
-      - ./apps/platform/frontend:/app
+      - ../apps/platform/frontend:/app
       - /app/node_modules
     environment:
       VITE_API_URL: "http://backend:8000"

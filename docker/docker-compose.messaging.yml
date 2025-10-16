@@ -1,0 +1,79 @@
+version: '3.8'
+
+# Messaging Gateway with dependencies (Engine + Redis + PostgreSQL)
+# Usage: docker compose -f docker/docker-compose.messaging.yml up --build
+# Or use the helper script: ./scripts/start-telegram.sh
+
+services:
+  messaging-gateway:
+    build:
+      context: ../apps/messaging-gateway
+      dockerfile: Dockerfile
+    container_name: easypath-messaging-gateway
+    ports:
+      - "8082:8082"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/easypath
+      - ENGINE_API_URL=http://engine:8081
+      - HOST=0.0.0.0
+      - PORT=8082
+      - LOG_LEVEL=INFO
+      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-https://yourdomain.com}
+      - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
+    depends_on:
+      - postgres
+      - engine
+    networks:
+      - easypath-network
+    restart: unless-stopped
+
+  # Include existing services from other compose files
+  postgres:
+    image: postgres:15-alpine
+    container_name: easypath-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=easypath
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - easypath-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: easypath-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - easypath-network
+    restart: unless-stopped
+
+  engine:
+    build:
+      context: ../apps/engine
+      dockerfile: Dockerfile
+    container_name: easypath-engine
+    ports:
+      - "8081:8081"
+    environment:
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis:6379/0
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    depends_on:
+      - redis
+    networks:
+      - easypath-network
+    restart: unless-stopped
+
+networks:
+  easypath-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

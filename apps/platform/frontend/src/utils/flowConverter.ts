@@ -214,3 +214,77 @@ export function isCanvasFormat(data: any): data is CanvasFlow {
     data.globalConfig !== undefined
   );
 }
+
+/**
+ * Convert canvas flow format to engine format
+ * This is used when sending flows to the engine for execution
+ */
+export function convertCanvasToEngine(canvasFlow: CanvasFlow): EngineFlow {
+  // Find the start node
+  const startNode = canvasFlow.nodes.find(n => n.data.isStart);
+  const firstNodeId = startNode?.id || (canvasFlow.nodes.length > 0 ? canvasFlow.nodes[0].id : '');
+
+  // Convert nodes
+  const engineNodes: EngineNode[] = canvasFlow.nodes.map(node => {
+    const data = node.data;
+
+    // Convert extract_vars format
+    const extractVars: EngineVariableExtraction[] = (data.extractVars || []).map(v => ({
+      name: v.name,
+      description: v.description,
+      required: v.required,
+      var_type: v.varType,
+    }));
+
+    // Determine if it's an end node based on type or data
+    const isEnd = node.type === 'end' || data.name === 'End';
+
+    return {
+      id: node.id,
+      node_type: node.type || 'normal',
+      prompt: {
+        context: data.prompt?.context || '',
+        objective: data.prompt?.objective || '',
+        notes: data.prompt?.notes || '',
+        examples: data.prompt?.examples || '',
+        custom_fields: data.prompt?.custom_fields || {},
+      },
+      is_start: data.isStart || false,
+      is_end: isEnd,
+      use_llm: node.type !== 'start' && node.type !== 'end', // Start/End nodes don't use LLM
+      is_global: data.isGlobal || false,
+      node_description: data.nodeDescription || '',
+      auto_return_to_previous: data.autoReturnToPrevious || false,
+      extract_vars: extractVars,
+      temperature: data.modelOptions?.temperature || 0.2,
+      skip_user_response: data.modelOptions?.skipUserResponse || false,
+      loop_enabled: data.loopEnabled || false,
+      overrides_global_pathway: false, // Not used in current canvas
+      loop_condition: data.condition || '',
+    };
+  });
+
+  // Convert edges to connections
+  const engineConnections: EngineConnection[] = canvasFlow.edges.map(edge => ({
+    id: edge.id,
+    label: edge.label || '',
+    description: edge.data?.description || '',
+    else_option: edge.data?.else_option || false,
+    source: edge.source,
+    target: edge.target,
+  }));
+
+  // Convert global config
+  const engineFlow: EngineFlow = {
+    first_node_id: firstNodeId,
+    nodes: engineNodes,
+    connections: engineConnections,
+    global_objective: canvasFlow.globalConfig?.roleAndObjective || '',
+    global_tone: canvasFlow.globalConfig?.toneAndStyle || '',
+    global_language: canvasFlow.globalConfig?.languageAndFormatRules || '',
+    global_behaviour: canvasFlow.globalConfig?.behaviorAndFallbacks || '',
+    global_values: canvasFlow.globalConfig?.placeholdersAndVariables || '',
+  };
+
+  return engineFlow;
+}

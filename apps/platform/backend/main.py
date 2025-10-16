@@ -8,15 +8,12 @@ import os
 import logging
 import time
 from dotenv import load_dotenv
+from app.core.logging_config import setup_logging
 
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+# Configure logging with file rotation
+setup_logging(log_level=os.getenv("LOG_LEVEL", "INFO"), log_dir="logs")
 logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
