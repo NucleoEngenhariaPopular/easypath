@@ -18,7 +18,9 @@
       "Bash(python:*)",
       "Bash(chmod:*)",
       "Bash(docker exec:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker ps:*)"
     ],
     "deny": [],
     "ask": []
