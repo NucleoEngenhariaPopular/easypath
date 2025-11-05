@@ -254,20 +254,20 @@ const SessionsPage: FC = () => {
         setLoading(true);
       }
 
-      try {
-        const response = await fetch("/api/sessions?limit=100");
-        if (response.ok) {
-          const data = await response.json();
-          setSessions(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch sessions:", error);
-      } finally {
+    try {
+      const response = await fetch("/api/sessions?limit=100");
+      if (response.ok) {
+        const data = await response.json();
+        setSessions(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch sessions:", error);
+    } finally {
         if (options?.preserveContent) {
           setRefreshing(false);
         } else {
-          setLoading(false);
-        }
+      setLoading(false);
+    }
       }
     },
     [],
@@ -527,13 +527,13 @@ const SessionsPage: FC = () => {
           sx={{ mb: 3 }}
         >
           <Box>
-            <Typography
-              variant="h4"
-              component="h1"
-              sx={{ fontWeight: 700, color: "text.primary" }}
-            >
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ fontWeight: 700, color: "text.primary" }}
+          >
               {t("sessionsPage.title", { defaultValue: "Active Sessions" })}
-            </Typography>
+          </Typography>
             <Typography variant="body2" color="text.secondary">
               {t("sessionsPage.subtitle", {
                 defaultValue:
@@ -827,8 +827,8 @@ const SessionsPage: FC = () => {
                     : "?";
 
                   return (
-                    <TableRow key={session.id} hover>
-                      <TableCell>
+                  <TableRow key={session.id} hover>
+                    <TableCell>
                         <Stack direction="row" spacing={2} alignItems="center">
                           <Avatar
                             sx={{
@@ -843,93 +843,93 @@ const SessionsPage: FC = () => {
                             {avatarLabel}
                           </Avatar>
                           <Box>
-                            <Typography variant="body2" fontWeight={600}>
+                      <Typography variant="body2" fontWeight={600}>
                               {displayName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              ID: {session.platform_user_id}
-                            </Typography>
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        ID: {session.platform_user_id}
+                      </Typography>
                           </Box>
                         </Stack>
-                      </TableCell>
-                      <TableCell>
+                    </TableCell>
+                    <TableCell>
                         <Typography variant="body2" fontWeight={500}>
-                          {session.bot_name}
-                        </Typography>
+                        {session.bot_name}
+                      </Typography>
                         <Typography variant="caption" color="text.secondary">
                           #{session.bot_config_id}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={
-                            session.platform.charAt(0).toUpperCase() +
-                            session.platform.slice(1)
-                          }
-                          size="small"
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={
+                          session.platform.charAt(0).toUpperCase() +
+                          session.platform.slice(1)
+                        }
+                        size="small"
                           variant="outlined"
-                          color={
-                            session.platform === "telegram"
-                              ? "primary"
+                        color={
+                          session.platform === "telegram"
+                            ? "primary"
                               : "secondary"
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={session.status}
-                          size="small"
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={session.status}
+                        size="small"
                           color={getStatusColor(session.status)}
-                        />
-                      </TableCell>
-                      <TableCell>
+                      />
+                    </TableCell>
+                    <TableCell>
                         <Stack direction="row" spacing={1} alignItems="center">
                           <ChatBubbleOutlineIcon fontSize="small" color="action" />
-                          <Typography variant="body2">
-                            {session.message_count}
-                          </Typography>
+                      <Typography variant="body2">
+                        {session.message_count}
+                      </Typography>
                         </Stack>
-                      </TableCell>
-                      <TableCell>
+                    </TableCell>
+                    <TableCell>
                         <Tooltip title={formatDate(session.last_message_at)}>
                           <Stack direction="row" spacing={1} alignItems="center">
                             <HistoryIcon fontSize="small" color="action" />
-                            <Typography variant="body2">
+                      <Typography variant="body2">
                               {formatRelativeTime(session.last_message_at)}
-                            </Typography>
+                      </Typography>
                           </Stack>
                         </Tooltip>
-                      </TableCell>
-                      <TableCell align="right">
+                    </TableCell>
+                    <TableCell align="right">
                         <Tooltip
                           title={t("sessionsPage.actions.view", {
                             defaultValue: "View details",
                           })}
                         >
-                          <IconButton
-                            size="small"
-                            onClick={() => handleViewDetails(session)}
-                          >
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleViewDetails(session)}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                         <Tooltip
                           title={t("sessionsPage.actions.reset", {
                             defaultValue: "Reset session",
                           })}
                         >
                           <span>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleResetSession(session.id)}
-                              disabled={session.status === "closed"}
-                            >
-                              <RestartAltIcon fontSize="small" />
-                            </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleResetSession(session.id)}
+                          disabled={session.status === "closed"}
+                        >
+                          <RestartAltIcon fontSize="small" />
+                        </IconButton>
                           </span>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
                   );
                 })}
               </TableBody>
@@ -1026,15 +1026,15 @@ const SessionsPage: FC = () => {
                         .charAt(0)
                         .toUpperCase()}
                     </Avatar>
-                    <Box>
+            <Box>
                       <Typography variant="subtitle1" fontWeight={600}>
-                        {selectedSession.platform_user_name ||
-                          selectedSession.platform_user_id}
-                      </Typography>
+                    {selectedSession.platform_user_name ||
+                      selectedSession.platform_user_id}
+                  </Typography>
                       <Typography variant="body2" color="text.secondary">
                         ID: {selectedSession.platform_user_id}
                       </Typography>
-                    </Box>
+                </Box>
                   </Stack>
                   <Stack direction="row" spacing={1} flexWrap="wrap">
                     <Chip
@@ -1078,11 +1078,11 @@ const SessionsPage: FC = () => {
                       {t("sessionsPage.dialog.createdAt", {
                         defaultValue: "Created",
                       })}
-                    </Typography>
+                  </Typography>
                     <Typography variant="body2">
                       {formatDate(selectedSession.created_at)}
-                    </Typography>
-                  </Box>
+                  </Typography>
+                </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
                       {t("sessionsPage.dialog.lastMessage", {
@@ -1092,20 +1092,20 @@ const SessionsPage: FC = () => {
                     <Typography variant="body2">
                       {formatDate(selectedSession.last_message_at)}
                     </Typography>
-                  </Box>
+              </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
                       {t("sessionsPage.dialog.sessionIdLabel", {
                         defaultValue: "Session ID",
                       })}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontFamily: "monospace", fontSize: "0.85rem" }}
-                    >
-                      {selectedSession.session_id}
-                    </Typography>
-                  </Box>
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ fontFamily: "monospace", fontSize: "0.85rem" }}
+                >
+                  {selectedSession.session_id}
+                </Typography>
+              </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
                       {t("sessionsPage.dialog.messagesCount", {
@@ -1127,11 +1127,11 @@ const SessionsPage: FC = () => {
                     alignItems={{ xs: "flex-start", sm: "center" }}
                     spacing={2}
                   >
-                    <Typography variant="subtitle2" color="text.secondary">
+                      <Typography variant="subtitle2" color="text.secondary">
                       {t("sessionsPage.dialog.liveExecution", {
                         defaultValue: "Live Execution State",
                       })}
-                    </Typography>
+                      </Typography>
                     <Chip
                       label={
                         liveExecution.is_active
@@ -1157,29 +1157,29 @@ const SessionsPage: FC = () => {
                       },
                     }}
                   >
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">
                         {t("sessionsPage.dialog.currentNode", {
                           defaultValue: "Current node",
                         })}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontFamily: "monospace" }}
-                      >
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontFamily: "monospace" }}
+                          >
                         {liveExecution.current_node_id || "N/A"}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">
                         {t("sessionsPage.dialog.messagesProcessed", {
                           defaultValue: "Messages processed",
                         })}
-                      </Typography>
-                      <Typography variant="body2">
+                          </Typography>
+                          <Typography variant="body2">
                         {liveExecution.message_history?.length ?? 0}
-                      </Typography>
-                    </Box>
+                          </Typography>
+                        </Box>
                     <Box>
                       <Typography variant="caption" color="text.secondary">
                         {t("sessionsPage.dialog.isActive", {
@@ -1191,23 +1191,23 @@ const SessionsPage: FC = () => {
                           ? t("sessionsPage.dialog.yes", { defaultValue: "Yes" })
                           : t("sessionsPage.dialog.no", { defaultValue: "No" })}
                       </Typography>
-                    </Box>
+                      </Box>
                   </Box>
 
                   {liveExecution.variables &&
                     Object.keys(liveExecution.variables).length > 0 && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
+                          <Box sx={{ mt: 2 }}>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
                           sx={{ display: "block", mb: 1 }}
-                        >
+                            >
                           {t("sessionsPage.dialog.extractedVariables", {
                             defaultValue: "Extracted variables",
                           })}
-                        </Typography>
-                        <Box
-                          sx={{
+                            </Typography>
+                            <Box
+                              sx={{
                             display: "grid",
                             gap: 1.5,
                             gridTemplateColumns: {
@@ -1215,8 +1215,8 @@ const SessionsPage: FC = () => {
                               sm: "repeat(2, minmax(0, 1fr))",
                               md: "repeat(3, minmax(0, 1fr))",
                             },
-                          }}
-                        >
+                              }}
+                            >
                           {Object.entries(liveExecution.variables).map(
                             ([key, value]) => (
                               <Paper
@@ -1224,28 +1224,28 @@ const SessionsPage: FC = () => {
                                 variant="outlined"
                                 sx={{ p: 1.5, bgcolor: "background.paper" }}
                               >
-                                <Typography
-                                  variant="caption"
+                                  <Typography
+                                    variant="caption"
                                   color="text.secondary"
-                                >
+                                  >
                                   {key}
                                 </Typography>
-                                <Typography
+                                  <Typography
                                   variant="body2"
                                   sx={{
                                     fontFamily: "monospace",
                                     whiteSpace: "pre-wrap",
                                     wordBreak: "break-word",
                                   }}
-                                >
-                                  {String(value)}
-                                </Typography>
+                                  >
+                                    {String(value)}
+                                  </Typography>
                               </Paper>
                             ),
                           )}
-                        </Box>
-                      </Box>
-                    )}
+                            </Box>
+                          </Box>
+                        )}
                 </Paper>
               )}
 
@@ -1267,24 +1267,24 @@ const SessionsPage: FC = () => {
                     label={`${t("sessionsPage.tabs.events", {
                       defaultValue: "Flow Events",
                     })} (${liveEvents.length})`}
-                  />
+                    />
                 </Tabs>
                 <TabPanel value="conversation" current={detailTab}>
                   <Paper
                     variant="outlined"
-                    sx={{
+                  sx={{
                       maxHeight: 420,
-                      overflow: "auto",
-                      p: 2,
+                    overflow: "auto",
+                    p: 2,
                       bgcolor: "background.paper",
-                    }}
-                  >
+                  }}
+                >
                     {combinedMessages.length === 0 ? (
                       <Typography variant="body2" color="text.secondary">
                         {t("sessionsPage.dialog.noMessages", {
                           defaultValue: "No messages yet for this session.",
                         })}
-                      </Typography>
+                        </Typography>
                     ) : (
                       <Stack
                         spacing={2}
@@ -1302,35 +1302,35 @@ const SessionsPage: FC = () => {
                               spacing={1}
                               alignItems="center"
                               sx={{ mb: 0.5, flexWrap: "wrap" }}
-                            >
-                              <Chip
+                      >
+                        <Chip
                                 label={message.role}
-                                size="small"
+                          size="small"
                                 color={
                                   message.role === "user" ? "primary" : "secondary"
                                 }
-                                sx={{ height: 20, fontSize: "0.7rem" }}
-                              />
+                          sx={{ height: 20, fontSize: "0.7rem" }}
+                        />
                               {message.isLive && (
-                                <Chip
+                        <Chip
                                   label={t("sessionsPage.dialog.liveBadge", {
                                     defaultValue: "LIVE",
                                   })}
-                                  size="small"
-                                  color="success"
-                                  sx={{ height: 18, fontSize: "0.65rem" }}
-                                />
+                          size="small"
+                          color="success"
+                          sx={{ height: 18, fontSize: "0.65rem" }}
+                        />
                               )}
-                              <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary">
                                 {formatDate(message.timestamp)}
                               </Typography>
                             </Stack>
                             <Typography variant="body2">
                               {message.content}
-                            </Typography>
-                          </Box>
-                        ))}
-                        <div ref={messagesEndRef} />
+                        </Typography>
+                    </Box>
+                  ))}
+                  <div ref={messagesEndRef} />
                       </Stack>
                     )}
                   </Paper>
@@ -1338,11 +1338,11 @@ const SessionsPage: FC = () => {
                 <TabPanel value="events" current={detailTab}>
                   <Paper
                     variant="outlined"
-                    sx={{
+                              sx={{
                       maxHeight: 420,
                       overflow: "auto",
                       p: 2,
-                      bgcolor: "background.paper",
+                                bgcolor: "background.paper",
                     }}
                   >
                     {reversedLiveEvents.length === 0 ? (
@@ -1364,55 +1364,55 @@ const SessionsPage: FC = () => {
                               spacing={1}
                               alignItems="center"
                               sx={{ mb: 0.5, flexWrap: "wrap" }}
-                            >
-                              <Chip
-                                label={event.event_type}
-                                size="small"
+                              >
+                                <Chip
+                                  label={event.event_type}
+                                  size="small"
                                 color={getEventChipColor(event.event_type)}
-                                sx={{ height: 18, fontSize: "0.65rem" }}
-                              />
+                                  sx={{ height: 18, fontSize: "0.65rem" }}
+                                />
                               <Typography variant="caption" color="text.secondary">
                                 {formatDate(event.timestamp)}
-                              </Typography>
+                                </Typography>
                             </Stack>
 
-                            {event.node_id && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  fontFamily: "monospace",
+                              {event.node_id && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontFamily: "monospace",
                                   display: "block",
-                                }}
-                              >
-                                Node: {event.node_id}
-                              </Typography>
-                            )}
+                                  }}
+                                >
+                                  Node: {event.node_id}
+                                </Typography>
+                              )}
 
-                            {event.reasoning && (
-                              <Typography
+                              {event.reasoning && (
+                                <Typography
                                 variant="body2"
-                                color="text.secondary"
-                                sx={{ mt: 0.5 }}
-                              >
-                                {event.reasoning}
-                              </Typography>
-                            )}
+                                  color="text.secondary"
+                                  sx={{ mt: 0.5 }}
+                                >
+                                  {event.reasoning}
+                                </Typography>
+                              )}
 
-                            {event.variable_name && (
-                              <Typography
+                              {event.variable_name && (
+                                <Typography
                                 variant="body2"
                                 sx={{ mt: 0.5, fontFamily: "monospace" }}
-                              >
+                                >
                                 {event.variable_name}: {String(event.variable_value)}
-                              </Typography>
-                            )}
+                                </Typography>
+                              )}
                           </Paper>
-                        ))}
+                          ))}
                       </Stack>
-                    )}
+              )}
                   </Paper>
                 </TabPanel>
-              </Box>
+            </Box>
             </Stack>
           )}
         </DialogContent>

@@ -12,7 +12,7 @@ from typing import Tuple, Dict, Any
 logger = logging.getLogger(__name__)
 
 
-def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, Dict[str, float]]:
+def run_step(flow: Flow, session: ChatSession, user_message: str, emit_events: bool = True) -> Tuple[str, Dict[str, float]]:
     """
     Execute one step of the conversation flow.
 
@@ -20,6 +20,8 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
         flow: The conversation flow
         session: Current chat session
         user_message: User's input message
+        emit_events: Whether to emit WebSocket events (default: True). Set to False during auto-advance
+                     to prevent duplicate events.
 
     Returns:
         Tuple of (assistant_reply, step_timings)
@@ -49,8 +51,9 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             session.add_user_message(user_message)
             logger.debug("User message added to session history")
 
-            # Emit WebSocket event
-            EventEmitter.emit_user_message(session.session_id, user_message, session.current_node_id)
+            # Emit WebSocket event (only if emit_events is True)
+            if emit_events:
+                EventEmitter.emit_user_message(session.session_id, user_message, session.current_node_id)
         else:
             logger.debug("Skipping [AUTO_ADVANCE] marker from session history")
     except Exception as e:
@@ -83,14 +86,15 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             session.set_variable(name, value)
             logger.debug("Session variable set: %s = %s", name, value[:50] if len(value) > 50 else value)
 
-            # Emit WebSocket event for each extracted variable
-            EventEmitter.emit_variable_extracted(
-                session.session_id,
-                current_node.id,
-                name,
-                value,
-                session.extracted_variables
-            )
+            # Emit WebSocket event for each extracted variable (only if emit_events is True)
+            if emit_events:
+                EventEmitter.emit_variable_extracted(
+                    session.session_id,
+                    current_node.id,
+                    name,
+                    value,
+                    session.extracted_variables
+                )
 
         t_extract = perf_counter() - t_extract
         logger.info("Variable extraction completed: %.3fs, extracted: %s", t_extract, list(extracted.keys()))
@@ -106,8 +110,9 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             assistant_reply = f"Preciso de mais algumas informações. Você poderia me informar: {', '.join([var.description for var in missing_vars])}?"
             session.add_assistant_message(assistant_reply)
 
-            # Emit WebSocket event for assistant message
-            EventEmitter.emit_assistant_message(session.session_id, assistant_reply, session.current_node_id)
+            # Emit WebSocket event for assistant message (only if emit_events is True)
+            if emit_events:
+                EventEmitter.emit_assistant_message(session.session_id, assistant_reply, session.current_node_id)
 
             t_total = perf_counter() - t0
             step_timings = {
@@ -132,33 +137,34 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
                 }
             }
 
-            # Emit decision step event for variable extraction loop
-            try:
-                EventEmitter.emit_decision_step(
-                    session_id=session.session_id,
-                    step_name="Variable Extraction Loop",
-                    node_id=current_node.id,
-                    node_name=current_node.prompt.objective if current_node.prompt else current_node.id,
-                    node_prompt={
-                        "context": current_node.prompt.context if current_node.prompt else "",
-                        "objective": current_node.prompt.objective if current_node.prompt else "",
-                        "notes": current_node.prompt.notes if current_node.prompt else "",
-                        "examples": current_node.prompt.examples if current_node.prompt else ""
-                    },
-                    previous_node_id=None,  # Staying on same node
-                    available_pathways=[],  # No pathways when looping
-                    chosen_pathway=None,  # Not choosing a pathway
-                    llm_reasoning=f"Staying on node to collect required variables: {', '.join([v.name for v in missing_vars])}",
-                    variables_extracted=session.extracted_variables,
-                    variables_status={var.name: var.name in session.extracted_variables for var in current_node.extract_vars},
-                    assistant_response=assistant_reply,
-                    timing_ms=round(t_extract * 1000, 1),
-                    tokens_used=0,
-                    cost_usd=0.0,
-                    model_name="none"
-                )
-            except Exception as e:
-                logger.warning("Failed to emit decision step event for variable extraction: %s", e)
+            # Emit decision step event for variable extraction loop (only if emit_events is True)
+            if emit_events:
+                try:
+                    EventEmitter.emit_decision_step(
+                        session_id=session.session_id,
+                        step_name="Variable Extraction Loop",
+                        node_id=current_node.id,
+                        node_name=current_node.prompt.objective if current_node.prompt else current_node.id,
+                        node_prompt={
+                            "context": current_node.prompt.context if current_node.prompt else "",
+                            "objective": current_node.prompt.objective if current_node.prompt else "",
+                            "notes": current_node.prompt.notes if current_node.prompt else "",
+                            "examples": current_node.prompt.examples if current_node.prompt else ""
+                        },
+                        previous_node_id=None,  # Staying on same node
+                        available_pathways=[],  # No pathways when looping
+                        chosen_pathway=None,  # Not choosing a pathway
+                        llm_reasoning=f"Staying on node to collect required variables: {', '.join([v.name for v in missing_vars])}",
+                        variables_extracted=session.extracted_variables,
+                        variables_status={var.name: var.name in session.extracted_variables for var in current_node.extract_vars},
+                        assistant_response=assistant_reply,
+                        timing_ms=round(t_extract * 1000, 1),
+                        tokens_used=0,
+                        cost_usd=0.0,
+                        model_name="none"
+                    )
+                except Exception as e:
+                    logger.warning("Failed to emit decision step event for variable extraction: %s", e)
 
             logger.info("Staying on node %s for variable extraction", session.current_node_id)
             logger.info("RUN_STEP COMPLETED (extraction loop)")
@@ -200,13 +206,14 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
                 t_exec = perf_counter() - t_exec
                 logger.info("Response generated for loop (took %.3fs): %s", t_exec, assistant_reply[:100])
 
-                # Emit WebSocket event for response generation
-                EventEmitter.emit_response_generated(
-                    session.session_id,
-                    current_node.id,
-                    assistant_reply,
-                    exec_llm_info.get("total_tokens")
-                )
+                # Emit WebSocket event for response generation (only if emit_events is True)
+                if emit_events:
+                    EventEmitter.emit_response_generated(
+                        session.session_id,
+                        current_node.id,
+                        assistant_reply,
+                        exec_llm_info.get("total_tokens")
+                    )
             except Exception as e:
                 logger.error("Failed to generate response for loop: %s", e, exc_info=True)
                 t_exec = perf_counter() - t_exec
@@ -215,7 +222,9 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
             # Add assistant message to session
             try:
                 session.add_assistant_message(assistant_reply)
-                EventEmitter.emit_assistant_message(session.session_id, assistant_reply, current_node.id)
+                # Emit WebSocket event for assistant message (only if emit_events is True)
+                if emit_events:
+                    EventEmitter.emit_assistant_message(session.session_id, assistant_reply, current_node.id)
             except Exception as e:
                 logger.error("Failed to add assistant message to session: %s", e, exc_info=True)
 
@@ -269,32 +278,33 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
                 current_node.id,
             )
 
-            # Emit decision step event for explicit loop
-            try:
-                EventEmitter.emit_decision_step(
-                    session_id=session.session_id,
-                    step_name="Explicit Loop Condition",
-                    node_id=current_node.id,
-                    node_name=current_node.prompt.objective if current_node.prompt else current_node.id,
-                    node_prompt={
-                        "context": current_node.prompt.context if current_node.prompt else "",
-                        "objective": current_node.prompt.objective if current_node.prompt else "",
-                        "notes": current_node.prompt.notes if current_node.prompt else "",
-                        "examples": current_node.prompt.examples if current_node.prompt else ""
-                    },
-                    previous_node_id=None,  # Staying on same node
-                    available_pathways=[],  # No pathways when looping
-                    chosen_pathway=None,  # Not choosing a pathway
-                    llm_reasoning=loop_llm_info.get("reasoning") or f"Loop condition met: {current_node.loop_condition}",
-                    variables_extracted=session.extracted_variables if session.extracted_variables else None,
-                    assistant_response=assistant_reply,
-                    timing_ms=round(t_loop_eval * 1000, 1),
-                    tokens_used=loop_llm_info.get("total_tokens", 0) + exec_llm_info.get("total_tokens", 0),
-                    cost_usd=loop_llm_info.get("estimated_cost_usd", 0.0) + exec_llm_info.get("estimated_cost_usd", 0.0),
-                    model_name=loop_llm_info.get("model_name")
-                )
-            except Exception as e:
-                logger.warning("Failed to emit decision step event for explicit loop: %s", e)
+            # Emit decision step event for explicit loop (only if emit_events is True)
+            if emit_events:
+                try:
+                    EventEmitter.emit_decision_step(
+                        session_id=session.session_id,
+                        step_name="Explicit Loop Condition",
+                        node_id=current_node.id,
+                        node_name=current_node.prompt.objective if current_node.prompt else current_node.id,
+                        node_prompt={
+                            "context": current_node.prompt.context if current_node.prompt else "",
+                            "objective": current_node.prompt.objective if current_node.prompt else "",
+                            "notes": current_node.prompt.notes if current_node.prompt else "",
+                            "examples": current_node.prompt.examples if current_node.prompt else ""
+                        },
+                        previous_node_id=None,  # Staying on same node
+                        available_pathways=[],  # No pathways when looping
+                        chosen_pathway=None,  # Not choosing a pathway
+                        llm_reasoning=loop_llm_info.get("reasoning") or f"Loop condition met: {current_node.loop_condition}",
+                        variables_extracted=session.extracted_variables if session.extracted_variables else None,
+                        assistant_response=assistant_reply,
+                        timing_ms=round(t_loop_eval * 1000, 1),
+                        tokens_used=loop_llm_info.get("total_tokens", 0) + exec_llm_info.get("total_tokens", 0),
+                        cost_usd=loop_llm_info.get("estimated_cost_usd", 0.0) + exec_llm_info.get("estimated_cost_usd", 0.0),
+                        model_name=loop_llm_info.get("model_name")
+                    )
+                except Exception as e:
+                    logger.warning("Failed to emit decision step event for explicit loop: %s", e)
 
             logger.info("RUN_STEP COMPLETED (explicit loop)")
             logger.info("=" * 80)
@@ -314,22 +324,26 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
         logger.info("Next node selected: %s (took %.3fs)", next_node_id, t_choose)
         logger.debug("Choose next LLM info: %s", choose_llm_info)
 
-        # Emit WebSocket events for node transition
-        EventEmitter.emit_node_exited(session.session_id, old_node_id, flow.get_node_by_id(old_node_id).node_type)
+        # Emit WebSocket events for node transition (only if emit_events is True)
+        if emit_events:
+            EventEmitter.emit_node_exited(session.session_id, old_node_id, flow.get_node_by_id(old_node_id).node_type)
 
-        # Find connection info if available
-        connection = flow.get_connection(old_node_id, next_node_id)
-        EventEmitter.emit_pathway_selected(
-            session.session_id,
-            old_node_id,
-            next_node_id,
-            connection.id if connection else None,
-            connection.label if connection else None,
-            choose_llm_info.get("reasoning"),
-            choose_llm_info.get("confidence_score"),
-            choose_llm_info.get("available_pathways"),
-            choose_llm_info.get("llm_response")
-        )
+            # Find connection info if available
+            connection = flow.get_connection(old_node_id, next_node_id)
+            EventEmitter.emit_pathway_selected(
+                session.session_id,
+                old_node_id,
+                next_node_id,
+                connection.id if connection else None,
+                connection.label if connection else None,
+                choose_llm_info.get("reasoning"),
+                choose_llm_info.get("confidence_score"),
+                choose_llm_info.get("available_pathways"),
+                choose_llm_info.get("llm_response")
+            )
+        else:
+            # Still need connection info even if not emitting events
+            connection = flow.get_connection(old_node_id, next_node_id)
     except Exception as e:
         logger.error("Failed to choose next node: %s", e, exc_info=True)
         t_choose = perf_counter() - t_choose
@@ -343,14 +357,17 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
     session.current_node_id = next_node_id
     logger.debug("Session current_node_id updated to: %s", next_node_id)
 
-    # Emit node entered event
+    # Get next node info
     next_node = flow.get_node_by_id(next_node_id)
-    EventEmitter.emit_node_entered(
-        session.session_id,
-        next_node_id,
-        next_node.node_type,
-        next_node.prompt.objective if next_node.prompt else None
-    )
+
+    # Emit node entered event (only if emit_events is True)
+    if emit_events:
+        EventEmitter.emit_node_entered(
+            session.session_id,
+            next_node_id,
+            next_node.node_type,
+            next_node.prompt.objective if next_node.prompt else None
+        )
 
     # Generate response for the new node
     logger.info("Generating response for node: %s", next_node_id)
@@ -362,13 +379,14 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
         logger.info("Response generated (took %.3fs): %s", t_exec, assistant_reply[:100])
         logger.debug("Generate response LLM info: %s", exec_llm_info)
 
-        # Emit WebSocket event for response generation
-        EventEmitter.emit_response_generated(
-            session.session_id,
-            next_node_id,
-            assistant_reply,
-            exec_llm_info.get("total_tokens")
-        )
+        # Emit WebSocket event for response generation (only if emit_events is True)
+        if emit_events:
+            EventEmitter.emit_response_generated(
+                session.session_id,
+                next_node_id,
+                assistant_reply,
+                exec_llm_info.get("total_tokens")
+            )
     except Exception as e:
         logger.error("Failed to generate response: %s", e, exc_info=True)
         t_exec = perf_counter() - t_exec
@@ -379,42 +397,44 @@ def run_step(flow: Flow, session: ChatSession, user_message: str) -> Tuple[str, 
         session.add_assistant_message(assistant_reply)
         logger.debug("Assistant message added to session history")
 
-        # Emit WebSocket event for assistant message
-        EventEmitter.emit_assistant_message(session.session_id, assistant_reply, next_node_id)
+        # Emit WebSocket event for assistant message (only if emit_events is True)
+        if emit_events:
+            EventEmitter.emit_assistant_message(session.session_id, assistant_reply, next_node_id)
     except Exception as e:
         logger.error("Failed to add assistant message to session: %s", e, exc_info=True)
         # Continue anyway since we have the response
 
-    # Emit comprehensive decision step event
-    try:
-        old_node = flow.get_node_by_id(old_node_id)
-        EventEmitter.emit_decision_step(
-            session_id=session.session_id,
-            step_name="Complete Decision",
-            node_id=next_node_id,
-            node_name=next_node.prompt.objective if next_node.prompt else next_node_id,
-            node_prompt={
-                "context": next_node.prompt.context if next_node.prompt else "",
-                "objective": next_node.prompt.objective if next_node.prompt else "",
-                "notes": next_node.prompt.notes if next_node.prompt else "",
-                "examples": next_node.prompt.examples if next_node.prompt else ""
-            },
-            previous_node_id=old_node_id,
-            previous_node_name=old_node.prompt.objective if old_node.prompt else old_node_id,
-            available_pathways=choose_llm_info.get("available_pathways"),
-            chosen_pathway=connection.label if connection else None,
-            pathway_confidence=choose_llm_info.get("confidence_score"),
-            llm_reasoning=choose_llm_info.get("reasoning"),
-            variables_extracted=session.extracted_variables,
-            assistant_response=assistant_reply,
-            timing_ms=round(t_choose * 1000, 1),
-            tokens_used=choose_llm_info.get("total_tokens", 0) + exec_llm_info.get("total_tokens", 0),
-            cost_usd=choose_llm_info.get("estimated_cost_usd", 0.0) + exec_llm_info.get("estimated_cost_usd", 0.0),
-            model_name=choose_llm_info.get("model_name")
-        )
-    except Exception as e:
-        logger.warning("Failed to emit decision step event: %s", e)
-        # Non-critical, continue
+    # Emit comprehensive decision step event (only if emit_events is True)
+    if emit_events:
+        try:
+            old_node = flow.get_node_by_id(old_node_id)
+            EventEmitter.emit_decision_step(
+                session_id=session.session_id,
+                step_name="Complete Decision",
+                node_id=next_node_id,
+                node_name=next_node.prompt.objective if next_node.prompt else next_node_id,
+                node_prompt={
+                    "context": next_node.prompt.context if next_node.prompt else "",
+                    "objective": next_node.prompt.objective if next_node.prompt else "",
+                    "notes": next_node.prompt.notes if next_node.prompt else "",
+                    "examples": next_node.prompt.examples if next_node.prompt else ""
+                },
+                previous_node_id=old_node_id,
+                previous_node_name=old_node.prompt.objective if old_node.prompt else old_node_id,
+                available_pathways=choose_llm_info.get("available_pathways"),
+                chosen_pathway=connection.label if connection else None,
+                pathway_confidence=choose_llm_info.get("confidence_score"),
+                llm_reasoning=choose_llm_info.get("reasoning"),
+                variables_extracted=session.extracted_variables,
+                assistant_response=assistant_reply,
+                timing_ms=round(t_choose * 1000, 1),
+                tokens_used=choose_llm_info.get("total_tokens", 0) + exec_llm_info.get("total_tokens", 0),
+                cost_usd=choose_llm_info.get("estimated_cost_usd", 0.0) + exec_llm_info.get("estimated_cost_usd", 0.0),
+                model_name=choose_llm_info.get("model_name")
+            )
+        except Exception as e:
+            logger.warning("Failed to emit decision step event: %s", e)
+            # Non-critical, continue
 
     # Handle auto-return for global nodes
     if next_node.auto_return_to_previous and session.previous_node_id:

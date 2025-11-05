@@ -17,5 +17,6 @@ COPY . .
 
 EXPOSE 8081
 
-# Use reload for development
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8081", "--reload"]
+# Use reload for development (limited to app directory to reduce memory usage)
+# Set DISABLE_RELOAD=1 to disable auto-reload if memory is constrained
+CMD ["sh", "-c", "if [ \"$DISABLE_RELOAD\" = \"1\" ]; then uvicorn app.main:app --host 0.0.0.0 --port 8081; else uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload --reload-dir /app/app; fi"]

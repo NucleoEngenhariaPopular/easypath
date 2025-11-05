@@ -78,6 +78,9 @@ services:
     environment:
       VITE_API_URL: "http://backend:8000"
       VITE_MESSAGING_GATEWAY_URL: "http://messaging-gateway:8082"
+      # Set DISABLE_FILE_WATCH=1 to disable file watching if memory is constrained
+      # This will require manual browser refresh on code changes
+      # DISABLE_FILE_WATCH: "1"
     depends_on:
       - backend
       - messaging-gateway

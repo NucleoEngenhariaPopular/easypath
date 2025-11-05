@@ -77,16 +77,22 @@ async def post_message(payload: ChatRequest):
         raise HTTPException(status_code=404, detail="Flow not found")
 
     if session is None:
-        session = new_session(session_id=payload.session_id, first_node_id=flow.first_node_id)
+        session = new_session(
+            session_id=payload.session_id, first_node_id=flow.first_node_id
+        )
 
     t0 = perf_counter()
-    reply, step_timings = run_step(flow, session, payload.user_message)
+    # First run_step with events enabled for real user message
+    reply, step_timings = run_step(
+        flow, session, payload.user_message, emit_events=True
+    )
     t_run_step = perf_counter() - t0
 
     # Accumulate replies from all auto-advanced nodes
     accumulated_replies = [reply]
 
     # Auto-advance through nodes with skip_user_response enabled
+    # emit_events=True ensures WebSocket listeners (Telegram, frontend) receive each message
     max_auto_advances = 10  # Safety limit to prevent infinite loops
     auto_advance_count = 0
     while auto_advance_count < max_auto_advances:
@@ -94,10 +100,13 @@ async def post_message(payload: ChatRequest):
         if current_node and current_node.skip_user_response:
             logging.info(
                 "Node %s has skip_user_response=True, auto-advancing to next node",
-                session.current_node_id
+                session.current_node_id,
             )
             t0 = perf_counter()
-            auto_reply, step_timings = run_step(flow, session, "[AUTO_ADVANCE]")
+            # Emit WebSocket events for auto-advance nodes so Telegram/frontend receive messages
+            auto_reply, step_timings = run_step(
+                flow, session, "[AUTO_ADVANCE]", emit_events=True
+            )
             t_run_step += perf_counter() - t0
             auto_advance_count += 1
             # Accumulate the reply from the auto-advanced node
@@ -108,7 +117,7 @@ async def post_message(payload: ChatRequest):
     if auto_advance_count >= max_auto_advances:
         logging.warning(
             "Auto-advance limit reached (%d). Stopping to prevent infinite loop.",
-            max_auto_advances
+            max_auto_advances,
         )
 
     # Concatenate all replies with double newline separator
@@ -140,23 +149,25 @@ async def post_message(payload: ChatRequest):
         choose_next_model=step_timings["choose_next_model"],
         generate_response_model=step_timings["generate_response_model"],
         choose_next_tokens=TokenInfo(**step_timings["choose_next_tokens"]),
-        generate_response_tokens=TokenInfo(**step_timings["generate_response_tokens"])
+        generate_response_tokens=TokenInfo(**step_timings["generate_response_tokens"]),
     )
-    
+
     timing_info = TimingInfo(
         session_load=round(t_session, 3),
         flow_load=round(t_flow, 3),
         run_step=round(t_run_step, 3),
         save_session=round(t_save, 3),
         total=round(t_total, 3),
-        step_details=step_timing_info
+        step_details=step_timing_info,
     )
-    
+
     return ChatResponse(
         reply=reply,
         current_node_id=session.current_node_id,
         timing=timing_info,
-        extracted_variables=session.extracted_variables if session.extracted_variables else None
+        extracted_variables=session.extracted_variables
+        if session.extracted_variables
+        else None,
     )
 
 
@@ -169,7 +180,7 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
     # Log incoming message with details
     logging.info(
         f"📨 Incoming message: session={payload.session_id}, "
-        f"message=\"{payload.user_message[:100]}\", "
+        f'message="{payload.user_message[:100]}", '
         f"source=messaging-gateway"
     )
 
@@ -189,16 +200,22 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
     t_flow = perf_counter() - t0
 
     if session is None:
-        session = new_session(session_id=payload.session_id, first_node_id=flow.first_node_id)
+        session = new_session(
+            session_id=payload.session_id, first_node_id=flow.first_node_id
+        )
 
     t0 = perf_counter()
-    reply, step_timings = run_step(flow, session, payload.user_message)
+    # First run_step with events enabled for real user message
+    reply, step_timings = run_step(
+        flow, session, payload.user_message, emit_events=True
+    )
     t_run_step = perf_counter() - t0
 
     # Accumulate replies from all auto-advanced nodes
     accumulated_replies = [reply]
 
     # Auto-advance through nodes with skip_user_response enabled
+    # emit_events=True ensures WebSocket listeners (Telegram, frontend) receive each message
     max_auto_advances = 10  # Safety limit to prevent infinite loops
     auto_advance_count = 0
     while auto_advance_count < max_auto_advances:
@@ -206,10 +223,13 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
         if current_node and current_node.skip_user_response:
             logging.info(
                 "Node %s has skip_user_response=True, auto-advancing to next node",
-                session.current_node_id
+                session.current_node_id,
             )
             t0 = perf_counter()
-            auto_reply, step_timings = run_step(flow, session, "[AUTO_ADVANCE]")
+            # Emit WebSocket events for auto-advance nodes so Telegram/frontend receive messages
+            auto_reply, step_timings = run_step(
+                flow, session, "[AUTO_ADVANCE]", emit_events=True
+            )
             t_run_step += perf_counter() - t0
             auto_advance_count += 1
             # Accumulate the reply from the auto-advanced node
@@ -220,7 +240,7 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
     if auto_advance_count >= max_auto_advances:
         logging.warning(
             "Auto-advance limit reached (%d). Stopping to prevent infinite loop.",
-            max_auto_advances
+            max_auto_advances,
         )
 
     # Concatenate all replies with double newline separator
@@ -252,7 +272,7 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
         choose_next_model=step_timings["choose_next_model"],
         generate_response_model=step_timings["generate_response_model"],
         choose_next_tokens=TokenInfo(**step_timings["choose_next_tokens"]),
-        generate_response_tokens=TokenInfo(**step_timings["generate_response_tokens"])
+        generate_response_tokens=TokenInfo(**step_timings["generate_response_tokens"]),
     )
 
     timing_info = TimingInfo(
@@ -261,12 +281,14 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
         run_step=round(t_run_step, 3),
         save_session=round(t_save, 3),
         total=round(t_total, 3),
-        step_details=step_timing_info
+        step_details=step_timing_info,
     )
 
     return ChatResponse(
         reply=reply,
         current_node_id=session.current_node_id,
         timing=timing_info,
-        extracted_variables=session.extracted_variables if session.extracted_variables else None
+        extracted_variables=session.extracted_variables
+        if session.extracted_variables
+        else None,
     )

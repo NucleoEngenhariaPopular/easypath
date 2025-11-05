@@ -33,13 +33,17 @@ services:
     environment:
       - LOG_LEVEL=INFO
       - REDIS_URL=redis://redis:6379/0
+      # Set DISABLE_RELOAD=1 to disable auto-reload if memory is constrained
+      # - DISABLE_RELOAD=1
     #   - LLM_PROVIDER=deepseek
     #   - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
     #   - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
     #   - GEMINI_PROVIDER_MODE=api
     env_file:
       - ../apps/engine/.env
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload
+    # Use reload-dir to limit file watching to app directory only (reduces memory usage)
+    # If memory issues persist, uncomment DISABLE_RELOAD above or remove --reload flag
+    command: sh -c "if [ \"$$DISABLE_RELOAD\" = \"1\" ]; then uvicorn app.main:app --host 0.0.0.0 --port 8081; else uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload --reload-dir /app/app; fi"
     restart: unless-stopped
 
 volumes:
