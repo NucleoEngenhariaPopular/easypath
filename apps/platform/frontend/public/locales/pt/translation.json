@@ -93,7 +93,15 @@
     "extractVarSettingsHelper": "Editar como JSON. Ex: { config: 'valor' }",
     "pathwayExamplesTitle": "Exemplos de Caminho",
     "pathwayExamplesHelper": "Editar como JSON. Estrutura complexa, veja definição de tipo.",
-    "doneButton": "Concluído"
+    "doneButton": "Concluído",
+    "availableVariablesTitle": "Variáveis Disponíveis",
+    "availableVariablesCount": "{{count}} variável",
+    "availableVariablesCount_plural": "{{count}} variáveis",
+    "availableVariablesDesc": "Estas variáveis estão disponíveis de nós anteriores no fluxo. Clique para copiar a referência.",
+    "viewAllVariables": "Ver {{count}} variável",
+    "viewAllVariables_plural": "Ver todas as {{count}} variáveis",
+    "copyVariable": "Copiar {{{{variable}}}}",
+    "variableCopied": "Copiado!"
   },
   "globalConfigSidebar": {
     "title": "Configuração Global",
@@ -185,16 +193,6 @@
     "searchedFor": "Buscado por: \"{{term}}\"",
     "fromLabel": "De:"
   },
-  "nodeModal": {
-    "availableVariablesTitle": "Variáveis Disponíveis",
-    "availableVariablesCount": "{{count}} variável",
-    "availableVariablesCount_plural": "{{count}} variáveis",
-    "availableVariablesDesc": "Estas variáveis estão disponíveis de nós anteriores no fluxo. Clique para copiar a referência.",
-    "viewAllVariables": "Ver {{count}} variável",
-    "viewAllVariables_plural": "Ver todas as {{count}} variáveis",
-    "copyVariable": "Copiar {{{{variable}}}}",
-    "variableCopied": "Copiado!"
-  },
   "appBar": {
     "logoText": "EP",
     "logoutButton": "Sair"
@@ -202,5 +200,90 @@
   "themeToggleButton": {
     "switchToLight": "Mudar para Tema Claro",
     "switchToDark": "Mudar para Tema Escuro"
+  },
+  "sessionsPage": {
+    "title": "Sessões Ativas",
+    "subtitle": "Monitore conversas em tempo real, inspecione a execução do fluxo e tome ações em tempo real.",
+    "refreshing": "Atualizando",
+    "refresh": "Atualizar",
+    "metrics": {
+      "total": "Total de Sessões",
+      "totalCaption": "Em todos os bots",
+      "active": "Ativas",
+      "activeCaption": "Atualmente ao vivo",
+      "closed": "Fechadas",
+      "closedCaption": "Aguardando acompanhamento",
+      "avgMessages": "Média de Mensagens",
+      "avgMessagesCaption": "Por sessão"
+    },
+    "filters": {
+      "search": "Buscar por usuário, bot ou ID",
+      "status": "Status",
+      "allStatuses": "Todos os status",
+      "platform": "Plataforma",
+      "allPlatforms": "Todas as plataformas",
+      "sort": "Ordenar por",
+      "sortLast": "Atividade mais recente",
+      "sortMessages": "Mais mensagens"
+    },
+    "table": {
+      "user": "Usuário",
+      "bot": "Bot",
+      "platform": "Plataforma",
+      "status": "Status",
+      "messages": "Mensagens",
+      "lastActivity": "Última Atividade",
+      "actions": "Ações"
+    },
+    "empty": {
+      "title": "Nenhuma sessão corresponde aos seus filtros",
+      "subtitle": "Tente ajustar os filtros ou aguarde novas conversas começarem."
+    },
+    "actions": {
+      "view": "Ver detalhes",
+      "reset": "Resetar sessão"
+    },
+    "dialog": {
+      "title": "Detalhes da Sessão",
+      "sessionId": "Sessão",
+      "messages": "mensagens",
+      "live": "Ao vivo",
+      "disconnected": "Desconectado",
+      "createdAt": "Criado em",
+      "lastMessage": "Última atividade",
+      "sessionIdLabel": "ID da Sessão",
+      "messagesCount": "Mensagens",
+      "liveExecution": "Estado de Execução em Tempo Real",
+      "executionActive": "Executando",
+      "executionIdle": "Inativo",
+      "currentNode": "Nó atual",
+      "messagesProcessed": "Mensagens processadas",
+      "isActive": "Ativo",
+      "yes": "Sim",
+      "no": "Não",
+      "extractedVariables": "Variáveis extraídas",
+      "close": "Fechar",
+      "closeSession": "Fechar Sessão",
+      "delete": "Excluir",
+      "liveBadge": "AO VIVO",
+      "noMessages": "Ainda não há mensagens para esta sessão.",
+      "noEvents": "Nenhum evento de fluxo em tempo real capturado ainda."
+    },
+    "tabs": {
+      "conversation": "Conversa",
+      "events": "Eventos de Fluxo"
+    },
+    "confirmClose": {
+      "title": "Fechar Sessão?",
+      "description": "Isso fechará a sessão e impedirá que novas mensagens sejam processadas. O usuário precisará iniciar uma nova conversa.",
+      "cancel": "Cancelar",
+      "confirm": "Fechar Sessão"
+    },
+    "confirmDelete": {
+      "title": "Excluir Sessão?",
+      "description": "Isso excluirá permanentemente a sessão e todas as suas mensagens. Esta ação não pode ser desfeita.",
+      "cancel": "Cancelar",
+      "confirm": "Excluir Permanentemente"
+    }
   }
 }
