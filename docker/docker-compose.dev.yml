@@ -1,8 +1,8 @@
-version: '3.8'
-
 # Development environment - Frontend + Backend + Database + Engine + Redis + Messaging Gateway
 # Usage: docker compose -f docker/docker-compose.dev.yml up
 # Or use the helper script: ./scripts/start-dev.sh
+
+name: easypath-dev
 
 services:
   # PostgreSQL database for Platform Backend
@@ -24,6 +24,8 @@ services:
       retries: 5
     networks:
       - easypath-network
+    mem_limit: 2048m # Memory limit for PostgreSQL
+    mem_reservation: 1024m # Soft memory limit
 
   # Platform Backend (FastAPI)
   backend:
@@ -35,6 +37,21 @@ services:
       - "8000:8000"
     volumes:
       - ../apps/platform/backend:/app
+      - backend_pycache:/app/__pycache__ # Named volume for cache
+      - /app/.pytest_cache # Exclude pytest cache
+    tmpfs:
+      - /app/logs # Logs in memory (not persisted)
+    command: >
+      uvicorn main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-include "*.py"
+      --reload-exclude ".git"
+      --reload-exclude ".venv"
+      --reload-exclude "__pycache__"
+      --reload-exclude ".pytest_cache"
+      --reload-exclude "logs"
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,6 +61,8 @@ services:
     networks:
       - easypath-network
     restart: unless-stopped
+    mem_limit: 2048m # Memory limit increased to 2GB
+    mem_reservation: 1024m # Soft memory limit
 
   # Platform Frontend (React + Vite)
   frontend:
@@ -55,7 +74,7 @@ services:
       - "5173:5173"
     volumes:
       - ../apps/platform/frontend:/app
-      - /app/node_modules  # Use container's node_modules
+      - /app/node_modules # Use container's node_modules
     environment:
       VITE_API_URL: "http://backend:8000"
       VITE_MESSAGING_GATEWAY_URL: "http://messaging-gateway:8082"
@@ -65,6 +84,8 @@ services:
     networks:
       - easypath-network
     restart: unless-stopped
+    mem_limit: 2048m # Memory limit for Frontend
+    mem_reservation: 1024m # Soft memory limit
 
   # Redis for Engine session storage
   redis:
@@ -82,6 +103,8 @@ services:
     networks:
       - easypath-network
     restart: unless-stopped
+    mem_limit: 512m # Memory limit for Redis
+    mem_reservation: 256m # Soft memory limit
 
   # Engine (FastAPI) - Optional, comment out if not needed
   engine:
@@ -93,6 +116,20 @@ services:
       - "8081:8081"
     volumes:
       - ../apps/engine:/app
+      - engine_pycache:/app/__pycache__ # Named volume for cache
+      - /app/.pytest_cache # Exclude pytest cache
+    tmpfs:
+      - /app/logs # Logs in memory (not persisted)
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8081
+      --reload
+      --reload-dir /app/app
+      --reload-exclude ".git"
+      --reload-exclude ".venv"
+      --reload-exclude "__pycache__"
+      --reload-exclude ".pytest_cache"
     depends_on:
       redis:
         condition: service_healthy
@@ -107,6 +144,8 @@ services:
     networks:
       - easypath-network
     restart: unless-stopped
+    mem_limit: 2048m # Memory limit increased to 2GB
+    mem_reservation: 1024m # Soft memory limit
 
   # Messaging Gateway (Telegram/WhatsApp Integration)
   messaging-gateway:
@@ -118,6 +157,20 @@ services:
       - "8082:8082"
     volumes:
       - ../apps/messaging-gateway:/app
+      - messaging_pycache:/app/__pycache__ # Named volume for cache
+      - /app/.pytest_cache # Exclude pytest cache
+    tmpfs:
+      - /app/logs # Logs in memory (not persisted)
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8082
+      --reload
+      --reload-dir /app/app
+      --reload-exclude ".git"
+      --reload-exclude ".venv"
+      --reload-exclude "__pycache__"
+      --reload-exclude ".pytest_cache"
     depends_on:
       postgres:
         condition: service_healthy
@@ -133,6 +186,8 @@ services:
     networks:
       - easypath-network
     restart: unless-stopped
+    mem_limit: 2048m # Memory limit increased to 2GB
+    mem_reservation: 1024m # Soft memory limit
 
   # ngrok - Exposes messaging-gateway webhooks with HTTPS (for Telegram)
   ngrok:
@@ -142,7 +197,7 @@ services:
       - "http"
       - "messaging-gateway:8082"
     ports:
-      - "4040:4040"  # ngrok web interface
+      - "4040:4040" # ngrok web interface
     depends_on:
       - messaging-gateway
     env_file:
@@ -150,10 +205,15 @@ services:
     networks:
       - easypath-network
     restart: unless-stopped
+    mem_limit: 256m # Memory limit for ngrok
+    mem_reservation: 128m # Soft memory limit
 
 volumes:
   postgres_data:
   redis_data:
+  backend_pycache:
+  engine_pycache:
+  messaging_pycache:
 
 networks:
   easypath-network:

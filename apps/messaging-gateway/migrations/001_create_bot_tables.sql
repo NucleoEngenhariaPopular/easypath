@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS platform_conversations (
 CREATE INDEX idx_platform_conversations_bot ON platform_conversations(bot_config_id);
 CREATE INDEX idx_platform_conversations_user ON platform_conversations(platform_user_id);
 CREATE INDEX idx_platform_conversations_session ON platform_conversations(session_id);
-CREATE UNIQUE INDEX idx_platform_conversations_bot_user ON platform_conversations(bot_config_id, platform_user_id);
+-- Changed from UNIQUE to regular INDEX - allows multiple conversations per user (e.g., after session reset)
+CREATE INDEX idx_platform_conversations_bot_user ON platform_conversations(bot_config_id, platform_user_id);
 
 -- Conversation messages table (for history/debugging)
 CREATE TABLE IF NOT EXISTS conversation_messages (

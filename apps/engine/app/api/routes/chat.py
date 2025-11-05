@@ -166,6 +166,13 @@ async def post_message_with_flow(payload: ChatRequestWithFlow):
     Chat endpoint that accepts the flow definition directly in the request.
     Used for test mode where the flow might not be saved to a file yet.
     """
+    # Log incoming message with details
+    logging.info(
+        f"📨 Incoming message: session={payload.session_id}, "
+        f"message=\"{payload.user_message[:100]}\", "
+        f"source=messaging-gateway"
+    )
+
     t_total_start = perf_counter()
 
     t0 = perf_counter()

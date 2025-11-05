@@ -1,9 +1,9 @@
 #!/bin/bash
 # Start full development environment (Frontend + Backend + Engine + Redis + PostgreSQL + Messaging Gateway + ngrok)
-# Usage: ./scripts/start-dev.sh
+# Usage: ./scripts/dev/start-dev.sh
 
-# Change to project root directory
-cd "$(dirname "$0")/.." || exit 1
+# Change to project root directory (where this script is located relative to project root)
+cd "$(dirname "$0")/../.." || exit 1
 
 echo "🚀 Starting EasyPath Development Environment..."
 echo ""
@@ -42,3 +42,4 @@ echo "  - Redis:             localhost:6379"
 echo "  - ngrok Dashboard:   http://localhost:4040"
 echo ""
 echo "Press Ctrl+C to stop all services"
+

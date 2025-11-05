@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 import logging
 import httpx
 from typing import Dict, Any
 
-from ..database import get_db
+from ..database import get_db, SessionLocal
 from ..models import BotConfig
 from ..services.telegram import telegram_service
 from ..utils.flow_converter import ensure_engine_format
@@ -13,15 +13,56 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+async def _process_telegram_update_background(
+    bot_config_id: int,
+    update_data: Dict[str, Any],
+    flow_data: Dict[str, Any]
+):
+    """
+    Background task to process Telegram update.
+    This runs after we've already returned 200 OK to Telegram.
+    """
+    db = SessionLocal()
+    try:
+        # Get bot config from database
+        bot_config = db.query(BotConfig).filter(
+            BotConfig.id == bot_config_id
+        ).first()
+
+        if not bot_config:
+            logger.error(f"Bot config not found in background task: {bot_config_id}")
+            return
+
+        # Process the update
+        success = await telegram_service.process_update(
+            update_data=update_data,
+            bot_config=bot_config,
+            flow_data=flow_data,
+            db=db
+        )
+
+        if not success:
+            logger.error(f"Failed to process update in background: bot_id={bot_config_id}")
+
+    except Exception as e:
+        logger.error(f"Error in background processing: {e}", exc_info=True)
+    finally:
+        db.close()
+
+
 @router.post("/webhooks/telegram/{bot_config_id}")
 async def telegram_webhook(
     bot_config_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
     Telegram webhook endpoint.
     Receives updates from Telegram and processes them.
+
+    IMPORTANT: Returns 200 OK immediately to prevent Telegram retries.
+    Processing happens in the background.
 
     URL format: POST /webhooks/telegram/{bot_config_id}
     """
@@ -35,7 +76,8 @@ async def telegram_webhook(
 
         if not bot_config:
             logger.error(f"Bot config not found or inactive: {bot_config_id}")
-            raise HTTPException(status_code=404, detail="Bot not found or inactive")
+            # Return 200 to prevent Telegram retries (error logged internally)
+            return {"status": "error", "message": "Bot not found or inactive"}
 
         # Get update data from Telegram
         update_data = await request.json()
@@ -57,7 +99,8 @@ async def telegram_webhook(
 
         if not flow_data:
             logger.error(f"Flow not found: flow_id={bot_config.flow_id}")
-            raise HTTPException(status_code=500, detail="Flow configuration not found")
+            # Return 200 to prevent Telegram retries (error logged internally)
+            return {"status": "error", "message": "Flow configuration not found"}
 
         # Convert flow format if needed (canvas → engine)
         try:
@@ -65,26 +108,25 @@ async def telegram_webhook(
             logger.debug(f"Flow format validated/converted for flow_id={bot_config.flow_id}")
         except ValueError as e:
             logger.error(f"Invalid flow format: flow_id={bot_config.flow_id}, error={str(e)}")
-            raise HTTPException(status_code=500, detail=f"Invalid flow format: {str(e)}")
+            # Return 200 to prevent Telegram retries (error logged internally)
+            return {"status": "error", "message": f"Invalid flow format: {str(e)}"}
 
-        # Process the update
-        success = await telegram_service.process_update(
+        # Schedule background processing
+        background_tasks.add_task(
+            _process_telegram_update_background,
+            bot_config_id=bot_config_id,
             update_data=update_data,
-            bot_config=bot_config,
-            flow_data=flow_data,
-            db=db
+            flow_data=flow_data
         )
 
-        if success:
-            return {"status": "ok"}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to process update")
+        # Return 200 OK immediately to prevent Telegram retries
+        logger.info(f"Webhook accepted, processing in background: bot_id={bot_config_id}")
+        return {"status": "ok"}
 
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error in telegram webhook: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        # Always return 200 to prevent Telegram retries (error logged internally)
+        return {"status": "error", "message": "Internal server error"}
 
 
 async def _fetch_flow_data(flow_id: int) -> Dict[str, Any] | None:

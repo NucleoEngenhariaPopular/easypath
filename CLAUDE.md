@@ -70,37 +70,65 @@ The project consists of four main components:
 - `app/models/flow.py`: Flow schema (Prompt, Node, Connection, Flow, VariableExtraction)
 
 ### 4. Messaging Gateway (`apps/messaging-gateway`)
-- **Tech:** Python FastAPI + PostgreSQL + Telegram Bot API
+- **Tech:** Python FastAPI + PostgreSQL + Telegram Bot API + WebSockets
 - **Port:** 8082
 - **Bridges messaging platforms (Telegram, WhatsApp) to EasyPath flows**
 - Receives webhooks from messaging platforms
 - Maps platform users to engine sessions
 - Forwards messages to engine for processing
-- Returns responses back to messaging platforms
+- Returns responses back to messaging platforms via WebSocket streaming
 
 **Core workflow:**
 1. Receives webhook from Telegram/WhatsApp (e.g., user sends message)
-2. Maps `platform_user_id` → `easypath_session_id` (creates if new user)
-3. Fetches flow definition from platform database
-4. Forwards message to engine via `POST /chat/message-with-flow`
-5. Receives engine response (assistant reply)
-6. Sends reply back to user via platform API
-7. Stores conversation history in database
+2. **Returns 200 OK immediately** (prevents platform retries, processes in background)
+3. Maps `platform_user_id` → `easypath_session_id` (creates if new user)
+4. Fetches flow definition from platform database
+5. **Establishes WebSocket connection** to engine for real-time message streaming
+6. Triggers engine execution via `POST /chat/message-with-flow`
+7. **Streams assistant messages** as they're generated (with typing indicators)
+8. Sends each reply to user via platform API (separate messages, not concatenated)
+9. Stores conversation history in database
+10. **Falls back to HTTP-only mode** if WebSocket fails
+
+**Key features:**
+- **Real-time streaming:** Messages delivered as they're generated via WebSocket
+- **Typing indicators:** Shows "typing..." while LLM generates responses (auto-stops when done)
+- **Background processing:** Webhooks return 200 OK immediately to prevent retries (even on errors)
+- **Smart message deduplication:** Time-window based (2 seconds) - allows legitimate repeated messages
+- **Old message filtering:** Ignores messages sent before container startup (helpful for testing)
+- **Session management:** Reset, close, and delete sessions via REST API
+- **Automatic fallback:** Switches to HTTP-only if WebSocket connection fails
+- **Batch database commits:** Collects all messages and commits once (better performance)
+- **Timeout management:** Resets timeout when messages arrive (no more 90s limit for long conversations)
 
 **Key components:**
-- `app/services/telegram.py`: Telegram webhook handler and message forwarding
-- `app/services/engine_client.py`: Client for communicating with engine
-- `app/api/webhooks.py`: Webhook endpoints for each platform
+- `app/services/telegram.py`: Telegram webhook handler, streaming, and typing indicators
+- `app/services/engine_ws_client.py`: WebSocket client for real-time engine communication
+- `app/services/engine_client.py`: HTTP client for engine communication (fallback)
+- `app/api/webhooks.py`: Webhook endpoints with background processing
 - `app/api/bots.py`: REST API for bot management (CRUD operations)
+- `app/api/sessions.py`: REST API for session management (reset, close, delete)
 - `app/models/bot_config.py`: Database models (BotConfig, PlatformConversation, ConversationMessage)
 
 **Database tables:**
 - `bot_configs`: Bot configurations (platform, token, flow_id, owner_id)
-- `platform_conversations`: Maps platform users to engine sessions
+- `platform_conversations`: Maps platform users to engine sessions (maintains session_id) - allows multiple conversations per user
 - `conversation_messages`: Complete message history for debugging/analytics
 
+**Recent fixes (2025-01-12):**
+- ✅ Removed UNIQUE constraint on conversations (session reset now works)
+- ✅ Fixed message deduplication (time-based instead of exact match)
+- ✅ Fixed streaming timeout (resets on activity)
+- ✅ Batch commits for better performance
+- ✅ Webhook always returns 200 OK (prevents Telegram retries)
+
+**Session management:**
+- **Reset:** Generates new session ID, clears messages, clears engine Redis
+- **Close:** Marks session as closed, prevents further message processing
+- **Delete:** Permanently removes session and all messages (cascade delete)
+
 **Supported platforms:**
-- ✅ **Telegram** (fully implemented with webhooks)
+- ✅ **Telegram** (fully implemented with webhooks, streaming, typing indicators)
 - 🔄 **WhatsApp** (coming soon via Twilio/Meta Cloud API)
 - 🔄 **SMS** (future)
 
@@ -114,11 +142,18 @@ The project consists of four main components:
 ### Full Development Environment (Recommended)
 ```bash
 # All services: frontend + backend + engine + messaging-gateway + ngrok + postgres + redis
+
+# Linux/macOS
+./scripts/dev/start-dev.sh
+
+# Windows PowerShell
+.\scripts\dev\start-dev.ps1
+
+# Or manually
 docker compose -f docker/docker-compose.dev.yml up --build
 
 # Get ngrok public URL for webhook configuration
 ./scripts/get-ngrok-url.sh  # Linux/macOS
-# or
 .\scripts\get-ngrok-url.ps1  # Windows PowerShell
 ```
 
@@ -227,8 +262,10 @@ $env:DATABASE_URL = "postgresql://user:password@localhost:5432/easypath"
 $env:ENGINE_API_URL = "http://localhost:8081"
 $env:WEBHOOK_BASE_URL = "https://your-ngrok-url.ngrok-free.app"
 
-# Run database migration (first time only)
+# Run database migrations (first time only)
 docker exec -i easypath_postgres psql -U user -d easypath < migrations/001_create_bot_tables.sql
+docker exec -i easypath_postgres psql -U user -d easypath < migrations/002_add_status_column.sql
+docker exec -i easypath_postgres psql -U user -d easypath < migrations/003_remove_unique_constraint.sql
 
 # Start messaging gateway
 uvicorn app.main:app --reload --port 8082
@@ -464,10 +501,18 @@ const { isConnected, lastEvent, executionState } = useFlowWebSocket({
 ```
 
 ### Backend Components
+
 - `app/models/ws_events.py`: Event schema definitions (Pydantic models)
 - `app/ws/manager.py`: WebSocket connection manager (handles multiple clients per session)
-- `app/ws/emitter.py`: Event emitter utility (used by orchestrator)
-- `app/api/routes/ws.py`: WebSocket endpoint handler
+- `app/ws/emitter.py`: Event emitter utility (used by orchestrator) - uses asyncio.create_task for safe emission
+- `app/api/routes/ws.py`: WebSocket endpoint handler with ping/pong heartbeat (30s interval)
+
+**Recent improvements (2025-01-12):**
+
+- ✅ Fixed async event emission (removed dangerous asyncio.run calls)
+- ✅ Added ping/pong heartbeat for connection health monitoring
+- ✅ Proper cleanup with try/finally blocks
+- ✅ Better timeout handling and error logging
 
 ### How It Works
 1. Frontend connects to `/ws/session/{session_id}`
@@ -495,3 +540,167 @@ const { isConnected, lastEvent, executionState } = useFlowWebSocket({
 - Loops stay on the same node (no visual loop-back connections needed)
 - Token usage and timing information tracked for cost estimation (including loop evaluation)
 - **WebSocket events are optional** - engine works normally without active WebSocket connections
+
+## Troubleshooting
+
+### Telegram Bot Not Responding
+
+1. **Check bot is registered:**
+
+   ```bash
+   # Query the database
+   docker exec -it easypath_postgres psql -U user -d easypath -c "SELECT id, platform, bot_name, is_active FROM bot_configs;"
+   ```
+
+2. **Check webhook is set:**
+
+   ```bash
+   # Get webhook info
+   curl -X GET "http://localhost:8082/api/bots/{bot_id}/webhook-info"
+   ```
+
+3. **Check logs:**
+
+   ```bash
+   # Messaging gateway logs
+   docker logs -f easypath_messaging_gateway
+
+   # Engine logs
+   docker logs -f easypath_engine
+   ```
+
+4. **Verify ngrok is running:**
+
+   ```bash
+   # Check ngrok status
+   curl http://localhost:4040/api/tunnels
+   ```
+
+### Database Migration Issues
+
+**Problem:** "relation already exists" or "constraint already exists"
+
+**Solution:** Check which migrations have been applied:
+
+```bash
+# Check if tables exist
+docker exec -it easypath_postgres psql -U user -d easypath -c "\dt"
+
+# Check indexes
+docker exec -it easypath_postgres psql -U user -d easypath -c "\di"
+
+# If unique constraint exists, run migration 003
+docker exec -i easypath_postgres psql -U user -d easypath < apps/messaging-gateway/migrations/003_remove_unique_constraint.sql
+```
+
+### Session Reset Not Working
+
+**Problem:** "IntegrityError: duplicate key value violates unique constraint"
+
+**Solution:** This was fixed in migration 003. Run the migration:
+
+```bash
+docker exec -i easypath_postgres psql -U user -d easypath < apps/messaging-gateway/migrations/003_remove_unique_constraint.sql
+```
+
+### WebSocket Connection Issues
+
+**Problem:** WebSocket events not appearing, connection drops
+
+**Solution:**
+
+1. Check engine logs for "WebSocket connected" messages
+2. Verify ping/pong heartbeat every 30 seconds
+3. Check browser console for WebSocket errors
+4. Ensure no firewall blocking WebSocket connections
+
+### Long Conversations Timing Out
+
+**Problem:** Bot stops responding after 90 seconds
+
+**Solution:** This was fixed on 2025-01-12. The timeout now resets when messages arrive. Update to latest code:
+
+```bash
+git pull
+docker compose -f docker/docker-compose.dev.yml up --build
+```
+
+### Duplicate Messages
+
+**Problem:** Same message sent multiple times by bot
+
+**Solution:** This was fixed with time-window deduplication (2 seconds). Update to latest code.
+
+### Engine Not Connecting to LLM
+
+**Problem:** "API key not found" or LLM errors
+
+**Solution:**
+
+1. Check `.env` file in `apps/engine/`:
+
+   ```bash
+   cat apps/engine/.env
+   ```
+
+2. Verify API key is set:
+   - For DeepSeek: `DEEPSEEK_API_KEY=sk-...`
+   - For Gemini: `GOOGLE_API_KEY=...`
+
+3. Restart engine:
+
+   ```bash
+   docker compose -f docker/docker-compose.dev.yml restart engine
+   ```
+
+### Performance Issues
+
+**Problem:** Slow message processing, high database load
+
+**Solutions:**
+
+- ✅ Batch commits enabled (2025-01-12 fix)
+- Check database connection pool settings
+- Monitor Redis memory usage
+- Check LLM API latency
+
+### Viewing Logs in Real-Time
+
+```bash
+# All services
+docker compose -f docker/docker-compose.dev.yml logs -f
+
+# Specific service
+docker logs -f easypath_messaging_gateway
+docker logs -f easypath_engine
+docker logs -f easypath_backend
+
+# Filter for errors only
+docker logs easypath_messaging_gateway 2>&1 | grep -i error
+```
+
+### Resetting Everything
+
+**Complete reset (WARNING: deletes all data):**
+
+```bash
+# Stop all containers
+docker compose -f docker/docker-compose.dev.yml down
+
+# Remove volumes (deletes database and redis data)
+docker volume rm easypath-dev_postgres_data easypath-dev_redis_data
+
+# Rebuild and start fresh
+docker compose -f docker/docker-compose.dev.yml up --build
+```
+
+### Common Error Messages
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Bot not found or inactive" | Bot not registered or is_active=false | Register bot or update is_active in database |
+| "Flow configuration not found" | flow_id doesn't exist | Create flow in platform or update bot's flow_id |
+| "Could not emit WebSocket event" | No WebSocket clients connected | Normal - WebSocket is optional |
+| "WebSocket timeout" | No activity for 40+ seconds | Normal - connection will retry or timeout gracefully |
+| "Failed to commit messages" | Database connection issue | Check PostgreSQL is running and accessible |
+| "Engine request timed out" | LLM taking too long | Check LLM API status, increase timeout if needed |

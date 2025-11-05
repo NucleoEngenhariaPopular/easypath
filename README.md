@@ -88,9 +88,11 @@ EasyPath follows a **microservices architecture** with four main components:
 │                MESSAGING GATEWAY                        │
 │                                                         │
 │  Python FastAPI + PostgreSQL + Telegram Bot API        │
-│  • Telegram/WhatsApp webhooks                          │
+│  • Telegram/WhatsApp webhooks (background processing)  │
 │  • Platform user → Session mapping                     │
-│  • Message routing to Engine                           │
+│  • Real-time WebSocket streaming + typing indicators   │
+│  • Message deduplication + old message filtering       │
+│  • Session management (reset/close/delete)             │
 │  • Bot management API                                  │
 │                                                         │
 │  Port: 8082                                            │
@@ -137,14 +139,20 @@ EasyPath follows a **microservices architecture** with four main components:
   - Cost and performance tracking (including loop evaluation)
 
 #### **4. Messaging Gateway** (`apps/messaging-gateway`)
-- **Tech:** Python FastAPI, PostgreSQL, Telegram Bot API
+- **Tech:** Python FastAPI, PostgreSQL, Telegram Bot API, WebSockets
 - **Purpose:** Bridge between messaging platforms and EasyPath flows
 - **Features:**
-  - ✅ Telegram webhook integration (fully implemented)
+  - ✅ **Real-time streaming** with typing indicators via WebSocket
+  - ✅ **Telegram integration** (fully implemented with webhooks)
+  - ✅ **Background webhook processing** (returns 200 OK immediately)
+  - ✅ **Session management API** (reset, close, delete sessions)
+  - ✅ **Message deduplication** (prevents duplicate delivery)
+  - ✅ **Old message filtering** (ignores stale messages on restart)
   - 🔄 WhatsApp support (coming soon)
   - Bot configuration management (API + encrypted token storage)
   - Platform user to engine session mapping
   - Message history persistence
+  - Automatic fallback to HTTP-only if WebSocket fails
   - HTTPS webhook support via ngrok (development) or custom domain (production)
 
 ## 🚀 Quick Start
@@ -314,10 +322,19 @@ The script automatically configures the webhook with your ngrok URL!
 2. Send `/start` or any message
 3. Your flow executes in real-time!
 4. Watch the conversation flow through your designed nodes
+5. **See typing indicators** as the bot generates responses
+6. **Receive separate messages** for multi-step flows (not concatenated)
+
+#### **What You'll Experience:**
+- **Typing indicators:** See "typing..." while LLM generates responses
+- **Real-time delivery:** Messages stream as they're generated (via WebSocket)
+- **Separate messages:** Auto-advance nodes send individual messages with typing between them
+- **Session persistence:** Each user gets their own conversation session automatically
 
 #### **Tips:**
 - Each Telegram user gets their own session automatically
 - Message history is stored in the database
+- Reset sessions from the Sessions UI at http://localhost:5173/sessions
 - Check logs with: `docker compose -f docker/docker-compose.dev.yml logs messaging-gateway`
 - View ngrok requests at: http://localhost:4040
 - Get ngrok URL: `./scripts/get-ngrok-url.sh` (or `.ps1` on Windows)
@@ -593,6 +610,34 @@ curl http://localhost:8082/api/bots?owner_id=user-123
 #### `POST /webhooks/telegram/{bot_id}`
 Telegram webhook endpoint (automatically configured by the gateway).
 
+#### `GET /api/sessions`
+List all conversation sessions with filtering options.
+
+```bash
+curl "http://localhost:8082/api/sessions?status=active&limit=50"
+```
+
+#### `POST /api/sessions/{session_id}/reset`
+Reset a session (generates new session ID, clears messages and engine state).
+
+```bash
+curl -X POST http://localhost:8082/api/sessions/1/reset
+```
+
+#### `POST /api/sessions/{session_id}/close`
+Close a session (marks as closed, prevents further message processing).
+
+```bash
+curl -X POST http://localhost:8082/api/sessions/1/close
+```
+
+#### `DELETE /api/sessions/{session_id}`
+Permanently delete a session and all its messages.
+
+```bash
+curl -X DELETE http://localhost:8082/api/sessions/1
+```
+
 See `apps/messaging-gateway/README.md` for full API documentation.
 
 See [CLAUDE.md](CLAUDE.md) for detailed API documentation.
@@ -600,15 +645,20 @@ See [CLAUDE.md](CLAUDE.md) for detailed API documentation.
 ## 🛣️ Roadmap
 
 ### ✅ Recently Completed
-- [x] Telegram integration with webhooks
-- [x] Messaging Gateway microservice
+- [x] Telegram integration with webhooks and typing indicators
+- [x] Real-time WebSocket streaming for message delivery
+- [x] Messaging Gateway microservice with background webhook processing
+- [x] Session management API (reset, close, delete)
+- [x] Message deduplication and old message filtering
 - [x] ngrok integration for local development
 - [x] Bot management API with encrypted token storage
+- [x] Automatic fallback from WebSocket to HTTP-only mode
 
 ### In Progress
 - [ ] WhatsApp integration (Twilio/Meta Cloud API)
 - [ ] Conditional node type
 - [ ] API integration nodes
+- [ ] Sessions UI for monitoring and management
 
 ### Planned
 - [ ] Flow templates library

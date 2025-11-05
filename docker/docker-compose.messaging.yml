@@ -1,8 +1,8 @@
-version: '3.8'
-
 # Messaging Gateway with dependencies (Engine + Redis + PostgreSQL)
 # Usage: docker compose -f docker/docker-compose.messaging.yml up --build
 # Or use the helper script: ./scripts/start-telegram.sh
+
+name: easypath_messaging
 
 services:
   messaging-gateway:

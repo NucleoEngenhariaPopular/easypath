@@ -1,8 +1,8 @@
-version: '3.8'
-
 # Platform only (Frontend + Backend + Database)
 # Lighter version for testing just the platform without the engine
 # Usage: docker compose -f docker/docker-compose.platform.yml up
+
+name: easypath_platform
 
 services:
   postgres:

@@ -23,6 +23,15 @@ __pycache__/
 # Test files
 .pytest_cache/
 
+# Documentation
+*.md
+docs/
+
 # Logs
 *.log
 logs/
+
+# Environment files (should use env_file in docker-compose)
+.env
+.env.*
+!.env.example

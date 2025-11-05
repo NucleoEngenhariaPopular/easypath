@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from "react";
 
 export interface PathwayOption {
   label: string;
@@ -107,24 +107,26 @@ export function useFlowWebSocket({
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<FlowEvent | null>(null);
-  const [executionState, setExecutionState] = useState<FlowExecutionState | null>(null);
+  const [executionState, setExecutionState] =
+    useState<FlowExecutionState | null>(null);
 
   const connect = useCallback(() => {
-    if (!enabled || !sessionId || wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (!enabled || !sessionId || wsRef.current?.readyState === WebSocket.OPEN)
+      return;
 
-    // Determine WebSocket URL (ws:// for http, wss:// for https)
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Determine WebSocket URL - use environment variable or default to engine port
+    const enginePort = import.meta.env.VITE_ENGINE_PORT || "8081";
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.hostname;
-    const port = '8081'; // Engine port
-    const flowParam = flowId ? `?flow_id=${flowId}` : '';
-    const wsUrl = `${protocol}//${host}:${port}/ws/session/${sessionId}${flowParam}`;
+    const flowParam = flowId ? `?flow_id=${flowId}` : "";
+    const wsUrl = `${protocol}//${host}:${enginePort}/ws/session/${sessionId}${flowParam}`;
 
-    console.log('Connecting to WebSocket:', wsUrl);
+    console.log("Connecting to WebSocket:", wsUrl);
 
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      console.log('WebSocket connected');
+      console.log("WebSocket connected");
       setIsConnected(true);
     };
 
@@ -132,32 +134,43 @@ export function useFlowWebSocket({
       try {
         const data = JSON.parse(event.data);
 
+        // Handle ping/pong heartbeat
+        if (data.type === "ping") {
+          console.log("Received ping, sending pong");
+          ws.send(JSON.stringify({ type: "pong" }));
+          return;
+        }
+
         // Check if it's a state update or an event
         if (data.is_active !== undefined) {
           // It's a FlowExecutionState
           const state = data as FlowExecutionState;
           setExecutionState(state);
           onStateUpdate?.(state);
-        } else {
+        } else if (data.event_type) {
           // It's a FlowEvent
           const flowEvent = data as FlowEvent;
           setLastEvent(flowEvent);
           onEvent?.(flowEvent);
 
-          console.log('Received WebSocket event:', flowEvent.event_type, flowEvent);
+          console.log(
+            "Received WebSocket event:",
+            flowEvent.event_type,
+            flowEvent,
+          );
         }
       } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
+        console.error("Failed to parse WebSocket message:", error);
       }
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error("WebSocket error:", error);
       onError?.(error);
     };
 
     ws.onclose = () => {
-      console.log('WebSocket disconnected');
+      console.log("WebSocket disconnected");
       setIsConnected(false);
       wsRef.current = null;
     };
@@ -180,27 +193,35 @@ export function useFlowWebSocket({
 
   useEffect(() => {
     if (enabled && sessionId) {
-      console.log('WebSocket effect running - session:', sessionId.substring(0, 8), 'enabled:', enabled);
-      console.log('Current WebSocket state:', wsRef.current?.readyState);
+      console.log(
+        "WebSocket effect running - session:",
+        sessionId.substring(0, 8),
+        "enabled:",
+        enabled,
+      );
+      console.log("Current WebSocket state:", wsRef.current?.readyState);
 
       // Disconnect existing connection if any before connecting with new sessionId
       if (wsRef.current) {
-        console.log('Disconnecting existing WebSocket before reconnect');
+        console.log("Disconnecting existing WebSocket before reconnect");
         disconnect();
       }
 
       // Small delay to ensure clean disconnect before reconnecting
       const timer = setTimeout(() => {
-        console.log('Attempting to connect to new session:', sessionId.substring(0, 8));
+        console.log(
+          "Attempting to connect to new session:",
+          sessionId.substring(0, 8),
+        );
         connect();
       }, 50);
 
       return () => {
-        console.log('WebSocket effect cleanup timer - clearing timeout');
+        console.log("WebSocket effect cleanup timer - clearing timeout");
         clearTimeout(timer);
       };
     } else if (!enabled) {
-      console.log('WebSocket disabled, disconnecting');
+      console.log("WebSocket disabled, disconnecting");
       disconnect();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

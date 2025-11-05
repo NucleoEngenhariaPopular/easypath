@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import logging
 from datetime import datetime
+from uuid import uuid4
 
 from ..database import get_db
 from ..models import BotConfig, PlatformConversation, ConversationMessage
@@ -129,6 +130,9 @@ async def get_session_detail(
         BotConfig.id == conversation.bot_config_id
     ).first()
 
+    if not bot_config:
+        raise HTTPException(status_code=404, detail="Bot config not found for this session")
+
     # Get message count
     message_count = db.query(ConversationMessage).filter(
         ConversationMessage.conversation_id == session_id
@@ -225,12 +229,15 @@ async def reset_session(
     db: Session = Depends(get_db)
 ):
     """
-    Reset a session (clear history and start fresh).
+    Reset a session (clear history and start fresh with a new session ID).
 
     This will:
-    1. Clear the session from engine Redis
-    2. Mark session as active again
-    3. Keep the conversation ID but clear state
+    1. Clear the old session from engine Redis
+    2. Generate a new session ID for the engine
+    3. Delete all messages
+    4. Mark session as active again
+
+    The messaging-gateway maintains the mapping between Telegram user and engine session.
     """
     conversation = db.query(PlatformConversation).filter(
         PlatformConversation.id == session_id
@@ -240,26 +247,57 @@ async def reset_session(
         raise HTTPException(status_code=404, detail="Session not found")
 
     try:
-        # Clear from engine Redis
-        try:
-            await engine_client.clear_session(conversation.session_id)
-            logger.info(f"Session cleared from engine: {conversation.session_id}")
-        except Exception as e:
-            logger.warning(f"Could not clear session from engine: {e}")
+        old_session_id = conversation.session_id
 
-        # Mark as active (in case it was closed)
-        conversation.status = 'active'
-        db.commit()
+        # Get bot config to construct new session ID
+        bot_config = db.query(BotConfig).filter(
+            BotConfig.id == conversation.bot_config_id
+        ).first()
+
+        if not bot_config:
+            raise HTTPException(status_code=404, detail="Bot config not found")
+
+        # Generate new session ID (same format as when creating a new conversation)
+        new_session_id = f"{bot_config.platform}-{bot_config.id}-{conversation.platform_user_id}-{uuid4().hex[:8]}"
 
         logger.info(
-            f"Session reset: id={session_id}, "
-            f"session_id={conversation.session_id}"
+            f"Resetting session: id={session_id}, "
+            f"old_session_id={old_session_id}, "
+            f"new_session_id={new_session_id}"
+        )
+
+        # Clear old session from engine Redis
+        try:
+            await engine_client.clear_session(old_session_id)
+            logger.info(f"Cleared old session from engine: {old_session_id}")
+        except Exception as e:
+            logger.warning(f"Could not clear old session from engine: {e}")
+
+        # Delete all messages for this conversation
+        deleted_count = db.query(ConversationMessage).filter(
+            ConversationMessage.conversation_id == session_id
+        ).delete(synchronize_session='fetch')
+
+        logger.info(f"Deleted {deleted_count} messages for session {session_id}")
+
+        # Update with new session ID and mark as active
+        conversation.session_id = new_session_id
+        conversation.status = 'active'
+        db.commit()
+        db.flush()  # Force database to sync
+
+        logger.info(
+            f"Session reset complete: id={session_id}, "
+            f"new_session_id={new_session_id}, "
+            f"messages_deleted={deleted_count}"
         )
 
         return {
             "status": "success",
-            "message": f"Session {session_id} reset successfully",
-            "session_id": conversation.session_id
+            "message": f"Session {session_id} reset successfully with new session ID",
+            "old_session_id": old_session_id,
+            "new_session_id": new_session_id,
+            "messages_deleted": deleted_count
         }
 
     except Exception as e:

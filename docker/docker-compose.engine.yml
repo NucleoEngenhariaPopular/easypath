@@ -1,7 +1,7 @@
-version: '3.8'
-
 # Engine service only (Engine + Redis)
 # Usage: docker compose -f docker/docker-compose.engine.yml up --build
+
+name: easypath_engine
 
 services:
   redis:

@@ -45,14 +45,14 @@ Start the **complete environment** including the conversation engine for end-to-
 ### Windows
 
 ```powershell
-.\start-dev.bat
+.\scripts\dev\start-dev.bat
 ```
 
 ### Linux/MacOS
 
 ```bash
-chmod +x start-dev.sh
-./start-dev.sh
+chmod +x scripts/dev/start-dev.sh
+./scripts/dev/start-dev.sh
 ```
 
 ### Manual (any OS)

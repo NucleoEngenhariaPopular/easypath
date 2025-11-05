@@ -25,27 +25,24 @@ class EventEmitter:
 
     @staticmethod
     def _emit_sync(event_coro):
-        """Helper to emit events from sync code."""
+        """
+        Helper to emit events from sync code.
+
+        IMPORTANT: This only works when called from within an async context (FastAPI).
+        Events are scheduled as background tasks and not awaited.
+        """
         try:
-            # Try to get the running event loop
-            try:
-                loop = asyncio.get_running_loop()
-                # We have a running loop - schedule the task
-                loop.create_task(event_coro)
-            except RuntimeError:
-                # No running loop - try to get the event loop
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        loop.create_task(event_coro)
-                    else:
-                        # Create a new loop and run the coroutine
-                        asyncio.run(event_coro)
-                except Exception:
-                    # Last resort - try to run directly
-                    asyncio.run(event_coro)
+            # Get the running event loop (FastAPI always has one)
+            loop = asyncio.get_running_loop()
+            # Schedule the event emission as a background task
+            loop.create_task(event_coro)
+            logger.debug("WebSocket event scheduled successfully")
+        except RuntimeError as e:
+            # No running loop - this shouldn't happen in FastAPI but log it
+            logger.warning(f"No running event loop for WebSocket emission: {e}")
         except Exception as e:
-            logger.debug(f"Could not emit WebSocket event: {e}")
+            # Log other errors at info level (non-critical)
+            logger.info(f"Could not emit WebSocket event: {e}")
 
     @staticmethod
     def emit_user_message(session_id: str, message: str, current_node_id: Optional[str] = None):

@@ -1,5 +1,9 @@
 @echo off
-REM Start full development environment (Frontend + Backend + Engine + Redis + PostgreSQL)
+REM Start full development environment (Frontend + Backend + Engine + Redis + PostgreSQL + Messaging Gateway + ngrok)
+REM Usage: scripts\dev\start-dev.bat
+
+REM Change to project root directory (where this script is located relative to project root)
+cd /d "%~dp0\..\.." || exit /b 1
 
 echo 🚀 Starting EasyPath Development Environment...
 echo.
@@ -24,18 +28,19 @@ if not exist "apps\messaging-gateway\.env" (
 
 REM Start all services
 echo Starting all services with Docker Compose...
-docker-compose -f docker\docker-compose.dev.yml up --build
+docker compose -f docker\docker-compose.dev.yml up --build
 
 echo.
 echo ✅ Development environment started!
 echo.
 echo Services available at:
-echo   - Frontend:  http://localhost:5173
-echo   - Backend:   http://localhost:8000
-echo   - Engine:    http://localhost:8081
+echo   - Frontend:          http://localhost:5173
+echo   - Backend:           http://localhost:8000
+echo   - Engine:            http://localhost:8081
 echo   - Messaging Gateway: http://localhost:8082
-echo   - PostgreSQL: localhost:5432
-echo   - Redis:     localhost:6379
-echo   - ngrok Dashboard: http://localhost:4040
+echo   - PostgreSQL:        localhost:5432
+echo   - Redis:             localhost:6379
+echo   - ngrok Dashboard:   http://localhost:4040
 echo.
 echo Press Ctrl+C to stop all services
+

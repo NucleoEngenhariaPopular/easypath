@@ -45,8 +45,8 @@ BOT_NAME=My Test Bot
 
 ```bash
 # Option 1: Using helper script (recommended)
-./scripts/start-dev.sh   # Linux/macOS
-.\start-dev.bat          # Windows CMD (PowerShell alternative: .\scripts\start-telegram.ps1)
+./scripts/dev/start-dev.sh   # Linux/macOS
+.\scripts\dev\start-dev.bat  # Windows CMD (PowerShell alternative: .\scripts\start-telegram.ps1)
 
 # Option 2: Direct docker compose
 docker compose -f docker/docker-compose.dev.yml up --build

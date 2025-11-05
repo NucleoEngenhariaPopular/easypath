@@ -3,12 +3,14 @@ Automatic database migration runner.
 
 Runs SQL migrations on service startup.
 """
+
 import logging
 from pathlib import Path
 from sqlalchemy import text
 from ..database import engine
 
 logger = logging.getLogger(__name__)
+"""""" """""" """""" """"""
 
 
 def run_migrations():
@@ -38,34 +40,25 @@ def run_migrations():
             logger.info(f"Running migration: {migration_file.name}")
 
             # Read migration file
-            with open(migration_file, 'r', encoding='utf-8') as f:
+            with open(migration_file, "r", encoding="utf-8") as f:
                 migration_sql = f.read()
 
+            # If file is empty, skip it
+            if not migration_sql.strip():
+                logger.warning(f"Skipping empty migration file: {migration_file.name}")
+                continue
+
             # Execute migration
-            statement_count = 0
             with engine.begin() as conn:
-                # Split by semicolon and execute each statement
-                statements = [s.strip() for s in migration_sql.split(';') if s.strip()]
+                logger.info(f"Executing migration: {migration_file.name}")
+                _ = conn.execute(text(migration_sql))
 
-                for statement in statements:
-                    # Skip comments and empty statements
-                    if statement.startswith('--') or not statement:
-                        continue
-
-                    try:
-                        # Log what we're executing (first 100 chars)
-                        preview = statement.replace('\n', ' ')[:100]
-                        logger.info(f"  Executing: {preview}...")
-                        conn.execute(text(statement))
-                        statement_count += 1
-                    except Exception as e:
-                        # Log but continue - migration might have already been applied
-                        logger.warning(f"  Statement note: {str(e)[:200]}")
-
-            logger.info(f"✓ Migration completed: {migration_file.name} ({statement_count} statement(s) executed)")
+            logger.info(f"✓ Migration completed: {migration_file.name}")
 
         except Exception as e:
-            logger.error(f"✗ Error running migration {migration_file.name}: {e}", exc_info=True)
+            logger.error(
+                f"✗ Error running migration {migration_file.name}: {e}", exc_info=True
+            )
             # Continue with other migrations
 
     logger.info("All migrations processed")
