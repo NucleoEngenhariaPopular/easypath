@@ -94,6 +94,9 @@ interface UseFlowWebSocketOptions {
   onStateUpdate?: (state: FlowExecutionState) => void;
   onError?: (error: Event) => void;
   enabled?: boolean;
+  autoReconnect?: boolean; // Enable automatic reconnection on disconnect
+  maxReconnectAttempts?: number; // Maximum reconnection attempts
+  reconnectDelay?: number; // Initial delay before reconnecting (ms)
 }
 
 export function useFlowWebSocket({
@@ -103,16 +106,40 @@ export function useFlowWebSocket({
   onStateUpdate,
   onError,
   enabled = true,
+  autoReconnect = true,
+  maxReconnectAttempts = 5,
+  reconnectDelay = 1000,
 }: UseFlowWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<number | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const isManualDisconnectRef = useRef(false);
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<FlowEvent | null>(null);
   const [executionState, setExecutionState] =
     useState<FlowExecutionState | null>(null);
 
+  const clearReconnectTimeout = useCallback(() => {
+    if (reconnectTimeoutRef.current !== null) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  }, []);
+
   const connect = useCallback(() => {
-    if (!enabled || !sessionId || wsRef.current?.readyState === WebSocket.OPEN)
+    // Don't connect if disabled, no sessionId, or already connected
+    if (!enabled || !sessionId) {
       return;
+    }
+
+    // Check if already connected
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      console.log("WebSocket already connected");
+      return;
+    }
+
+    // Clear any pending reconnect attempts
+    clearReconnectTimeout();
 
     // Determine WebSocket URL - use environment variable or default to engine port
     const enginePort = import.meta.env.VITE_ENGINE_PORT || "8081";
@@ -121,73 +148,149 @@ export function useFlowWebSocket({
     const flowParam = flowId ? `?flow_id=${flowId}` : "";
     const wsUrl = `${protocol}//${host}:${enginePort}/ws/session/${sessionId}${flowParam}`;
 
-    console.log("Connecting to WebSocket:", wsUrl);
+    console.log("Connecting to WebSocket:", wsUrl, "attempt:", reconnectAttemptsRef.current + 1);
 
-    const ws = new WebSocket(wsUrl);
+    try {
+      const ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => {
-      console.log("WebSocket connected");
-      setIsConnected(true);
-    };
+      ws.onopen = () => {
+        console.log("WebSocket connected");
+        setIsConnected(true);
+        reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
+        isManualDisconnectRef.current = false;
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+      ws.onmessage = (event) => {
+        try {
+          // Handle plain text ping (backend can send both JSON and plain text)
+          if (typeof event.data === "string" && event.data.trim() === "ping") {
+            console.log("Received plain text ping, sending pong");
+            ws.send("pong");
+            return;
+          }
 
-        // Handle ping/pong heartbeat
-        if (data.type === "ping") {
-          console.log("Received ping, sending pong");
-          ws.send(JSON.stringify({ type: "pong" }));
-          return;
+          const data = JSON.parse(event.data);
+
+          // Handle JSON ping/pong heartbeat
+          if (data.type === "ping") {
+            console.log("Received JSON ping, sending pong");
+            ws.send(JSON.stringify({ type: "pong" }));
+            return;
+          }
+
+          // Check if it's a state update or an event
+          if (data.is_active !== undefined) {
+            // It's a FlowExecutionState
+            const state = data as FlowExecutionState;
+            setExecutionState(state);
+            onStateUpdate?.(state);
+          } else if (data.event_type) {
+            // It's a FlowEvent
+            const flowEvent = data as FlowEvent;
+            setLastEvent(flowEvent);
+            onEvent?.(flowEvent);
+
+            console.log(
+              "Received WebSocket event:",
+              flowEvent.event_type,
+              flowEvent,
+            );
+          }
+        } catch (error) {
+          console.error("Failed to parse WebSocket message:", error, "data:", event.data);
         }
+      };
 
-        // Check if it's a state update or an event
-        if (data.is_active !== undefined) {
-          // It's a FlowExecutionState
-          const state = data as FlowExecutionState;
-          setExecutionState(state);
-          onStateUpdate?.(state);
-        } else if (data.event_type) {
-          // It's a FlowEvent
-          const flowEvent = data as FlowEvent;
-          setLastEvent(flowEvent);
-          onEvent?.(flowEvent);
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        setIsConnected(false);
+        onError?.(error);
+      };
 
+      ws.onclose = (event) => {
+        console.log("WebSocket disconnected", {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          isManual: isManualDisconnectRef.current,
+        });
+        setIsConnected(false);
+        wsRef.current = null;
+
+        // Only attempt reconnect if:
+        // 1. Auto-reconnect is enabled
+        // 2. It wasn't a manual disconnect
+        // 3. We haven't exceeded max attempts
+        // 4. Connection is still enabled
+        // 5. Close code indicates it's worth retrying (not 1000 Normal Closure or 1001 Going Away)
+        const shouldReconnect =
+          autoReconnect &&
+          !isManualDisconnectRef.current &&
+          enabled &&
+          reconnectAttemptsRef.current < maxReconnectAttempts &&
+          event.code !== 1000 && // Normal closure
+          event.code !== 1001; // Going away (usually intentional)
+
+        if (shouldReconnect) {
+          reconnectAttemptsRef.current += 1;
+          const delay = reconnectDelay * Math.pow(2, reconnectAttemptsRef.current - 1); // Exponential backoff
           console.log(
-            "Received WebSocket event:",
-            flowEvent.event_type,
-            flowEvent,
+            `Scheduling reconnect attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts} in ${delay}ms`
           );
+          reconnectTimeoutRef.current = window.setTimeout(() => {
+            connect();
+          }, delay);
+        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+          console.error("Max reconnection attempts reached");
+          onError?.(new Event("max_reconnect_attempts"));
         }
-      } catch (error) {
-        console.error("Failed to parse WebSocket message:", error);
-      }
-    };
+      };
 
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      onError?.(error);
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket disconnected");
+      wsRef.current = ws;
+    } catch (error) {
+      console.error("Failed to create WebSocket:", error);
       setIsConnected(false);
-      wsRef.current = null;
-    };
+      onError?.(error as Event);
 
-    wsRef.current = ws;
-  }, [sessionId, flowId, enabled, onEvent, onStateUpdate, onError]);
+      // Retry connection on error
+      if (autoReconnect && enabled && reconnectAttemptsRef.current < maxReconnectAttempts) {
+        reconnectAttemptsRef.current += 1;
+        const delay = reconnectDelay * Math.pow(2, reconnectAttemptsRef.current - 1);
+        reconnectTimeoutRef.current = window.setTimeout(() => {
+          connect();
+        }, delay);
+      }
+    }
+  }, [
+    sessionId,
+    flowId,
+    enabled,
+    autoReconnect,
+    maxReconnectAttempts,
+    reconnectDelay,
+    onEvent,
+    onStateUpdate,
+    onError,
+    clearReconnectTimeout,
+  ]);
 
   const disconnect = useCallback(() => {
+    isManualDisconnectRef.current = true;
+    clearReconnectTimeout();
+    reconnectAttemptsRef.current = 0;
+
     if (wsRef.current) {
-      wsRef.current.close();
+      wsRef.current.close(1000, "Manual disconnect"); // Normal closure
       wsRef.current = null;
     }
-  }, []);
+    setIsConnected(false);
+  }, [clearReconnectTimeout]);
 
   const sendMessage = useCallback((message: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(message);
+    } else {
+      console.warn("Cannot send message: WebSocket is not open");
     }
   }, []);
 
@@ -219,6 +322,7 @@ export function useFlowWebSocket({
       return () => {
         console.log("WebSocket effect cleanup timer - clearing timeout");
         clearTimeout(timer);
+        clearReconnectTimeout();
       };
     } else if (!enabled) {
       console.log("WebSocket disabled, disconnecting");
@@ -226,6 +330,14 @@ export function useFlowWebSocket({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, sessionId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      disconnect();
+      clearReconnectTimeout();
+    };
+  }, [disconnect, clearReconnectTimeout]);
 
   return {
     isConnected,
