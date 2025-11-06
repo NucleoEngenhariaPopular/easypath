@@ -11,6 +11,7 @@ import asyncio
 from ..models import BotConfig
 from ..database import SessionLocal, settings
 from .telegram import telegram_service
+from ..utils.constants import BotStatus, MessagingPlatform
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ async def update_all_webhooks(webhook_base_url: Optional[str] = None):
     db = SessionLocal()
     try:
         # Get all active bots
-        active_bots = db.query(BotConfig).filter(BotConfig.is_active == True).all()
+        active_bots = db.query(BotConfig).filter(BotConfig.is_active == BotStatus.ACTIVE).all()
 
         if not active_bots:
             logger.info("No active bots found. Nothing to update.")
@@ -62,7 +63,7 @@ async def update_all_webhooks(webhook_base_url: Optional[str] = None):
                 )
 
                 # Update webhook based on platform
-                if bot.platform == "telegram":
+                if bot.platform == MessagingPlatform.TELEGRAM:
                     success = await telegram_service.set_webhook(bot, webhook_url)
 
                     if success:
@@ -81,7 +82,7 @@ async def update_all_webhooks(webhook_base_url: Optional[str] = None):
                         )
                         failure_count += 1
 
-                elif bot.platform == "whatsapp":
+                elif bot.platform == MessagingPlatform.WHATSAPP:
                     # WhatsApp webhook setup will be implemented later
                     logger.info(
                         f"⊘ Skipping WhatsApp bot '{bot.bot_name}' - not yet implemented"

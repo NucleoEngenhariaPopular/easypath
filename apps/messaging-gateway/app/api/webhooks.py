@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from sqlalchemy.orm import Session
+from telegram import Update
 import logging
 import httpx
 from typing import Dict, Any
@@ -8,14 +9,15 @@ from ..database import get_db, SessionLocal
 from ..models import BotConfig
 from ..services.telegram import telegram_service
 from ..utils.flow_converter import ensure_engine_format
+from ..utils.constants import BotStatus, MessagingPlatform
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
 async def _process_telegram_update_background(
-    bot_config_id: int,
-    update_data: Dict[str, Any],
+    bot_config: BotConfig,
+    update: Update,
     flow_data: Dict[str, Any]
 ):
     """
@@ -24,25 +26,16 @@ async def _process_telegram_update_background(
     """
     db = SessionLocal()
     try:
-        # Get bot config from database
-        bot_config = db.query(BotConfig).filter(
-            BotConfig.id == bot_config_id
-        ).first()
-
-        if not bot_config:
-            logger.error(f"Bot config not found in background task: {bot_config_id}")
-            return
-
         # Process the update
         success = await telegram_service.process_update(
-            update_data=update_data,
+            update=update,
             bot_config=bot_config,
             flow_data=flow_data,
             db=db
         )
 
         if not success:
-            logger.error(f"Failed to process update in background: bot_id={bot_config_id}")
+            logger.error(f"Failed to process update in background: bot_id={bot_config.id}")
 
     except Exception as e:
         logger.error(f"Error in background processing: {e}", exc_info=True)
@@ -70,29 +63,34 @@ async def telegram_webhook(
         # Get bot configuration
         bot_config = db.query(BotConfig).filter(
             BotConfig.id == bot_config_id,
-            BotConfig.platform == "telegram",
-            BotConfig.is_active == True
+            BotConfig.platform == MessagingPlatform.TELEGRAM,
+            BotConfig.is_active == BotStatus.ACTIVE
         ).first()
 
         if not bot_config:
             logger.error(f"Bot config not found or inactive: {bot_config_id}")
+            logger.error(f"Query returned: {bot_config}")
             # Return 200 to prevent Telegram retries (error logged internally)
             return {"status": "error", "message": "Bot not found or inactive"}
 
         # Get update data from Telegram
         update_data = await request.json()
+        update = Update.de_json(update_data)
 
-        # Extract message text for logging
-        message_text = ""
-        if update_data.get("message") and update_data["message"].get("text"):
-            message_text = update_data["message"]["text"]
+        if not update.message or not update.message.text:
+            logger.warning(f"Received update without text message: {update.update_id}")
+            return {"status": "ok", "message": "Received update without text message"}
+
+        if not update.message.from_user:
+            logger.warning(f"Received update without from user: {update.update_id}")
+            return {"status": "error", "message": "Received update without from user"}
 
         logger.info(
             f"Received Telegram webhook: bot_id={bot_config_id}, "
-            f"user_id={update_data.get('message', {}).get('from', {}).get('id')}, "
-            f"message=\"{message_text[:100]}\""
+            f"user_id={update.message.from_user.id}, "
+            f"message=\"{update.message.text[:100]}\""
         )
-        logger.debug(f"Full update data: {update_data}")
+        logger.debug(f"Full update data: {update}")
 
         # Fetch flow data from platform database
         flow_data = await _fetch_flow_data(bot_config.flow_id)
@@ -104,6 +102,7 @@ async def telegram_webhook(
 
         # Convert flow format if needed (canvas → engine)
         try:
+            #TODO: Check if I really want the format between platform and engine to be different
             flow_data = ensure_engine_format(flow_data)
             logger.debug(f"Flow format validated/converted for flow_id={bot_config.flow_id}")
         except ValueError as e:
@@ -114,8 +113,8 @@ async def telegram_webhook(
         # Schedule background processing
         background_tasks.add_task(
             _process_telegram_update_background,
-            bot_config_id=bot_config_id,
-            update_data=update_data,
+            bot_config=bot_config,
+            update=update,
             flow_data=flow_data
         )
 

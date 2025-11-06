@@ -1,15 +1,18 @@
-"""WebSocket routes for real-time flow visualization."""
+"""WebSocket routes for real-time flow visualization and bidirectional communication."""
 
 import asyncio
 import json
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
 from app.models.ws_events import FlowExecutionState, SessionStartedEvent
+from app.models.flow import Flow
 from app.ws.manager import ws_manager
-from app.storage.session_store import load_session
+from app.storage.session_store import load_session, save_session
+from app.core.chat_manager import new_session
+from app.core.orchestrator import run_step
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +46,98 @@ async def _heartbeat_task(websocket: WebSocket, session_id: str):
         raise
 
 
+async def _process_user_message(
+    session_id: str,
+    user_message: str,
+    flow_data: Dict[str, Any],
+    websocket: WebSocket
+) -> None:
+    """
+    Process an incoming user message and execute the flow.
+
+    This function runs the orchestrator which will emit WebSocket events
+    (assistant_message, node_entered, etc.) that the client will receive.
+
+    Args:
+        session_id: Session ID
+        user_message: User's message
+        flow_data: Flow definition
+        websocket: WebSocket connection (for error reporting)
+    """
+    try:
+        logger.info(
+            f"📨 Processing user message via WebSocket: session={session_id}, "
+            f'message="{user_message[:100]}"'
+        )
+
+        # Parse flow from flow_data
+        try:
+            flow = Flow(**flow_data)
+        except Exception as e:
+            logger.error(f"Failed to parse flow: {e}")
+            await websocket.send_json({
+                "event_type": "error",
+                "session_id": session_id,
+                "error_message": f"Invalid flow format: {str(e)}"
+            })
+            return
+
+        # Load or create session
+        session = await load_session(session_id)
+        if session is None:
+            session = new_session(
+                session_id=session_id,
+                first_node_id=flow.first_node_id
+            )
+            logger.info(f"Created new session: {session_id}")
+
+        # Run first step with events enabled
+        reply, step_timings = run_step(
+            flow, session, user_message, emit_events=True
+        )
+
+        # Auto-advance through nodes with skip_user_response
+        max_auto_advances = 10
+        auto_advance_count = 0
+
+        while auto_advance_count < max_auto_advances:
+            current_node = flow.get_node_by_id(session.current_node_id)
+            if current_node and current_node.skip_user_response:
+                logger.info(
+                    f"Node {session.current_node_id} has skip_user_response=True, auto-advancing"
+                )
+                auto_reply, step_timings = run_step(
+                    flow, session, "[AUTO_ADVANCE]", emit_events=True
+                )
+                auto_advance_count += 1
+            else:
+                break
+
+        if auto_advance_count >= max_auto_advances:
+            logger.warning(
+                f"Auto-advance limit reached ({max_auto_advances}). Stopping to prevent infinite loop."
+            )
+
+        # Save session
+        await save_session(session)
+
+        logger.info(
+            f"✅ User message processed successfully via WebSocket: session={session_id}, "
+            f"current_node={session.current_node_id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Error processing user message: {e}", exc_info=True)
+        try:
+            await websocket.send_json({
+                "event_type": "error",
+                "session_id": session_id,
+                "error_message": f"Failed to process message: {str(e)}"
+            })
+        except Exception as send_error:
+            logger.error(f"Failed to send error event: {send_error}")
+
+
 @router.websocket("/session/{session_id}")
 async def websocket_endpoint(
     websocket: WebSocket,
@@ -50,10 +145,13 @@ async def websocket_endpoint(
     flow_id: Optional[str] = Query(None)
 ):
     """
-    WebSocket endpoint for real-time flow visualization.
+    WebSocket endpoint for real-time flow visualization and bidirectional communication.
 
-    Clients connect to this endpoint to receive real-time events
-    during flow execution. Includes ping/pong heartbeat for connection health.
+    Clients connect to this endpoint to:
+    1. Receive real-time events during flow execution (assistant_message, node_entered, etc.)
+    2. Send user messages to trigger flow execution
+
+    Includes ping/pong heartbeat for connection health.
 
     Args:
         websocket: The WebSocket connection
@@ -105,28 +203,61 @@ async def websocket_endpoint(
                     websocket.receive_text(),
                     timeout=PING_INTERVAL + PING_TIMEOUT
                 )
-                logger.debug(f"Received WebSocket message from {session_id}: {data}")
+                logger.debug(f"Received WebSocket message from {session_id}: {data[:200]}")
 
-                # Handle pong responses (both JSON and plain text)
+                # Parse message as JSON
                 try:
-                    # Try parsing as JSON first
                     if isinstance(data, str):
                         parsed = json.loads(data)
-                        if isinstance(parsed, dict) and parsed.get("type") == "pong":
+
+                        # Handle different message types
+                        message_type = parsed.get("type")
+
+                        if message_type == "pong":
                             logger.debug(f"Received JSON pong from session={session_id}")
                             continue
-                except (json.JSONDecodeError, ValueError):
-                    pass
-                
-                # Handle plain text pong
-                if data == "pong" or (isinstance(data, str) and "pong" in data.lower()):
-                    logger.debug(f"Received pong from session={session_id}")
-                    continue
 
-                # For now, we just log. In future, could handle commands like:
-                # - "pause" - pause flow execution
-                # - "step" - step through flow manually
-                # - "reset" - reset session
+                        elif message_type == "user_message":
+                            # Handle user message - trigger flow execution
+                            user_message = parsed.get("message")
+                            flow_data = parsed.get("flow_data")
+
+                            if not user_message:
+                                logger.warning(f"Received user_message without 'message' field: {parsed}")
+                                await websocket.send_json({
+                                    "event_type": "error",
+                                    "session_id": session_id,
+                                    "error_message": "Missing 'message' field"
+                                })
+                                continue
+
+                            if not flow_data:
+                                logger.warning(f"Received user_message without 'flow_data' field: {parsed}")
+                                await websocket.send_json({
+                                    "event_type": "error",
+                                    "session_id": session_id,
+                                    "error_message": "Missing 'flow_data' field"
+                                })
+                                continue
+
+                            # Process the message (runs orchestrator which emits events)
+                            asyncio.create_task(
+                                _process_user_message(session_id, user_message, flow_data, websocket)
+                            )
+                            continue
+
+                        else:
+                            logger.debug(f"Received unknown message type '{message_type}' from {session_id}")
+                            continue
+
+                except (json.JSONDecodeError, ValueError) as e:
+                    # Handle plain text pong (legacy)
+                    if data == "pong" or (isinstance(data, str) and "pong" in data.lower()):
+                        logger.debug(f"Received plain text pong from session={session_id}")
+                        continue
+
+                    logger.warning(f"Failed to parse WebSocket message as JSON: {e}")
+                    continue
 
             except asyncio.TimeoutError:
                 # No message received within timeout - connection might be dead

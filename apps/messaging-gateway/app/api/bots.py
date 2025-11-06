@@ -9,6 +9,7 @@ from ..database import get_db, settings
 from ..models import BotConfig, PlatformConversation, ConversationMessage
 from ..services.telegram import telegram_service
 from ..services.webhook_updater import update_all_webhooks
+from ..utils.constants import BotStatus, MessagingPlatform
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Pydantic schemas for API
 class BotConfigCreate(BaseModel):
-    platform: str  # 'telegram', 'whatsapp'
+    platform: MessagingPlatform
     bot_name: str
     bot_token: str
     flow_id: int
@@ -27,16 +28,16 @@ class BotConfigUpdate(BaseModel):
     bot_name: Optional[str] = None
     bot_token: Optional[str] = None
     flow_id: Optional[int] = None
-    is_active: Optional[bool] = None
+    is_active: Optional[BotStatus] = None
 
 
 class BotConfigResponse(BaseModel):
     id: int
-    platform: str
+    platform: MessagingPlatform
     bot_name: str
     flow_id: int
     owner_id: str
-    is_active: bool
+    is_active: BotStatus
     webhook_url: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime]
@@ -87,7 +88,7 @@ async def create_bot(
         db.refresh(new_bot)
 
         # Set webhook for Telegram bots
-        if bot_config.platform == "telegram":
+        if bot_config.platform == MessagingPlatform.TELEGRAM:
             webhook_url = f"{settings.webhook_base_url}/webhooks/telegram/{new_bot.id}"
             success = await telegram_service.set_webhook(new_bot, webhook_url)
 
@@ -184,7 +185,7 @@ async def delete_bot(bot_id: int, db: Session = Depends(get_db)):
 
     try:
         # Delete webhook from Telegram
-        if bot.platform == "telegram":
+        if bot.platform == MessagingPlatform.TELEGRAM:
             telegram_bot = telegram_service.get_bot(bot)
             await telegram_bot.delete_webhook()
 

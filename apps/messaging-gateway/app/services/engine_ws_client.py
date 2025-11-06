@@ -3,8 +3,7 @@
 import asyncio
 import json
 import logging
-import re
-from typing import AsyncGenerator, Dict, Any, Optional, List
+from typing import AsyncGenerator, Dict, Any, Optional
 import websockets
 from websockets.client import WebSocketClientProtocol
 
@@ -39,32 +38,6 @@ class EngineWebSocketClient:
 
         # Message queues for distributing messages to multiple listeners
         self._message_queues: Dict[str, list] = {}
-
-    @staticmethod
-    def _split_message_at_separator(text: str) -> List[str]:
-        """
-        Split message at '---' separator (with optional newlines).
-        Returns list of non-empty message parts.
-        
-        Handles patterns like:
-        - "Text 1\n---\nText 2"
-        - "Text 1\n---Text 2"
-        - "Text 1---\nText 2"
-        - "Text 1---Text 2"
-        """
-        if not text:
-            return []
-        
-        # Split on \n---\n, \n---, or ---\n, or standalone ---
-        # Pattern: optional newlines, optional whitespace, ---, optional whitespace, optional newlines
-        parts = re.split(r'\n*\s*---\s*\n*', text)
-        # Filter out empty parts and strip whitespace
-        result = [part.strip() for part in parts if part.strip()]
-        
-        if len(result) > 1:
-            logger.debug(f"Split message into {len(result)} parts at '---' separator")
-        
-        return result
 
     def _get_lock(self, session_id: str) -> asyncio.Lock:
         """Get or create a lock for the given session."""
@@ -129,6 +102,54 @@ class EngineWebSocketClient:
             except Exception as e:
                 logger.error(f"Failed to create WebSocket connection: session={session_id}, error={e}")
                 raise
+
+    async def send_user_message(
+        self,
+        session_id: str,
+        user_message: str,
+        flow_data: Dict[str, Any],
+        flow_id: Optional[str] = None
+    ) -> None:
+        """
+        Send a user message to the engine via WebSocket.
+
+        This triggers flow execution on the engine side, which will emit
+        assistant_message events that can be received via listen_for_assistant_messages().
+
+        Args:
+            session_id: Session ID
+            user_message: User's message text
+            flow_data: Flow definition
+            flow_id: Optional flow ID for context
+
+        Raises:
+            Exception: If connection fails or message send fails
+        """
+        try:
+            # Ensure connection exists
+            connection = await self._ensure_connection(session_id, flow_id)
+
+            # Build message
+            message = {
+                "type": "user_message",
+                "message": user_message,
+                "flow_data": flow_data
+            }
+
+            # Send message
+            await connection.send(json.dumps(message))
+
+            logger.info(
+                f"📤 Sent user message via WebSocket: session={session_id}, "
+                f'message="{user_message[:100]}"'
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to send user message via WebSocket: session={session_id}, error={e}",
+                exc_info=True
+            )
+            raise
 
     async def _read_connection(
         self,
@@ -278,23 +299,11 @@ class EngineWebSocketClient:
                     node_id = event.get("node_id")
 
                     if message.strip():  # Only yield non-empty messages
-                        # Split message at '---' separator if present
-                        message_parts = self._split_message_at_separator(message)
-                        
-                        if not message_parts:
-                            logger.warning(
-                                f"Message became empty after splitting: session={session_id}, "
-                                f"node={node_id}"
-                            )
-                            continue
-                        
-                        # Yield each part separately
-                        for part in message_parts:
-                            logger.info(
-                                f"Yielding assistant message part: session={session_id}, "
-                                f"node={node_id}, message_len={len(part)}"
-                            )
-                            yield part
+                        logger.info(
+                            f"Yielding assistant message: session={session_id}, "
+                            f"node={node_id}, message_len={len(message)}"
+                        )
+                        yield message
                     else:
                         logger.warning(
                             f"Skipping empty assistant message: session={session_id}, "
