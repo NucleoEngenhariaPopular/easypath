@@ -9,6 +9,7 @@ import logging
 import time
 from dotenv import load_dotenv
 from app.core.logging_config import setup_logging
+from easypath_shared.constants import TableNames
 
 load_dotenv()
 
@@ -24,7 +25,7 @@ Base = declarative_base()
 
 # SQLAlchemy Models
 class Flow(Base):
-    __tablename__ = "flows"
+    __tablename__ = TableNames.FLOWS
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     description = Column(String)

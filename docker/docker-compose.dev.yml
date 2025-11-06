@@ -30,28 +30,30 @@ services:
   # Platform Backend (FastAPI)
   backend:
     build:
-      context: ../apps/platform/backend
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/platform/backend/Dockerfile
     container_name: easypath_backend
     ports:
       - "8000:8000"
     volumes:
       - ../apps/platform/backend:/app
+      - ../packages/shared:/app/packages/shared
       - backend_pycache:/app/__pycache__ # Named volume for cache
       - /app/.pytest_cache # Exclude pytest cache
     tmpfs:
       - /app/logs # Logs in memory (not persisted)
     command: >
+      sh -c "pip install -e /app/packages/shared --quiet || true &&
       uvicorn main:app
       --host 0.0.0.0
       --port 8000
       --reload
-      --reload-include "*.py"
-      --reload-exclude ".git"
-      --reload-exclude ".venv"
-      --reload-exclude "__pycache__"
-      --reload-exclude ".pytest_cache"
-      --reload-exclude "logs"
+      --reload-include \"*.py\"
+      --reload-exclude \".git\"
+      --reload-exclude \".venv\"
+      --reload-exclude \"__pycache__\"
+      --reload-exclude \".pytest_cache\"
+      --reload-exclude \"logs\""
     depends_on:
       postgres:
         condition: service_healthy
@@ -153,27 +155,29 @@ services:
   # Messaging Gateway (Telegram/WhatsApp Integration)
   messaging-gateway:
     build:
-      context: ../apps/messaging-gateway
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/messaging-gateway/Dockerfile
     container_name: easypath_messaging_gateway
     ports:
       - "8082:8082"
     volumes:
       - ../apps/messaging-gateway:/app
+      - ../packages/shared:/app/packages/shared
       - messaging_pycache:/app/__pycache__ # Named volume for cache
       - /app/.pytest_cache # Exclude pytest cache
     tmpfs:
       - /app/logs # Logs in memory (not persisted)
     command: >
+      sh -c "pip install -e /app/packages/shared --quiet || true &&
       uvicorn app.main:app
       --host 0.0.0.0
       --port 8082
       --reload
       --reload-dir /app/app
-      --reload-exclude ".git"
-      --reload-exclude ".venv"
-      --reload-exclude "__pycache__"
-      --reload-exclude ".pytest_cache"
+      --reload-exclude \".git\"
+      --reload-exclude \".venv\"
+      --reload-exclude \"__pycache__\"
+      --reload-exclude \".pytest_cache\""
     depends_on:
       postgres:
         condition: service_healthy

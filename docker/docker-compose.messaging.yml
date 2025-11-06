@@ -7,8 +7,8 @@ name: easypath_messaging
 services:
   messaging-gateway:
     build:
-      context: ../apps/messaging-gateway
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/messaging-gateway/Dockerfile
     container_name: easypath-messaging-gateway
     ports:
       - "8082:8082"

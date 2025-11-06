@@ -22,7 +22,8 @@ services:
 
   backend:
     build:
-      context: ../apps/platform/backend
+      context: ..
+      dockerfile: apps/platform/backend/Dockerfile
     container_name: easypath_backend
     ports:
       - "8000:8000"

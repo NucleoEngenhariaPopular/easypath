@@ -1,0 +1,15 @@
+{
+  "include": [
+    "app"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules"
+  ],
+  "extraPaths": [
+    "../../packages/shared"
+  ],
+  "pythonVersion": "3.9",
+  "typeCheckingMode": "basic"
+}
+

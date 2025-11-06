@@ -9,7 +9,7 @@ from ..database import get_db, SessionLocal
 from ..models import BotConfig
 from ..services.telegram import telegram_service
 from ..utils.flow_converter import ensure_engine_format
-from ..utils.constants import BotStatus, MessagingPlatform
+from easypath_shared.constants import BotStatus, MessagingPlatform
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

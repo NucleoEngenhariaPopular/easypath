@@ -15,18 +15,19 @@ from sqlalchemy import Enum as DBEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base, settings
-from ..utils.constants import (
+from easypath_shared.constants import (
     BotStatus,
     ConversationMessageRoles,
     MessagingPlatform,
     PlatformConversationStatus,
+    TableNames,
 )
 
 
 class BotConfig(Base):
     """Configuration for messaging platform bots (Telegram, WhatsApp, etc.)"""
 
-    __tablename__ = "bot_configs"
+    __tablename__ = TableNames.BOT_CONFIGS
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     platform: Mapped[MessagingPlatform] = mapped_column(
@@ -76,11 +77,11 @@ class BotConfig(Base):
 class PlatformConversation(Base):
     """Tracks conversations between platform users and bots"""
 
-    __tablename__ = "platform_conversations"
+    __tablename__ = TableNames.PLATFORM_CONVERSATIONS
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     bot_config_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("bot_configs.id"), nullable=False
+        Integer, ForeignKey(f"{TableNames.BOT_CONFIGS}.id"), nullable=False
     )
     platform_user_id: Mapped[str] = mapped_column(
         String, nullable=False
@@ -117,11 +118,11 @@ class PlatformConversation(Base):
 class ConversationMessage(Base):
     """Individual messages in a conversation (for history/debugging)"""
 
-    __tablename__ = "conversation_messages"
+    __tablename__ = TableNames.CONVERSATION_MESSAGES
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     conversation_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("platform_conversations.id"), nullable=False
+        Integer, ForeignKey(f"{TableNames.PLATFORM_CONVERSATIONS}.id"), nullable=False
     )
     role: Mapped[ConversationMessageRoles] = mapped_column(
         DBEnum(

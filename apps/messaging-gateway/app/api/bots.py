@@ -9,7 +9,7 @@ from ..database import get_db, settings
 from ..models import BotConfig, PlatformConversation, ConversationMessage
 from ..services.telegram import telegram_service
 from ..services.webhook_updater import update_all_webhooks
-from ..utils.constants import BotStatus, MessagingPlatform
+from easypath_shared.constants import BotStatus, MessagingPlatform
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

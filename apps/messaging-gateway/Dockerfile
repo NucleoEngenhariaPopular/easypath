@@ -10,8 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy shared package first (needed for editable install)
+COPY packages/shared /app/packages/shared
+
 # Copy and install Python dependencies
-COPY requirements.txt .
+COPY apps/messaging-gateway/requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Stage 2: Runtime
@@ -27,14 +30,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy installed dependencies from builder
 COPY --from=builder /root/.local /root/.local
 
+# Copy shared package (needed for editable install at runtime)
+COPY packages/shared /app/packages/shared
+
 # Add .local/bin to PATH
 ENV PATH=/root/.local/bin:$PATH
 
 # Copy only application code
-COPY app/ ./app/
+COPY apps/messaging-gateway/app/ ./app/
 
 # Copy migration files (needed for database setup)
-COPY migrations/ ./migrations/
+COPY apps/messaging-gateway/migrations/ ./migrations/
 
 # Expose port
 EXPOSE 8082

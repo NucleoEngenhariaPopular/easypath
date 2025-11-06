@@ -10,7 +10,7 @@ from telegram import Bot, Update
 from telegram.constants import ChatAction
 
 from ..models import BotConfig, ConversationMessage, PlatformConversation
-from ..utils.constants import ConversationMessageRoles, MessagingPlatform
+from easypath_shared.constants import ConversationMessageRoles, MessagingPlatform
 from ..database import settings
 from .engine_client import engine_client
 from .engine_ws_client import engine_ws_client

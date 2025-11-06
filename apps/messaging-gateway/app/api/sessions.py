@@ -10,6 +10,7 @@ from uuid import uuid4
 from ..database import get_db
 from ..models import BotConfig, PlatformConversation, ConversationMessage
 from ..services.engine_client import engine_client
+from easypath_shared.constants import PlatformConversationStatus
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -79,7 +80,12 @@ async def list_sessions(
 
     # Apply filters
     if status:
-        query = query.filter(PlatformConversation.status == status)
+        # Convert string to enum if needed
+        try:
+            status_enum = PlatformConversationStatus(status.upper())
+            query = query.filter(PlatformConversation.status == status_enum)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid status: {status}. Must be one of: ACTIVE, INACTIVE, ARCHIVED")
 
     if bot_id:
         query = query.filter(PlatformConversation.bot_config_id == bot_id)
@@ -193,8 +199,8 @@ async def close_session(
         raise HTTPException(status_code=404, detail="Session not found")
 
     try:
-        # Mark as closed in database
-        conversation.status = 'closed'
+        # Mark as inactive in database
+        conversation.status = PlatformConversationStatus.INACTIVE
         db.commit()
 
         logger.info(
@@ -282,7 +288,7 @@ async def reset_session(
 
         # Update with new session ID and mark as active
         conversation.session_id = new_session_id
-        conversation.status = 'active'
+        conversation.status = PlatformConversationStatus.ACTIVE
         db.commit()
         db.flush()  # Force database to sync
 

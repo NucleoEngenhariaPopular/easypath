@@ -11,7 +11,7 @@ import asyncio
 from ..models import BotConfig
 from ..database import SessionLocal, settings
 from .telegram import telegram_service
-from ..utils.constants import BotStatus, MessagingPlatform
+from easypath_shared.constants import BotStatus, MessagingPlatform
 
 logger = logging.getLogger(__name__)
 
