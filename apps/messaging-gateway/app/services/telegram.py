@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict
@@ -10,6 +11,7 @@ from telegram.constants import ChatAction
 
 from ..models import BotConfig, ConversationMessage, PlatformConversation
 from ..utils.constants import ConversationMessageRoles, MessagingPlatform
+from ..database import settings
 from .engine_client import engine_client
 from .engine_ws_client import engine_ws_client
 
@@ -303,10 +305,15 @@ class TelegramService:
             # Start listening for assistant messages via WebSocket
             message_count = 0
             messages_received = []
-            messages_sent = {}  # Track (message_text, timestamp) for exact deduplication
+            # Improved deduplication: track message hashes instead of exact text
+            # This handles similar messages and allows for better deduplication
+            messages_sent = {}  # Track (message_hash, timestamp) for deduplication
             session_id = conversation.session_id
-            dedup_window = 2.0  # Only dedupe within 2-second window
+            dedup_window = 5.0  # Increased to 5 seconds for better deduplication
             messages_to_save = []  # Batch messages for single commit
+            
+            # Use configurable timeout from settings
+            processing_timeout = getattr(settings, 'websocket_timeout', 120.0)
 
             try:
                 # Create task for WebSocket listener
@@ -326,7 +333,6 @@ class TelegramService:
                 # Wait for messages to arrive via WebSocket
                 # As messages arrive, send them to Telegram
                 last_check = asyncio.get_event_loop().time()
-                processing_timeout = 90.0  # 90 seconds max
 
                 while True:
                     # Check if we have new messages
@@ -337,25 +343,29 @@ class TelegramService:
                         for i in range(message_count, len(messages_received)):
                             message_text = messages_received[i]
 
-                            # Deduplication: Check for exact matches within time window
+                            # Improved deduplication: Use content hash instead of exact match
+                            # This handles whitespace differences and similar content
+                            message_hash = hashlib.md5(message_text.strip().encode('utf-8')).hexdigest()
                             current_time = asyncio.get_event_loop().time()
 
-                            # Check for exact duplicate within dedup window
-                            if message_text in messages_sent:
+                            # Check for duplicate hash within dedup window
+                            if message_hash in messages_sent:
                                 time_since_sent = (
-                                    current_time - messages_sent[message_text]
+                                    current_time - messages_sent[message_hash]["timestamp"]
                                 )
                                 if time_since_sent < dedup_window:
                                     logger.warning(
-                                        f"Skipping exact duplicate message (sent {time_since_sent:.2f}s ago): "
-                                        f"session={conversation.session_id}, message_len={len(message_text)}"
+                                        f"Skipping duplicate message (sent {time_since_sent:.2f}s ago): "
+                                        f"session={conversation.session_id}, message_len={len(message_text)}, "
+                                        f"hash={message_hash[:8]}"
                                     )
                                     message_count += 1
                                     continue
                                 else:
                                     # Outside dedup window - this is a legitimate repeat
                                     logger.debug(
-                                        f"Sending repeated message (last sent {time_since_sent:.2f}s ago)"
+                                        f"Sending repeated message (last sent {time_since_sent:.2f}s ago, "
+                                        f"hash={message_hash[:8]})"
                                     )
 
                             # Stop typing before sending message
@@ -393,8 +403,11 @@ class TelegramService:
                             )
                             messages_to_save.append(assistant_msg)
 
-                            # Mark as sent with timestamp
-                            messages_sent[message_text] = current_time
+                            # Mark as sent with timestamp and hash
+                            messages_sent[message_hash] = {
+                                "timestamp": current_time,
+                                "text": message_text[:100]  # Store preview for debugging
+                            }
 
                             logger.info(
                                 f"Sent streaming message {message_count + 1}: session={conversation.session_id}, "

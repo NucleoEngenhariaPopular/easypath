@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     webhook_base_url: Optional[str] = None
     secret_key: str
     ngrok_authtoken: str
+    
+    # WebSocket configuration (optional, with defaults)
+    websocket_timeout: float = 120.0  # 120 seconds default timeout
+    websocket_connection_timeout: float = 10.0  # 10 seconds for connection establishment
+    websocket_cleanup_delay: float = 5.0  # 5 seconds delay before cleanup
 
     class Config:
         env_file = ".env"
