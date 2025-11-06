@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
-from app.models.ws_events import FlowExecutionState, SessionStartedEvent
+from app.models.ws_events import FlowExecutionState, SessionStartedEvent, MessageProcessingCompleteEvent
 from app.models.flow import Flow
 from app.ws.manager import ws_manager
 from app.storage.session_store import load_session, save_session
@@ -120,6 +120,13 @@ async def _process_user_message(
 
         # Save session
         await save_session(session)
+
+        # Emit completion event to signal listeners that processing is done
+        completion_event = MessageProcessingCompleteEvent(
+            session_id=session_id,
+            current_node_id=session.current_node_id
+        )
+        await ws_manager.send_event(completion_event, session_id)
 
         logger.info(
             f"✅ User message processed successfully via WebSocket: session={session_id}, "

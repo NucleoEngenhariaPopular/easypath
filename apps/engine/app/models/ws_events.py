@@ -29,6 +29,7 @@ class EventType(str, Enum):
     # Message events
     USER_MESSAGE = "user_message"
     ASSISTANT_MESSAGE = "assistant_message"
+    MESSAGE_PROCESSING_COMPLETE = "message_processing_complete"
 
     # Error events
     ERROR = "error"
@@ -123,6 +124,13 @@ class AssistantMessageEvent(BaseEvent):
     event_type: EventType = EventType.ASSISTANT_MESSAGE
     message: str
     node_id: str
+
+
+class MessageProcessingCompleteEvent(BaseEvent):
+    """Emitted when the engine completes processing a user message."""
+
+    event_type: EventType = EventType.MESSAGE_PROCESSING_COMPLETE
+    current_node_id: str
 
 
 class DecisionStepEvent(BaseEvent):

@@ -173,11 +173,16 @@ class EngineWebSocketClient:
 
                         # Distribute event to all listening queues
                         if session_id in self._message_queues:
+                            num_queues = len(self._message_queues[session_id])
+                            logger.info(f"📨 Distributing event={event_type} to {num_queues} queues: session={session_id}")
                             for queue in self._message_queues[session_id]:
-                                await queue.put(event)
+                                try:
+                                    await queue.put(event)
+                                except Exception as e:
+                                    logger.error(f"Error putting event into queue: {e}")
 
                         # Break on session end or error events
-                        if event_type in ("session_ended", "error"):
+                        if event_type in ("session_ended", "error", "message_processing_complete"):
                             logger.info(
                                 f"WebSocket session ending: type={event_type}, "
                                 f"session={session_id}"
@@ -274,8 +279,8 @@ class EngineWebSocketClient:
             self._message_queues[session_id] = []
         self._message_queues[session_id].append(queue)
 
-        logger.debug(
-            f"Registered listener for session={session_id}, "
+        logger.info(
+            f"🔔 REGISTERED listener for session={session_id}, "
             f"total_listeners={len(self._message_queues[session_id])}"
         )
 
@@ -321,8 +326,8 @@ class EngineWebSocketClient:
             if session_id in self._message_queues:
                 if queue in self._message_queues[session_id]:
                     self._message_queues[session_id].remove(queue)
-                    logger.debug(
-                        f"Unregistered listener for session={session_id}, "
+                    logger.info(
+                        f"🔕 UNREGISTERED listener for session={session_id}, "
                         f"remaining_listeners={len(self._message_queues[session_id])}"
                     )
 

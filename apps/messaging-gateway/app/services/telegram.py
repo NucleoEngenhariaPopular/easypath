@@ -507,6 +507,7 @@ class TelegramService:
     async def _collect_assistant_messages(self, session_id: str, messages_list: list):
         """Collect assistant messages from WebSocket and append to list"""
         try:
+            logger.info(f"🎧 Starting to collect messages: session={session_id}")
             async for message in engine_ws_client.listen_for_assistant_messages(
                 session_id
             ):
@@ -515,9 +516,9 @@ class TelegramService:
                     f"Collected message: session={session_id}, total={len(messages_list)}"
                 )
         except Exception as e:
-            logger.error(
-                f"Error collecting messages from WebSocket: {e}", exc_info=True
-            )
+            logger.info(f"🛑 Stopped collecting messages: session={session_id}")
+            logger.error(f"Error collecting messages from WebSocket: {e}", exc_info=True)
+            raise
 
 
 # Singleton instance
