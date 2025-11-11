@@ -960,6 +960,7 @@ const CanvasPage: React.FC = () => {
         lastMessageStats={lastMessageStats}
         conversationStats={conversationStats}
         decisionLogs={decisionLogs}
+        botId={1} // TODO: Get from actual bot configuration
       />
 
       <VariableInspectorPanel

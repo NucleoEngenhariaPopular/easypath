@@ -17,4 +17,5 @@ class TableNames:
     BOT_CONFIGS = "bot_configs"
     PLATFORM_CONVERSATIONS = "platform_conversations"
     CONVERSATION_MESSAGES = "conversation_messages"
+    EXTRACTED_VARIABLES = "extracted_variables"
 

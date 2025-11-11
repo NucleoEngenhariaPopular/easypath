@@ -22,8 +22,12 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import ChatIcon from '@mui/icons-material/Chat';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import CloudDoneIcon from '@mui/icons-material/CloudDone';
+import StorageIcon from '@mui/icons-material/Storage';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import { useTranslation } from 'react-i18next';
 import PathwayDecisionPanel from './PathwayDecisionPanel';
+import DataCollectionTable from '../bot/DataCollectionTable';
 import type { DecisionLog } from '../../hooks/useFlowWebSocket';
 
 interface Message {
@@ -43,6 +47,7 @@ interface TestModePanelProps {
   onSendMessage: (message: string) => void;
   onReset: () => void;
   isLoading?: boolean;
+  botId?: number; // Optional bot ID for viewing collected data
   lastMessageStats?: {
     responseTime: number;
     tokens: number;
@@ -182,11 +187,12 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
   lastMessageStats,
   conversationStats,
   decisionLogs = [],
+  botId,
 }) => {
   const { t } = useTranslation();
   const [inputMessage, setInputMessage] = useState('');
   const [showStatsPanel, setShowStatsPanel] = useState(false);
-  const [viewMode, setViewMode] = useState<'decisions' | 'chat'>('chat');
+  const [viewMode, setViewMode] = useState<'decisions' | 'chat' | 'data'>('chat');
   const [drawerWidth, setDrawerWidth] = useState(DEFAULT_DRAWER_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -353,16 +359,53 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
         {/* Variables */}
         {Object.keys(variables).length > 0 && (
           <Paper sx={{ p: 2, mb: 2, backgroundColor: 'action.hover' }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-              {t('testMode.variables')}
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                {t('testMode.variables')}
+              </Typography>
+              <Chip
+                label="Persisted"
+                size="small"
+                color="success"
+                icon={<StorageIcon sx={{ fontSize: '14px !important' }} />}
+                sx={{ height: 20, fontSize: '0.7rem' }}
+              />
+            </Box>
             {Object.entries(variables).map(([key, value]) => (
-              <Box key={key} sx={{ mb: 0.5 }}>
-                <Typography variant="caption" component="span" sx={{ fontWeight: 600 }}>
-                  {key}:
-                </Typography>{' '}
-                <Typography variant="caption" component="span">
+              <Box
+                key={key}
+                sx={{
+                  mb: 1,
+                  p: 1.5,
+                  borderLeft: '3px solid',
+                  borderColor: 'primary.main',
+                  backgroundColor: 'background.paper',
+                  borderRadius: '4px',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    backgroundColor: 'action.selected',
+                    transform: 'translateX(4px)',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 0.5 }}>
+                  <Typography variant="caption" component="span" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                    {key}
+                  </Typography>
+                  {currentNodeId && (
+                    <Chip
+                      label={`from: ${currentNodeId}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{ height: 16, fontSize: '0.6rem', '& .MuiChip-label': { px: 0.5 } }}
+                    />
+                  )}
+                </Box>
+                <Typography variant="body2" component="div" sx={{ mt: 0.5, wordBreak: 'break-word' }}>
                   {String(value)}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.5, fontSize: '0.6rem', display: 'block', mt: 0.5 }}>
+                  Saved to database • Real-time sync
                 </Typography>
               </Box>
             ))}
@@ -398,6 +441,12 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
               <ChatIcon sx={{ mr: 1 }} fontSize="small" />
               Chat Messages
             </ToggleButton>
+            {botId && (
+              <ToggleButton value="data" aria-label="collected data">
+                <TableChartIcon sx={{ mr: 1 }} fontSize="small" />
+                Collected Data
+              </ToggleButton>
+            )}
           </ToggleButtonGroup>
         </Box>
 
@@ -522,6 +571,48 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
                 )}
                 {isLoading && <TypingIndicator />}
                 <div ref={messagesEndRef} />
+              </Box>
+            </Box>
+          )}
+
+          {/* Collected Data View */}
+          {viewMode === 'data' && botId && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.5,
+                  mb: 1.5,
+                  backgroundColor: 'info.main',
+                  color: 'info.contrastText'
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, textAlign: 'center' }}>
+                  Collected Data
+                </Typography>
+              </Paper>
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  overflowY: 'auto',
+                  pr: 1,
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: 'action.hover',
+                    borderRadius: '4px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: 'action.selected',
+                    borderRadius: '4px',
+                    '&:hover': {
+                      backgroundColor: 'action.disabled',
+                    },
+                  },
+                }}
+              >
+                <DataCollectionTable botId={botId} />
               </Box>
             </Box>
           )}

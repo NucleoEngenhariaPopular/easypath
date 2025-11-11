@@ -11,6 +11,7 @@ from sqlalchemy import (
     Text,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import Enum as DBEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -113,6 +114,11 @@ class PlatformConversation(Base):
         back_populates="conversation",
         cascade="all, delete-orphan",
     )
+    extracted_variables = relationship(
+        "ExtractedVariable",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+    )
 
 
 class ConversationMessage(Base):
@@ -140,3 +146,25 @@ class ConversationMessage(Base):
 
     # Relationships
     conversation = relationship("PlatformConversation", back_populates="messages")
+
+
+class ExtractedVariable(Base):
+    """Variables extracted from user messages during conversations"""
+
+    __tablename__ = TableNames.EXTRACTED_VARIABLES
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    conversation_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey(f"{TableNames.PLATFORM_CONVERSATIONS}.id"), nullable=False
+    )
+    node_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    flow_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    variable_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    variable_value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    variable_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    extracted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    conversation = relationship("PlatformConversation", back_populates="extracted_variables")

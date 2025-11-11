@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from .database import Base, engine, settings
 from .api import webhooks_router, bots_router
 from .api.sessions import router as sessions_router
+from .api.variables import router as variables_router
 from .core.logging_config import setup_logging
 
 # Configure logging with file rotation
@@ -69,6 +70,7 @@ app.add_middleware(
 app.include_router(webhooks_router, tags=["Webhooks"])
 app.include_router(bots_router, prefix="/api", tags=["Bot Management"])
 app.include_router(sessions_router, prefix="/api", tags=["Session Management"])
+app.include_router(variables_router, prefix="/api", tags=["Variable Collection"])
 
 
 @app.get("/")

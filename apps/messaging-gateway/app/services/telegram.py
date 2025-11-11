@@ -14,6 +14,7 @@ from easypath_shared.constants import ConversationMessageRoles, MessagingPlatfor
 from ..database import settings
 from .engine_client import engine_client
 from .engine_ws_client import engine_ws_client
+from .variable_storage import persist_variable
 
 logger = logging.getLogger(__name__)
 
@@ -316,10 +317,14 @@ class TelegramService:
             processing_timeout = getattr(settings, 'websocket_timeout', 120.0)
 
             try:
-                # Create task for WebSocket listener
+                # Create task for WebSocket listener (handles both messages and variable extraction)
                 ws_task = asyncio.create_task(
-                    self._collect_assistant_messages(
-                        conversation.session_id, messages_received
+                    self._handle_websocket_events(
+                        session_id=conversation.session_id,
+                        conversation=conversation,
+                        bot_config=bot_config,
+                        messages_list=messages_received,
+                        db=db
                     )
                 )
 
@@ -516,6 +521,107 @@ class TelegramService:
         except Exception as e:
             logger.error(f"Failed to start streaming mode: {e}", exc_info=True)
             return False
+
+    async def _handle_websocket_events(
+        self,
+        session_id: str,
+        conversation: PlatformConversation,
+        bot_config: BotConfig,
+        messages_list: list,
+        db: Session
+    ):
+        """
+        Handle all WebSocket events including variable extraction and assistant messages.
+
+        This method listens to the raw WebSocket event stream and handles:
+        - variable_extracted events → persist to database
+        - assistant_message events → append to messages list
+        """
+        try:
+            logger.info(f"🎧 Starting to collect events: session={session_id}")
+
+            # Get the WebSocket client's raw event listener
+            # We'll create a queue and manually register it like listen_for_assistant_messages does
+            queue = asyncio.Queue()
+
+            if session_id not in engine_ws_client._message_queues:
+                engine_ws_client._message_queues[session_id] = []
+            engine_ws_client._message_queues[session_id].append(queue)
+
+            logger.info(
+                f"🔔 REGISTERED event handler for session={session_id}, "
+                f"total_listeners={len(engine_ws_client._message_queues[session_id])}"
+            )
+
+            # Ensure connection exists
+            await engine_ws_client._ensure_connection(session_id)
+
+            # Read events from queue
+            while True:
+                event = await queue.get()
+
+                # Check for sentinel value (connection closed)
+                if event is None:
+                    logger.debug(f"Connection closed, stopping event handler: session={session_id}")
+                    break
+
+                event_type = event.get("event_type")
+
+                # Handle variable extraction events
+                if event_type == "variable_extracted":
+                    node_id = event.get("node_id", "unknown")
+                    variable_name = event.get("variable_name")
+                    variable_value = event.get("variable_value")
+
+                    if variable_name and variable_value is not None:
+                        try:
+                            logger.info(
+                                f"💾 Persisting variable: session={session_id}, "
+                                f"variable={variable_name}, value={variable_value}, node={node_id}"
+                            )
+                            await persist_variable(
+                                db=db,
+                                conversation_id=conversation.id,
+                                node_id=node_id,
+                                flow_id=bot_config.flow_id,
+                                variable_name=variable_name,
+                                variable_value=variable_value,
+                                variable_type=type(variable_value).__name__
+                            )
+                            logger.info(f"✅ Variable persisted: {variable_name}")
+                        except Exception as e:
+                            logger.error(
+                                f"Failed to persist variable {variable_name}: {e}",
+                                exc_info=True
+                            )
+                            # Don't fail the entire message processing if variable persistence fails
+
+                # Handle assistant message events
+                elif event_type == "assistant_message":
+                    message = event.get("message", "")
+                    if message:
+                        messages_list.append(message)
+                        logger.debug(
+                            f"Collected message: session={session_id}, total={len(messages_list)}"
+                        )
+
+                # Break on completion events
+                elif event_type in ("session_ended", "error", "message_processing_complete"):
+                    logger.info(
+                        f"Event handler ending: type={event_type}, session={session_id}"
+                    )
+                    break
+
+        except Exception as e:
+            logger.info(f"🛑 Stopped collecting events: session={session_id}")
+            logger.error(f"Error collecting events from WebSocket: {e}", exc_info=True)
+            raise
+        finally:
+            # Clean up queue registration
+            if (session_id in engine_ws_client._message_queues and
+                queue in engine_ws_client._message_queues[session_id]):
+                engine_ws_client._message_queues[session_id].remove(queue)
+                logger.debug(f"Unregistered event handler queue: session={session_id}")
 
     async def _collect_assistant_messages(self, session_id: str, messages_list: list):
         """Collect assistant messages from WebSocket and append to list"""
