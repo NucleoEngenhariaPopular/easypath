@@ -3,6 +3,7 @@ from typing import Optional
 
 from cryptography.fernet import Fernet
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -58,6 +59,9 @@ class BotConfig(Base):
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
+    is_test_bot: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )  # Flag to identify test personas vs real bots
 
     # Relationships
     conversations = relationship("PlatformConversation", back_populates="bot_config")

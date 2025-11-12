@@ -28,33 +28,50 @@ interface CollectedData {
   platform_user_name?: string;
   variables: Record<string, any>;
   last_extracted_at: string;
+  bot_id?: number; // Added for multi-bot support
+  bot_name?: string; // Added for multi-bot support
 }
 
 interface DataCollectionTableProps {
-  botId: number;
+  botId?: number; // Single bot ID (backwards compatible)
+  botIds?: number[]; // Multiple bot IDs (for test personas)
 }
 
-const DataCollectionTable: React.FC<DataCollectionTableProps> = ({ botId }) => {
+const DataCollectionTable: React.FC<DataCollectionTableProps> = ({ botId, botIds }) => {
   const { t } = useTranslation();
   const [data, setData] = useState<CollectedData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Determine which bot IDs to fetch
+  const effectiveBotIds = botIds || (botId ? [botId] : []);
+
   useEffect(() => {
-    fetchData();
-  }, [botId]);
+    if (effectiveBotIds.length > 0) {
+      fetchData();
+    }
+  }, [JSON.stringify(effectiveBotIds)]); // Use JSON.stringify for array comparison
 
   const fetchData = async () => {
+    if (effectiveBotIds.length === 0) return;
+
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:8082/api/variables/bots/${botId}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.statusText}`);
-      }
-      const result = await response.json();
-      setData(result);
+      // Fetch data for all bot IDs in parallel
+      const fetchPromises = effectiveBotIds.map(id =>
+        fetch(`http://localhost:8082/api/variables/bots/${id}`)
+          .then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch bot ${id}`);
+            return res.json();
+          })
+          .then(result => result.map((item: CollectedData) => ({ ...item, bot_id: id })))
+      );
+
+      const results = await Promise.all(fetchPromises);
+      const combined = results.flat();
+      setData(combined);
     } catch (err) {
       console.error('Failed to fetch collected data:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');

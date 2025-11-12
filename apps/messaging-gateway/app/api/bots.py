@@ -112,9 +112,11 @@ async def create_bot(
 async def list_bots(
     owner_id: Optional[str] = None,
     platform: Optional[str] = None,
+    flow_id: Optional[int] = None,
+    is_test_bot: Optional[bool] = None,
     db: Session = Depends(get_db)
 ):
-    """List all bot configurations, optionally filtered by owner or platform"""
+    """List all bot configurations, optionally filtered by owner, platform, flow_id, or is_test_bot"""
     query = db.query(BotConfig)
 
     if owner_id:
@@ -122,6 +124,12 @@ async def list_bots(
 
     if platform:
         query = query.filter(BotConfig.platform == platform)
+
+    if flow_id is not None:
+        query = query.filter(BotConfig.flow_id == flow_id)
+
+    if is_test_bot is not None:
+        query = query.filter(BotConfig.is_test_bot == is_test_bot)
 
     bots = query.all()
     return bots

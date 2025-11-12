@@ -34,6 +34,7 @@ class MessagingPlatform(StrEnum):
     TELEGRAM = "TELEGRAM"
     WHATSAPP = "WHATSAPP"
     SMS = "SMS"
+    TEST_MODE = "TEST_MODE"  # For test personas in Test Mode
 
 
 class BotStatus(StrEnum):

@@ -8,7 +8,7 @@ export function getAllFlowVariables(nodes: Node<CustomNodeData>[]): VariableInfo
   const variables: VariableInfo[] = [];
 
   for (const node of nodes) {
-    if (node.data.extractVars && node.data.extractVars.length > 0) {
+    if (node.data && node.data.extractVars && node.data.extractVars.length > 0) {
       for (const varConfig of node.data.extractVars) {
         variables.push({
           name: varConfig.name,
@@ -33,7 +33,7 @@ export function getVariableSourceNode(
   nodes: Node<CustomNodeData>[]
 ): Node<CustomNodeData> | null {
   for (const node of nodes) {
-    if (node.data.extractVars && node.data.extractVars.length > 0) {
+    if (node.data && node.data.extractVars && node.data.extractVars.length > 0) {
       const hasVariable = node.data.extractVars.some(v => v.name === variableName);
       if (hasVariable) {
         return node;
@@ -54,7 +54,7 @@ export function getAvailableVariablesAtNode(
   edges: Edge[]
 ): VariableInfo[] {
   // Find the start node
-  const startNode = nodes.find(n => n.data.isStart || n.type === 'start');
+  const startNode = nodes.find(n => (n.data && n.data.isStart) || n.type === 'start');
   if (!startNode) {
     console.warn('No start node found in flow');
     return [];
@@ -112,7 +112,7 @@ export function getAvailableVariablesAtNode(
     }
 
     const node = nodes.find(n => n.id === nodeId);
-    if (node && node.data.extractVars && node.data.extractVars.length > 0) {
+    if (node && node.data && node.data.extractVars && node.data.extractVars.length > 0) {
       for (const varConfig of node.data.extractVars) {
         // Use map to avoid duplicates (same variable from multiple paths)
         if (!variablesMap.has(varConfig.name)) {
@@ -172,7 +172,7 @@ export function getUndefinedVariableReferences(
   // Check all text fields in the node
   const textsToCheck: string[] = [];
 
-  if (node.data.prompt) {
+  if (node.data && node.data.prompt) {
     textsToCheck.push(
       node.data.prompt.context || '',
       node.data.prompt.objective || '',
@@ -181,7 +181,7 @@ export function getUndefinedVariableReferences(
     );
   }
 
-  if (node.data.condition) {
+  if (node.data && node.data.condition) {
     textsToCheck.push(node.data.condition);
   }
 

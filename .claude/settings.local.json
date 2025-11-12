@@ -20,7 +20,10 @@
       "Bash(docker exec:*)",
       "Bash(docker compose:*)",
       "Bash(docker logs:*)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(curl:*)",
+      "Bash(findstr:*)",
+      "Bash(npm ls:*)"
     ],
     "deny": [],
     "ask": []

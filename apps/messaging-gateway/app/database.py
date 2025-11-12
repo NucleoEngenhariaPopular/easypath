@@ -16,13 +16,14 @@ logger = logging.getLogger(__name__)
 class Settings(BaseSettings):
     database_url: str
     engine_api_url: str
+    platform_api_url: Optional[str] = "http://localhost:8000"  # Platform backend URL
     host: str = "0.0.0.0"
     port: int = 8082
     log_level: str = "INFO"
     webhook_base_url: Optional[str] = None
     secret_key: str
     ngrok_authtoken: str
-    
+
     # WebSocket configuration (optional, with defaults)
     websocket_timeout: float = 120.0  # 120 seconds default timeout
     websocket_connection_timeout: float = 10.0  # 10 seconds for connection establishment

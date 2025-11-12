@@ -28,8 +28,8 @@ import EdgeModal from '../components/canvas/EdgeModal';
 import VariableInspectorPanel from '../components/canvas/VariableInspectorPanel';
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { convertEngineToCanvas, isEngineFormat, isCanvasFormat } from '../utils/flowConverter';
+import { useParams, useNavigate } from 'react-router-dom';
+import { convertEngineToCanvas, convertCanvasToEngine, isEngineFormat, isCanvasFormat } from '../utils/flowConverter';
 import { autoLayoutNodes } from '../utils/autoLayout';
 import TestModePanel from '../components/canvas/TestModePanel';
 import { useFlowWebSocket, type FlowEvent, type DecisionLog } from '../hooks/useFlowWebSocket';
@@ -63,6 +63,7 @@ const initialEdges: Edge[] = [];
 const CanvasPage: React.FC = () => {
   const { t } = useTranslation();
   const { id: flowId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
@@ -124,6 +125,9 @@ const CanvasPage: React.FC = () => {
     totalCost: 0,
   });
 
+  // Bot configuration state
+  const [testBot, setTestBot] = useState<{ id: number; bot_name: string } | null>(null);
+
   useEffect(() => {
     const fetchFlow = async () => {
       if (flowId && flowId !== 'new') {
@@ -132,16 +136,78 @@ const CanvasPage: React.FC = () => {
           const data = await response.json();
           if (data.name) setFlowName(data.name);
           if (data.description) setFlowDescription(data.description);
+
           const flowData = data.flow_data;
-          if (flowData.nodes) setNodes(flowData.nodes);
-          if (flowData.edges) setEdges(flowData.edges);
-          if (flowData.globalConfig) setGlobalConfig(flowData.globalConfig);
+
+          // Check if flow is in engine format or canvas format
+          if (isEngineFormat(flowData)) {
+            console.log('Flow is in engine format, converting to canvas format');
+            const canvasFlow = convertEngineToCanvas(flowData);
+            setNodes(canvasFlow.nodes);
+            setEdges(canvasFlow.edges);
+            setGlobalConfig(canvasFlow.globalConfig);
+          } else if (isCanvasFormat(flowData)) {
+            console.log('Flow is in canvas format, loading directly');
+            if (flowData.nodes) setNodes(flowData.nodes);
+            if (flowData.edges) setEdges(flowData.edges);
+            if (flowData.globalConfig) setGlobalConfig(flowData.globalConfig);
+          } else {
+            console.error('Unknown flow format:', flowData);
+          }
         }
       }
     };
 
     fetchFlow();
   }, [flowId, setNodes, setEdges]);
+
+  // Fetch or create test bot for this flow
+  useEffect(() => {
+    const ensureTestBot = async () => {
+      if (!flowId || flowId === 'new') return;
+
+      const numericFlowId = Number(flowId);
+      if (isNaN(numericFlowId)) return;
+
+      try {
+        // Try to fetch existing test bot for this flow
+        const response = await fetch(
+          `http://localhost:8082/api/bots?flow_id=${numericFlowId}&is_test_bot=true`
+        );
+
+        if (response.ok) {
+          const bots = await response.json();
+          if (bots.length > 0) {
+            // Use existing test bot
+            setTestBot({ id: bots[0].id, bot_name: bots[0].bot_name });
+            console.log(`Using existing test bot: ${bots[0].id} (${bots[0].bot_name})`);
+            return;
+          }
+        }
+
+        // No test bot exists, create one
+        const createResponse = await fetch('http://localhost:8082/api/test-bots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            persona_name: `${flowName} - Test Bot`,
+            flow_id: numericFlowId,
+            owner_id: 'user-123', // TODO: Get from auth context
+          }),
+        });
+
+        if (createResponse.ok) {
+          const result = await createResponse.json();
+          setTestBot({ id: result.bot_config_id, bot_name: result.bot_name });
+          console.log(`Created new test bot: ${result.bot_config_id} (${result.bot_name})`);
+        }
+      } catch (error) {
+        console.error('Failed to ensure test bot exists:', error);
+      }
+    };
+
+    ensureTestBot();
+  }, [flowId, flowName]);
 
   // Keyboard event listener for deleting selected edges
   useEffect(() => {
@@ -709,10 +775,13 @@ const CanvasPage: React.FC = () => {
   };
 
   const handleSaveFlow = async () => {
+    // Convert canvas format to engine format before saving
+    const engineFlow = convertCanvasToEngine({ nodes, edges, globalConfig });
+
     const flowData = {
       name: flowName,
       description: flowDescription,
-      flow_data: { nodes, edges, globalConfig },
+      flow_data: engineFlow, // Save in engine format
     };
 
     const url = flowId === 'new' ? '/api/flows/' : `/api/flows/${flowId}`;
@@ -729,8 +798,8 @@ const CanvasPage: React.FC = () => {
     if (response.ok) {
       const data = await response.json();
       if (flowId === 'new') {
-        // redirect to the new flow's page
-        window.history.replaceState(null, '', `/canvas/${data.id}`)
+        // Navigate to the new flow's page, triggering React Router param update
+        navigate(`/canvas/${data.id}`, { replace: true });
       }
       console.log("Flow saved successfully");
     } else {
@@ -960,7 +1029,9 @@ const CanvasPage: React.FC = () => {
         lastMessageStats={lastMessageStats}
         conversationStats={conversationStats}
         decisionLogs={decisionLogs}
-        botId={1} // TODO: Get from actual bot configuration
+        botId={testBot?.id}
+        flowId={flowId && flowId !== 'new' ? Number(flowId) : undefined}
+        ownerId="user-123" // TODO: Get from auth context
       />
 
       <VariableInspectorPanel

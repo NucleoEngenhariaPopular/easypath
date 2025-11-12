@@ -25,9 +25,11 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import StorageIcon from '@mui/icons-material/Storage';
 import TableChartIcon from '@mui/icons-material/TableChart';
+import GroupIcon from '@mui/icons-material/Group';
 import { useTranslation } from 'react-i18next';
 import PathwayDecisionPanel from './PathwayDecisionPanel';
 import DataCollectionTable from '../bot/DataCollectionTable';
+import TestPersonaManager, { type TestPersona } from '../bot/TestPersonaManager';
 import type { DecisionLog } from '../../hooks/useFlowWebSocket';
 
 interface Message {
@@ -48,6 +50,8 @@ interface TestModePanelProps {
   onReset: () => void;
   isLoading?: boolean;
   botId?: number; // Optional bot ID for viewing collected data
+  flowId?: number; // Flow ID for creating test personas
+  ownerId?: string; // Owner ID for creating test personas
   lastMessageStats?: {
     responseTime: number;
     tokens: number;
@@ -188,15 +192,59 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
   conversationStats,
   decisionLogs = [],
   botId,
+  flowId,
+  ownerId = 'user-123', // Default owner ID for test mode
 }) => {
   const { t } = useTranslation();
   const [inputMessage, setInputMessage] = useState('');
   const [showStatsPanel, setShowStatsPanel] = useState(false);
-  const [viewMode, setViewMode] = useState<'decisions' | 'chat' | 'data'>('chat');
+  const [viewMode, setViewMode] = useState<'decisions' | 'chat' | 'data' | 'personas'>('chat');
   const [drawerWidth, setDrawerWidth] = useState(DEFAULT_DRAWER_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Test persona state
+  const [personas, setPersonas] = useState<TestPersona[]>([]);
+  const [activePersona, setActivePersona] = useState<TestPersona | null>(null);
+  const [personaMessages, setPersonaMessages] = useState<Record<string, Message[]>>({});
+
+  // Load personas from localStorage on mount (per-bot storage)
+  useEffect(() => {
+    if (!botId) return;
+
+    const storageKey = `test-personas-bot-${botId}`;
+    const savedPersonas = localStorage.getItem(storageKey);
+    if (savedPersonas) {
+      try {
+        const parsed = JSON.parse(savedPersonas);
+        setPersonas(parsed);
+      } catch (e) {
+        console.error('Failed to load personas from localStorage:', e);
+      }
+    } else {
+      // Check for old global personas and clear them (migration)
+      const oldPersonas = localStorage.getItem('test-personas');
+      if (oldPersonas) {
+        console.log('Clearing old global personas (migrated to per-bot storage)');
+        localStorage.removeItem('test-personas');
+      }
+      setPersonas([]);
+    }
+  }, [botId]);
+
+  // Save personas to localStorage when they change (per-bot storage)
+  useEffect(() => {
+    if (!botId) return;
+
+    const storageKey = `test-personas-bot-${botId}`;
+    if (personas.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(personas));
+    } else {
+      // Remove key if no personas
+      localStorage.removeItem(storageKey);
+    }
+  }, [personas, botId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -227,7 +275,109 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      handleSendOverride();
+    }
+  };
+
+  // Persona handlers
+  const handlePersonaCreate = (persona: TestPersona) => {
+    setPersonas([...personas, persona]);
+    setActivePersona(persona);
+    setPersonaMessages({ ...personaMessages, [persona.id]: [] });
+  };
+
+  const handlePersonaChange = (persona: TestPersona) => {
+    setActivePersona(persona);
+  };
+
+  const handlePersonaDelete = (personaId: string) => {
+    setPersonas(personas.filter(p => p.id !== personaId));
+    if (activePersona?.id === personaId) {
+      setActivePersona(null);
+    }
+    // Remove messages for this persona
+    const newMessages = { ...personaMessages };
+    delete newMessages[personaId];
+    setPersonaMessages(newMessages);
+  };
+
+  // Send message via test bot endpoint when persona is active
+  const handlePersonaMessage = async (message: string) => {
+    if (!activePersona?.botConfigId) {
+      alert('Please select a test persona first');
+      return;
+    }
+
+    try {
+      // Add user message to persona's message list
+      const userMessage: Message = {
+        role: 'user',
+        content: message,
+        timestamp: new Date().toISOString(),
+      };
+
+      const personaId = activePersona.id;
+      setPersonaMessages(prev => ({
+        ...prev,
+        [personaId]: [...(prev[personaId] || []), userMessage],
+      }));
+
+      // Send to test bot endpoint
+      const response = await fetch('http://localhost:8082/api/test/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bot_id: activePersona.botConfigId,
+          user_message: message,
+          persona_user_id: `test-user-${personaId}`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to send message: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Add assistant response to persona's message list
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: result.reply,
+        timestamp: new Date().toISOString(),
+      };
+
+      setPersonaMessages(prev => ({
+        ...prev,
+        [personaId]: [...(prev[personaId] || []), assistantMessage],
+      }));
+
+      // Update persona message count
+      setPersonas(prev =>
+        prev.map(p =>
+          p.id === personaId
+            ? { ...p, messageCount: p.messageCount + 1 }
+            : p
+        )
+      );
+
+    } catch (err) {
+      console.error('Failed to send persona message:', err);
+      alert('Failed to send message. Check console for details.');
+    }
+  };
+
+  // Override handleSend to use persona endpoint when persona is active
+  const handleSendOverride = () => {
+    if (inputMessage.trim()) {
+      if (activePersona) {
+        handlePersonaMessage(inputMessage.trim());
+      } else {
+        onSendMessage(inputMessage.trim());
+      }
+      setInputMessage('');
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
     }
   };
 
@@ -441,7 +591,13 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
               <ChatIcon sx={{ mr: 1 }} fontSize="small" />
               Chat Messages
             </ToggleButton>
-            {botId && (
+            {flowId && (
+              <ToggleButton value="personas" aria-label="test personas">
+                <GroupIcon sx={{ mr: 1 }} fontSize="small" />
+                Personas
+              </ToggleButton>
+            )}
+            {(botId || personas.some(p => p.botConfigId)) && (
               <ToggleButton value="data" aria-label="collected data">
                 <TableChartIcon sx={{ mr: 1 }} fontSize="small" />
                 Collected Data
@@ -612,7 +768,98 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
                   },
                 }}
               >
-                <DataCollectionTable botId={botId} />
+                <DataCollectionTable
+                  botId={botId}
+                  botIds={personas.map(p => p.botConfigId).filter(Boolean) as number[]}
+                />
+              </Box>
+            </Box>
+          )}
+
+          {/* Personas View */}
+          {viewMode === 'personas' && flowId && (
+            <Box sx={{ display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', gap: 2 }}>
+              {/* Persona Manager Sidebar */}
+              <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider' }}>
+                <TestPersonaManager
+                  flowId={flowId}
+                  ownerId={ownerId}
+                  activePersona={activePersona}
+                  personas={personas}
+                  onPersonaChange={handlePersonaChange}
+                  onPersonaCreate={handlePersonaCreate}
+                  onPersonaDelete={handlePersonaDelete}
+                />
+              </Box>
+
+              {/* Persona Chat Area */}
+              <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                {activePersona ? (
+                  <>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 1.5,
+                        mb: 1.5,
+                        backgroundColor: 'secondary.main',
+                        color: 'secondary.contrastText'
+                      }}
+                    >
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, textAlign: 'center' }}>
+                        Testing as: {activePersona.avatar} {activePersona.name}
+                      </Typography>
+                    </Paper>
+                    <Box
+                      sx={{
+                        flexGrow: 1,
+                        overflowY: 'auto',
+                        pr: 1,
+                        '&::-webkit-scrollbar': {
+                          width: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                          backgroundColor: 'action.hover',
+                          borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          backgroundColor: 'action.selected',
+                          borderRadius: '4px',
+                        },
+                      }}
+                    >
+                      {/* Persona messages */}
+                      {personaMessages[activePersona.id]?.map((msg, index) => (
+                        <Box
+                          key={index}
+                          sx={{
+                            mb: 2,
+                            display: 'flex',
+                            justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                          }}
+                        >
+                          <Paper
+                            sx={{
+                              p: 1.5,
+                              maxWidth: '70%',
+                              backgroundColor: msg.role === 'user' ? 'primary.main' : 'grey.800',
+                              color: msg.role === 'user' ? 'primary.contrastText' : 'text.primary',
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                              {msg.content}
+                            </Typography>
+                          </Paper>
+                        </Box>
+                      ))}
+                    </Box>
+                  </>
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Select or create a persona to start testing
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Box>
           )}
@@ -623,19 +870,19 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
           <TextField
             fullWidth
             size="small"
-            placeholder={t('testMode.inputPlaceholder')}
+            placeholder={activePersona ? `Message as ${activePersona.name}...` : t('testMode.inputPlaceholder')}
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={!isConnected || isLoading}
+            disabled={activePersona ? false : (!isConnected || isLoading)}
             multiline
             maxRows={3}
             inputRef={inputRef}
           />
           <IconButton
             color="primary"
-            onClick={handleSend}
-            disabled={!inputMessage.trim() || !isConnected || isLoading}
+            onClick={handleSendOverride}
+            disabled={!inputMessage.trim() || (activePersona ? false : (!isConnected || isLoading))}
           >
             <SendIcon />
           </IconButton>
