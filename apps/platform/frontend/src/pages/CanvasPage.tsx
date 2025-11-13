@@ -17,7 +17,8 @@ import React, { useCallback, useState } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DataObjectIcon from '@mui/icons-material/DataObject';
-import { Box, Fab, Tooltip, Typography } from '@mui/material';
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+import { Box, Paper, Stack, Tooltip, IconButton, Button } from '@mui/material';
 import EasyPathAppBar from '../components/AppBar';
 import CanvasToolbar from '../components/canvas/CanvasToolbar';
 import GlobalConfigSidebar, { drawerWidth } from '../components/canvas/GlobalConfigSidebar';
@@ -356,8 +357,14 @@ const CanvasPage: React.FC = () => {
 
     // Initialize specific fields for new nodes if needed
     if (['message', 'normal', 'request', 'extraction', 'validation', 'recommendation', 'summary'].includes(type)) {
-      newNodeData.modelOptions = { modelType: 'smart', temperature: 0.2 };
-      newNodeData.prompt = '';
+      newNodeData.modelOptions = { temperature: 0.2 };
+      newNodeData.prompt = {
+        context: '',
+        objective: '',
+        notes: '',
+        examples: '',
+        custom_fields: {},
+      };
     }
 
     if (type === 'start') {
@@ -839,6 +846,18 @@ const CanvasPage: React.FC = () => {
     }
   };
 
+  const miniMapColors: Record<string, string> = {
+    start: '#0f766e',
+    end: '#b91c1c',
+    message: '#2563eb',
+    normal: '#475569',
+    request: '#f97316',
+    extraction: '#0ea5e9',
+    validation: '#6366f1',
+    recommendation: '#f59e0b',
+    summary: '#818cf8',
+    global: '#14b8a6',
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'background.default' }}>
@@ -859,149 +878,261 @@ const CanvasPage: React.FC = () => {
         onFlowDescriptionChange={setFlowDescription}
       />
       <Box
-        sx={{
+        sx={(theme) => ({
           flexGrow: 1,
           position: 'relative',
-          transition: (theme) => theme.transitions.create('margin', {
+          display: 'flex',
+          p: { xs: 2, md: 3 },
+          transition: theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
           marginLeft: isGlobalConfigSidebarOpen ? `${drawerWidth}px` : 0,
-        }}
+          background:
+            theme.palette.mode === 'dark'
+              ? theme.palette.background.default
+              : 'linear-gradient(180deg, #f8fafc 0%, #eef1f7 100%)',
+        })}
       >
-        <ReactFlow
-          nodes={nodes.map(node => ({
-            ...node,
-            className: node.id === activeNodeId ? 'active-node' : ''
-          }))}
-          edges={edges.map(edge => {
-            let className = '';
-            if (edge.id === animatingEdge) className = 'animating-edge';
-            else if (edge.id === clickedEdge) className = 'clicked-edge';
-
-            // Preserve edge style and type from original edge
-            return {
-              ...edge,
-              className,
-              animated: edge.id === animatingEdge,
-              // Keep existing style and type (for loop-back edges)
-              style: edge.style,
-              type: edge.type || 'smoothstep',
-            };
-          })}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          onEdgeClick={onEdgeClick}
-          nodeTypes={nodeTypes}
-          nodesDraggable={true}
-          nodesConnectable={true}
-          elementsSelectable={true}
-          edgesReconnectable={true}
-          fitView
-          defaultEdgeOptions={{
-            type: 'smoothstep',
-            animated: false,
-            style: {
-              stroke: '#c0c9e0',
-              strokeWidth: 2,
-            },
-            labelStyle: {
-              fontSize: 12,
-              fontWeight: 600,
-              fill: '#555',
-            },
-            labelBgStyle: {
-              fill: '#fff',
-              fillOpacity: 0.9,
-            },
-            markerEnd: {
-              type: 'arrowclosed',
-              color: '#667eea',
-              width: 20,
-              height: 20,
-            },
+        <Paper
+          elevation={0}
+          sx={{
+            position: 'relative',
+            flexGrow: 1,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+            boxShadow: '0 24px 48px rgba(15, 23, 42, 0.08)',
+            overflow: 'hidden',
           }}
         >
-          <MiniMap
-            nodeStrokeWidth={3}
-            nodeColor={(node) => {
-              if (node.type === 'start') return '#43e97b';
-              if (node.type === 'end') return '#f5576c';
-              if (node.type === 'request') return '#fa709a';
-              if (node.type === 'extraction') return '#f093fb';
-              if (node.type === 'validation') return '#4facfe';
-              if (node.type === 'recommendation') return '#fccb90';
-              if (node.type === 'summary') return '#e0c3fc';
-              if (node.type === 'message') return '#667eea';
-              return '#667eea';
+          <ReactFlow
+            style={{ width: '100%', height: '100%', background: 'transparent' }}
+            nodes={nodes.map((node) => ({
+              ...node,
+              className: node.id === activeNodeId ? 'active-node' : '',
+            }))}
+            edges={edges.map((edge) => {
+              let className = '';
+              if (edge.id === animatingEdge) className = 'animating-edge';
+              else if (edge.id === clickedEdge) className = 'clicked-edge';
+              const baseStyle = edge.style || {};
+              return {
+                ...edge,
+                className,
+                animated: edge.id === animatingEdge,
+                style: {
+                  ...baseStyle,
+                  stroke: baseStyle.stroke ?? '#98a2b3',
+                  strokeWidth: baseStyle.strokeWidth ?? (edge.id === animatingEdge ? 2.2 : 1.6),
+                },
+                type: edge.type || 'smoothstep',
+              };
+            })}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
+            nodeTypes={nodeTypes}
+            nodesDraggable
+            nodesConnectable
+            elementsSelectable
+            edgesReconnectable
+            fitView
+            fitViewOptions={{ padding: 0.2 }}
+            proOptions={{ hideAttribution: true }}
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              animated: false,
+              style: {
+                stroke: '#b6c2cf',
+                strokeWidth: 1.6,
+              },
+              labelStyle: {
+                fontSize: 11,
+                fontWeight: 500,
+                fill: '#4b5563',
+              },
+              labelBgStyle: {
+                fill: '#ffffff',
+                fillOpacity: 0.85,
+              },
+              markerEnd: {
+                type: 'arrowclosed',
+                color: '#94a3b8',
+                width: 18,
+                height: 18,
+              },
             }}
-            maskColor="rgba(0, 0, 0, 0.1)"
-          />
-          <Controls />
-          <Background
-            color="#d0d0d0"
-            gap={20}
-            size={1.5}
-            style={{ backgroundColor: '#f8f9fa' }}
-          />
-          <CanvasToolbar
-            onAddNode={handleAddNode}
-            onClearIntermediateNodes={handleClearIntermediateNodes}
-            onImport={handleImportFromJson}
-            onExport={handleExportToJson}
-            onAutoArrange={handleAutoArrange}
-            onTestModeToggle={handleTestModeToggle}
-            isTestMode={isTestMode}
-          />
-          <Tooltip title={t('canvasPage.globalSettingsTooltip')}>
-            <Fab
-              color="secondary"
-              size="small"
-              sx={{ position: 'absolute', top: 16, left: 16, zIndex: 10 }}
-              onClick={handleToggleGlobalConfigSidebar}
-            >
-              <SettingsIcon />
-            </Fab>
-          </Tooltip>
-          {/* Variable Inspector Button */}
-          <Tooltip title={t('canvasPage.variableInspectorTooltip')}>
-            <Fab
-              color="success"
-              size="small"
-              sx={{ position: 'absolute', top: 72, left: 16, zIndex: 10 }}
-              onClick={() => setIsVariableInspectorOpen(!isVariableInspectorOpen)}
-            >
-              <DataObjectIcon />
-            </Fab>
-          </Tooltip>
-          {/* Delete Button */}
-          {flowId !== 'new' && (
-            <Tooltip title={t('canvasPage.deleteTooltip')}>
-              <Fab
-                color="error"
-                size="small"
-                sx={{ position: 'absolute', top: 16, right: 80, zIndex: 10 }}
-                onClick={handleDeleteFlow}
+          >
+            <MiniMap
+              nodeStrokeWidth={2}
+              nodeColor={(node) => miniMapColors[node.type ?? 'normal'] ?? '#94a3b8'}
+              maskColor="rgba(15, 23, 42, 0.1)"
+              pannable
+              zoomable
+              style={{ borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.3)' }}
+            />
+            <Controls
+              style={{
+                borderRadius: 12,
+                border: '1px solid rgba(148, 163, 184, 0.3)',
+                background: 'rgba(255, 255, 255, 0.92)',
+                boxShadow: 'none',
+              }}
+            />
+            <Background color="#d9e2ec" gap={32} size={1} style={{ backgroundColor: 'transparent' }} />
+            <CanvasToolbar
+              onAddNode={handleAddNode}
+              onClearIntermediateNodes={handleClearIntermediateNodes}
+              onImport={handleImportFromJson}
+              onExport={handleExportToJson}
+              onAutoArrange={handleAutoArrange}
+              onTestModeToggle={handleTestModeToggle}
+              isTestMode={isTestMode}
+            />
+            <Box sx={{ position: 'absolute', top: 20, left: 20, zIndex: 12 }}>
+              <Paper
+                elevation={0}
+                sx={(theme) => ({
+                  p: 1,
+                  borderRadius: 2,
+                  border: `1px solid ${theme.palette.divider}`,
+                  boxShadow:
+                    theme.palette.mode === 'dark'
+                      ? '0 12px 28px rgba(0, 0, 0, 0.45)'
+                      : '0 16px 32px rgba(15, 23, 42, 0.08)',
+                  backgroundColor:
+                    theme.palette.mode === 'dark'
+                      ? theme.palette.background.paper
+                      : 'rgba(255, 255, 255, 0.92)',
+                  backdropFilter: 'blur(12px)',
+                })}
               >
-                <DeleteIcon />
-              </Fab>
-            </Tooltip>
-          )}
-          {/* Save Button */}
-          <Tooltip title={t('canvasPage.saveTooltip')}>
-            <Fab
-              color="primary"
-              size="small"
-              sx={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}
-              onClick={handleSaveFlow}
+                <Stack spacing={0.75}>
+                  <Tooltip title={t('canvasPage.globalSettingsTooltip')}>
+                    <IconButton
+                      size="small"
+                      onClick={handleToggleGlobalConfigSidebar}
+                      sx={(theme) => ({
+                        width: 38,
+                        height: 38,
+                        borderRadius: 1.5,
+                        border: `1px solid ${theme.palette.divider}`,
+                        color: theme.palette.text.primary,
+                        backgroundColor:
+                          theme.palette.mode === 'dark'
+                            ? theme.palette.action.hover
+                            : 'rgba(255, 255, 255, 0.65)',
+                        '&:hover': {
+                          backgroundColor:
+                            theme.palette.mode === 'dark'
+                              ? theme.palette.action.selected
+                              : 'rgba(15, 23, 42, 0.08)',
+                        },
+                      })}
+                      aria-label={t('canvasPage.globalSettingsTooltip')}
+                    >
+                      <SettingsIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={t('canvasPage.variableInspectorTooltip')}>
+                    <IconButton
+                      size="small"
+                      onClick={() => setIsVariableInspectorOpen(!isVariableInspectorOpen)}
+                      sx={(theme) => ({
+                        width: 38,
+                        height: 38,
+                        borderRadius: 1.5,
+                        border: `1px solid ${theme.palette.divider}`,
+                        color: theme.palette.text.primary,
+                        backgroundColor: isVariableInspectorOpen
+                          ? theme.palette.mode === 'dark'
+                            ? theme.palette.action.selected
+                            : 'rgba(99, 102, 241, 0.15)'
+                          : theme.palette.mode === 'dark'
+                            ? theme.palette.action.hover
+                            : 'rgba(255, 255, 255, 0.65)',
+                        '&:hover': {
+                          backgroundColor:
+                            theme.palette.mode === 'dark'
+                              ? theme.palette.action.selected
+                              : 'rgba(99, 102, 241, 0.18)',
+                        },
+                      })}
+                      aria-label={t('canvasPage.variableInspectorTooltip')}
+                    >
+                      <DataObjectIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              </Paper>
+            </Box>
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 20,
+                right: 20,
+                zIndex: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+              }}
             >
-              {/* You can use an appropriate icon like SaveIcon */}
-              <Typography sx={{ color: "common.white", fontSize: "0.7rem", p: 0.5 }}>Save</Typography>
-            </Fab>
-          </Tooltip>
-        </ReactFlow>
+              {flowId !== 'new' && (
+                <Tooltip title={t('canvasPage.deleteTooltip')}>
+                  <IconButton
+                    size="small"
+                    onClick={handleDeleteFlow}
+                    sx={(theme) => ({
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1.5,
+                      border: `1px solid rgba(248, 113, 113, ${theme.palette.mode === 'dark' ? 0.5 : 0.35})`,
+                      color: theme.palette.mode === 'dark' ? theme.palette.error.light : '#b91c1c',
+                      backgroundColor:
+                        theme.palette.mode === 'dark'
+                          ? 'rgba(185, 28, 28, 0.18)'
+                          : 'rgba(254, 226, 226, 0.7)',
+                      '&:hover': {
+                        backgroundColor:
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(185, 28, 28, 0.24)'
+                            : 'rgba(254, 202, 202, 0.95)',
+                      },
+                    })}
+                    aria-label={t('canvasPage.deleteTooltip')}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              <Tooltip title={t('canvasPage.saveTooltip')}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<SaveOutlinedIcon fontSize="small" />}
+                  onClick={handleSaveFlow}
+                  sx={{
+                    borderRadius: 999,
+                    px: 2.4,
+                    py: 0.7,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    boxShadow: 'none',
+                    '&:hover': {
+                      boxShadow: 'none',
+                    },
+                  }}
+                >
+                  Save
+                </Button>
+              </Tooltip>
+            </Box>
+          </ReactFlow>
+        </Paper>
       </Box>
 
       {selectedNode && (
