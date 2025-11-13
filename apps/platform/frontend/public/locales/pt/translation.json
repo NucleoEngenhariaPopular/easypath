@@ -11,6 +11,38 @@
     "loadingButton": "Carregando..."
   },
   "dashboardPage": {
+    "workspaceTitle": "Central de Bots",
+    "workspaceSubtitle": "Gerencie bots de mensagens, atribua fluxos e acompanhe os dados coletados.",
+    "actions": {
+      "newFlow": "Novo Fluxo",
+      "newBot": "Novo Bot"
+    },
+    "metrics": {
+      "bots": "Bots",
+      "botsCaption": "Bots de mensagens conectados ao EasyPath",
+      "activeBots": "Bots Ativos",
+      "activeBotsCaption": "Bots recebendo mensagens agora",
+      "flows": "Fluxos",
+      "flowsCaption": "Fluxos de conversa disponíveis",
+      "nodes": "Total de Nós",
+      "nodesCaption": "Etapas em todos os fluxos"
+    },
+    "botsSection": {
+      "title": "Bots",
+      "refresh": "Atualizar",
+      "create": "Criar Bot",
+      "emptyTitle": "Nenhum bot configurado ainda",
+      "emptySubtitle": "Crie um bot para conectar plataformas de mensagens aos seus fluxos.",
+      "viewDetails": "Ver detalhes",
+      "statusActive": "Ativo",
+      "statusInactive": "Inativo",
+      "webhookLabel": "URL do Webhook"
+    },
+    "flowsSection": {
+      "title": "Fluxos",
+      "empty": "Crie um fluxo para começar a desenhar conversas.",
+      "noDescription": "Sem descrição"
+    },
     "allPaths": "Todos os Caminhos",
     "createPathButton": "Criar Caminho",
     "searchPlaceholder": "Buscar caminhos...",
@@ -200,6 +232,51 @@
   "themeToggleButton": {
     "switchToLight": "Mudar para Tema Claro",
     "switchToDark": "Mudar para Tema Escuro"
+  },
+  "botDetail": {
+    "back": "Voltar ao painel",
+    "workspaceLink": "Central de Bots",
+    "statusActive": "Ativo",
+    "statusInactive": "Inativo",
+    "editFlow": "Editar fluxo",
+    "newFlow": "Novo fluxo",
+    "activeFlowLabel": "Fluxo ativo",
+    "webhookLabel": "URL do Webhook",
+    "webhookPlaceholder": "Não configurado",
+    "createdLabel": "Criado em",
+    "metrics": {
+      "conversations": "Conversas",
+      "conversationsCaption": "Conversas com dados coletados",
+      "variables": "Variáveis coletadas",
+      "variablesCaption": "Em todas as conversas",
+      "uniqueVariables": "Variáveis únicas",
+      "uniqueVariablesCaption": "Campos distintos extraídos"
+    },
+    "tabs": {
+      "data": "Dados Coletados",
+      "conversations": "Conversas"
+    },
+    "conversationList": {
+      "title": "Conversas",
+      "empty": "Nenhuma conversa ainda. As mensagens aparecerão aqui quando usuários interagirem com este bot.",
+      "refresh": "Atualizar"
+    },
+    "conversationViewer": {
+      "title": "Histórico da Conversa",
+      "empty": "Selecione uma conversa para ver as mensagens mais recentes.",
+      "refresh": "Atualizar mensagens"
+    },
+    "conversations": {
+      "with": "Conversa com {{name}}",
+      "session": "ID da sessão: {{id}}"
+    },
+    "dialogs": {
+      "deleteTitle": "Excluir Bot",
+      "deleteConfirm": "Excluir",
+      "deleteCancel": "Cancelar",
+      "deleteDescription": "Tem certeza de que deseja excluir \"{{name}}\"? Isso removerá o webhook e interromperá todo o processamento de mensagens."
+    },
+    "invalidId": "Identificador de bot inválido."
   },
   "sessionsPage": {
     "title": "Sessões Ativas",

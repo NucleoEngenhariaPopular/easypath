@@ -31,6 +31,7 @@ import PathwayDecisionPanel from './PathwayDecisionPanel';
 import DataCollectionTable from '../bot/DataCollectionTable';
 import TestPersonaManager, { type TestPersona } from '../bot/TestPersonaManager';
 import type { DecisionLog } from '../../hooks/useFlowWebSocket';
+import { messagingGatewayFetch, postJson } from '../../services/apiClient';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -323,21 +324,16 @@ const TestModePanel: React.FC<TestModePanelProps> = ({
       }));
 
       // Send to test bot endpoint
-      const response = await fetch('http://localhost:8082/api/test/message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bot_id: activePersona.botConfigId,
-          user_message: message,
-          persona_user_id: `test-user-${personaId}`,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to send message: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await messagingGatewayFetch<{ reply: string }>(
+        '/api/test/message',
+        {
+          ...postJson({
+            bot_id: activePersona.botConfigId,
+            user_message: message,
+            persona_user_id: `test-user-${personaId}`,
+          }),
+        }
+      );
 
       // Add assistant response to persona's message list
       const assistantMessage: Message = {

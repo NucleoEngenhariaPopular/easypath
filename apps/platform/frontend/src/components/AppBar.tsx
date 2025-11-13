@@ -79,19 +79,18 @@ const EasyPathAppBar: React.FC<EasyPathAppBarProps> = ({
               </Typography>
               <Box sx={{ ml: 4, display: 'flex', gap: 1 }}>
                 <Button
-                  color={location.pathname === '/dashboard' || location.pathname === '/' ? 'primary' : 'inherit'}
+                  color={
+                    location.pathname === '/dashboard' ||
+                    location.pathname === '/' ||
+                    location.pathname.startsWith('/bots')
+                      ? 'primary'
+                      : 'inherit'
+                  }
+                  startIcon={<SmartToyIcon />}
                   onClick={() => navigate('/dashboard')}
                   sx={{ color: 'text.primary' }}
                 >
-                  Flows
-                </Button>
-                <Button
-                  color={location.pathname === '/bots' ? 'primary' : 'inherit'}
-                  startIcon={<SmartToyIcon />}
-                  onClick={() => navigate('/bots')}
-                  sx={{ color: 'text.primary' }}
-                >
-                  Bots
+                  Workspace
                 </Button>
                 <Button
                   color={location.pathname === '/sessions' ? 'primary' : 'inherit'}

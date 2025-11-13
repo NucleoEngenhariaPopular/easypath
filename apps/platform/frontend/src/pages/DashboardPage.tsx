@@ -1,670 +1,641 @@
 import AddIcon from '@mui/icons-material/Add';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import FolderIcon from '@mui/icons-material/Folder';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
-import GridViewIcon from '@mui/icons-material/GridView';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import SearchIcon from '@mui/icons-material/Search';
-import ViewListIcon from '@mui/icons-material/ViewList';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import TelegramIcon from '@mui/icons-material/Telegram';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import {
-  alpha,
+  Alert,
+  Avatar,
   Box,
   Button,
   Card,
+  CardActions,
   CardContent,
+  Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
-  Divider,
   FormControl,
   Grid,
   IconButton,
-  InputAdornment,
   InputLabel,
-  Menu,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
   MenuItem,
   Paper,
   Select,
-  Tab,
-  Tabs,
+  Skeleton,
+  Stack,
   TextField,
   Tooltip,
   Typography,
   useTheme,
 } from '@mui/material';
-
+import { useEffect, useMemo, useState, type FC, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import EasyPathAppBar from '../components/AppBar';
+import { messagingGatewayFetch, platformFetch, postJson, putJson } from '../services/apiClient';
+import type { BotConfig, MessagingPlatform } from '../types/bot';
 
-import { useEffect, useState, useMemo, type FC } from 'react';
+interface FlowSummary {
+  id: number;
+  name: string;
+  description: string;
+  flow_data: { nodes?: unknown[] };
+  status?: string;
+  created_at?: string;
+}
 
+const INITIAL_BOT_FORM = {
+  platform: 'telegram',
+  bot_name: '',
+  bot_token: '',
+  flow_id: '',
+  owner_id: 'user-123',
+};
 
+const platformIcons: Record<MessagingPlatform, JSX.Element> = {
+  telegram: <TelegramIcon />,
+  whatsapp: <WhatsAppIcon />,
+};
 
 const DashboardPage: FC = () => {
-  const { t, i18n } = useTranslation()
-  const navigate = useNavigate();
+  const { t } = useTranslation();
   const theme = useTheme();
+  const navigate = useNavigate();
 
-  const [flows, setFlows] = useState<any[]>([]);
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'title-asc' | 'title-desc' | 'date-newest' | 'date-oldest'>('date-newest');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'draft' | 'archived'>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [bots, setBots] = useState<BotConfig[]>([]);
+  const [flows, setFlows] = useState<FlowSummary[]>([]);
+  const [loadingBots, setLoadingBots] = useState(true);
+  const [loadingFlows, setLoadingFlows] = useState(true);
+  const [botError, setBotError] = useState<string | null>(null);
+  const [createBotOpen, setCreateBotOpen] = useState(false);
+  const [editBotOpen, setEditBotOpen] = useState(false);
+  const [deleteBotOpen, setDeleteBotOpen] = useState(false);
+  const [selectedBot, setSelectedBot] = useState<BotConfig | null>(null);
+  const [botFormData, setBotFormData] = useState(INITIAL_BOT_FORM);
+  const [dialogLoading, setDialogLoading] = useState(false);
 
-  // Menu and dialog states
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const [selectedFlow, setSelectedFlow] = useState<any | null>(null);
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [newFlowName, setNewFlowName] = useState('');
+  const nonTestBots = useMemo(
+    () => bots.filter((bot) => !bot.is_test_bot),
+    [bots],
+  );
 
-  useEffect(() => {
-    const fetchFlows = async () => {
-      const response = await fetch('/api/flows/');
-      if (response.ok) {
-        const data = await response.json();
-        setFlows(data);
-      }
-    };
+  const activeBotCount = useMemo(
+    () =>
+      nonTestBots.filter(
+        (bot) => bot.is_active === true || bot.is_active === 'active',
+      ).length,
+    [nonTestBots],
+  );
 
-    fetchFlows();
-  }, []);
-
-  const folders = useMemo(() => {
-    const folderMap: { [key: string]: number } = {};
-    flows.forEach(flow => {
-      if (flow.folder) {
-        folderMap[flow.folder] = (folderMap[flow.folder] || 0) + 1;
-      }
-    });
-    return Object.keys(folderMap).map(name => ({ id: name, name, count: folderMap[name] }));
+  const nodeCount = useMemo(() => {
+    return flows.reduce((total, flow) => total + (flow.flow_data?.nodes?.length || 0), 0);
   }, [flows]);
 
-  const handleCreatePath = () => {
-    navigate('/canvas/new');
-  };
-
-  const handlePathClick = (id: string) => {
-    navigate(`/canvas/${id}`); // Navigate to specific canvas for editing
-  };
-
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(i18n.language, options);
-  };
-
-  // Menu handlers
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, flow: any) => {
-    event.stopPropagation();
-    setMenuAnchor(event.currentTarget);
-    setSelectedFlow(flow);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null);
-  };
-
-  // Rename handlers
-  const handleRenameClick = () => {
-    setNewFlowName(selectedFlow?.name || '');
-    setRenameDialogOpen(true);
-    handleMenuClose();
-  };
-
-  const handleRenameClose = () => {
-    setRenameDialogOpen(false);
-    setNewFlowName('');
-  };
-
-  const handleRenameConfirm = async () => {
-    if (!selectedFlow || !newFlowName.trim()) return;
-
+  const fetchBots = useCallback(async () => {
+    setLoadingBots(true);
     try {
-      const response = await fetch(`/api/flows/${selectedFlow.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newFlowName.trim(),
-          description: selectedFlow.description,
-          flow_data: selectedFlow.flow_data,
-        }),
-      });
-
-      if (response.ok) {
-        const updatedFlow = await response.json();
-        setFlows(flows.map(f => f.id === selectedFlow.id ? updatedFlow : f));
-        handleRenameClose();
-      }
+      const data = await messagingGatewayFetch<BotConfig[]>('/api/bots');
+      setBots(data);
     } catch (error) {
-      console.error('Failed to rename flow:', error);
+      console.error('Failed to load bots:', error);
+      setBotError(error instanceof Error ? error.message : 'Failed to load bots');
+    } finally {
+      setLoadingBots(false);
     }
-  };
+  }, []);
 
-  // Delete handlers
-  const handleDeleteClick = () => {
-    setDeleteDialogOpen(true);
-    handleMenuClose();
-  };
-
-  const handleDeleteClose = () => {
-    setDeleteDialogOpen(false);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!selectedFlow) return;
-
+  const fetchFlows = useCallback(async () => {
+    setLoadingFlows(true);
     try {
-      const response = await fetch(`/api/flows/${selectedFlow.id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setFlows(flows.filter(f => f.id !== selectedFlow.id));
-        handleDeleteClose();
-      }
+      const data = await platformFetch<FlowSummary[]>('/flows/');
+      setFlows(data);
     } catch (error) {
-      console.error('Failed to delete flow:', error);
+      console.error('Failed to load flows:', error);
+    } finally {
+      setLoadingFlows(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBots();
+    fetchFlows();
+  }, [fetchBots, fetchFlows]);
+
+  const handleOpenCreate = () => {
+    setBotFormData(INITIAL_BOT_FORM);
+    setBotError(null);
+    setCreateBotOpen(true);
+  };
+
+  const handleOpenEdit = (bot: BotConfig) => {
+    setSelectedBot(bot);
+    setBotFormData({
+      platform: bot.platform,
+      bot_name: bot.bot_name,
+      bot_token: '',
+      flow_id: bot.flow_id.toString(),
+      owner_id: bot.owner_id,
+    });
+    setBotError(null);
+    setEditBotOpen(true);
+  };
+
+  const handleOpenDelete = (bot: BotConfig) => {
+    setSelectedBot(bot);
+    setDeleteBotOpen(true);
+  };
+
+  const handleCloseDialogs = () => {
+    setCreateBotOpen(false);
+    setEditBotOpen(false);
+    setDeleteBotOpen(false);
+    setSelectedBot(null);
+    setDialogLoading(false);
+    setBotError(null);
+  };
+
+  const handleCreateBot = async () => {
+    if (!botFormData.flow_id || !botFormData.bot_name.trim() || !botFormData.bot_token.trim()) {
+      setBotError('All fields are required');
+      return;
+    }
+
+    setDialogLoading(true);
+    try {
+      const payload = {
+        platform: botFormData.platform,
+        bot_name: botFormData.bot_name.trim(),
+        bot_token: botFormData.bot_token.trim(),
+        flow_id: parseInt(botFormData.flow_id, 10),
+        owner_id: botFormData.owner_id,
+      };
+      const newBot = await messagingGatewayFetch<BotConfig>(
+        '/api/bots',
+        { ...postJson(payload) },
+      );
+      setBots((prev) => [...prev, newBot]);
+      handleCloseDialogs();
+    } catch (error) {
+      console.error('Failed to create bot:', error);
+      setBotError(error instanceof Error ? error.message : 'Failed to create bot');
+    } finally {
+      setDialogLoading(false);
     }
   };
 
-  const filteredAndSortedPaths = useMemo(() => {
-    let currentPaths = flows.filter((path) => {
-      const matchesFolder = selectedFolder ? path.folder === selectedFolder : true;
-      const matchesSearch =
-        path.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        path.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || path.status === filterStatus;
-      return matchesFolder && matchesSearch && matchesStatus;
-    });
+  const handleUpdateBot = async () => {
+    if (!selectedBot) return;
+    if (!botFormData.bot_name.trim() || !botFormData.flow_id) {
+      setBotError('Bot name and flow are required');
+      return;
+    }
 
-    // Sort logic
-    currentPaths.sort((a, b) => {
-      if (sortBy === 'title-asc') {
-        return a.name.localeCompare(b.name);
-      } else if (sortBy === 'title-desc') {
-        return b.name.localeCompare(a.name);
-      } else if (sortBy === 'date-newest') {
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      } else if (sortBy === 'date-oldest') {
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      }
-      return 0;
-    });
+    setDialogLoading(true);
+    try {
+      const payload = {
+        bot_name: botFormData.bot_name.trim(),
+        flow_id: parseInt(botFormData.flow_id, 10),
+      };
 
-    return currentPaths;
-  }, [selectedFolder, searchQuery, sortBy, filterStatus, flows]);
+      const updatedBot = await messagingGatewayFetch<BotConfig>(
+        `/api/bots/${selectedBot.id}`,
+        { ...putJson(payload) },
+      );
 
-  const getStatusBadgeColor = (status: string): string => {
-    switch (status) {
-      case 'active':
-        return theme.palette.success.main;
-      case 'draft':
-        return theme.palette.warning.main;
-      case 'archived':
-        return theme.palette.text.secondary;
-      default:
-        return theme.palette.grey[500]; // Fallback to a grey color
+      setBots((prev) => prev.map((bot) => (bot.id === updatedBot.id ? updatedBot : bot)));
+      handleCloseDialogs();
+    } catch (error) {
+      console.error('Failed to update bot:', error);
+      setBotError(error instanceof Error ? error.message : 'Failed to update bot');
+    } finally {
+      setDialogLoading(false);
     }
   };
+
+  const handleDeleteBot = async () => {
+    if (!selectedBot) return;
+    setDialogLoading(true);
+    try {
+      await messagingGatewayFetch(
+        `/api/bots/${selectedBot.id}`,
+        { method: 'DELETE', parseJson: false },
+      );
+      setBots((prev) => prev.filter((bot) => bot.id !== selectedBot.id));
+      handleCloseDialogs();
+    } catch (error) {
+      console.error('Failed to delete bot:', error);
+      setBotError(error instanceof Error ? error.message : 'Failed to delete bot');
+      setDialogLoading(false);
+    }
+  };
+
+  const handleToggleActive = async (bot: BotConfig) => {
+    const nextStatus =
+      bot.is_active === true || bot.is_active === 'active' ? false : true;
+    try {
+      const updated = await messagingGatewayFetch<BotConfig>(
+        `/api/bots/${bot.id}`,
+        { ...putJson({ is_active: nextStatus }) },
+      );
+      setBots((prev) => prev.map((item) => (item.id === bot.id ? updated : item)));
+    } catch (error) {
+      console.error('Failed to toggle bot status:', error);
+    }
+  };
+
+  const getFlowName = (flowId: number) =>
+    flows.find((flow) => flow.id === flowId)?.name || `Flow #${flowId}`;
+
+  const renderPlatformIcon = (platform: MessagingPlatform) =>
+    platformIcons[platform] ?? <SmartToyIcon />;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'background.default' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       <EasyPathAppBar appBarHeight="large" />
-      <Box
-        sx={{
-          flexGrow: 1,
-          display: 'flex',
-          p: 3,
-          maxWidth: '1400px',
-          mx: 'auto',
-          width: '100%',
-          gap: 3,
-          [theme.breakpoints.down('md')]: {
-            flexDirection: 'column',
-          },
-        }}
-      >
-        {/* Sidebar with folders */}
-        <Paper
-          elevation={2}
-          sx={{
-            width: 280,
-            p: 2,
-            borderRadius: 3,
-            height: 'fit-content',
-            minHeight: '200px',
-            [theme.breakpoints.down('md')]: {
-              width: '100%',
-              order: 2,
-            },
-            transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
-            transform: 'translateX(0)',
-            opacity: 1,
-            // Simple animation approximation
-            '&.entering': { transform: 'translateX(-20px)', opacity: 0 },
-            '&.entered': { transform: 'translateX(0)', opacity: 1 },
-          }}
-        >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
-              {t('dashboardPage.foldersTitle')}
-            </Typography>
-            <Tooltip title={t('dashboardPage.addFolderTooltip')}>
-              <IconButton size="small">
-                <AddIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Button
-              variant={selectedFolder === null ? 'contained' : 'text'}
-              color={selectedFolder === null ? 'primary' : 'inherit'}
-              onClick={() => setSelectedFolder(null)}
-              sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2 }}
-            >
-              <FolderIcon sx={{ mr: 1 }} />
-              {t('dashboardPage.allPaths')}
-              <Typography
-                variant="caption"
-                sx={{
-                  ml: 'auto',
-                  px: 1,
-                  py: 0.5,
-                  borderRadius: 1,
-                  backgroundColor: selectedFolder === null ? alpha(theme.palette.primary.contrastText, 0.2) : theme.palette.action.selected,
-                  color: selectedFolder === null ? theme.palette.primary.contrastText : theme.palette.text.secondary,
-                  fontWeight: 600,
-                }}
-              >
-                {folders.length}
+      <Box sx={{ flexGrow: 1, p: 3, maxWidth: '1200px', mx: 'auto', width: '100%' }}>
+        <Stack spacing={3}>
+          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2}>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                {t('dashboardPage.workspaceTitle')}
               </Typography>
-            </Button>
-            {folders.map((folder) => (
+              <Typography variant="body2" color="text.secondary">
+                {t('dashboardPage.workspaceSubtitle')}
+              </Typography>
+            </Box>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <Button
-                key={folder.id}
-                variant={selectedFolder === folder.name ? 'contained' : 'text'}
-                color={selectedFolder === folder.name ? 'primary' : 'inherit'}
-                onClick={() => setSelectedFolder(folder.name)}
-                sx={{ justifyContent: 'flex-start', py: 1.2, px: 2, borderRadius: 2 }}
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/canvas/new')}
               >
-                {selectedFolder === folder.name ? <FolderOpenIcon sx={{ mr: 1 }} /> : <FolderIcon sx={{ mr: 1 }} />}
-                {folder.name}
-                <Typography
-                  variant="caption"
-                  sx={{
-                    ml: 'auto',
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    backgroundColor: selectedFolder === folder.name ? alpha(theme.palette.primary.contrastText, 0.2) : theme.palette.action.selected,
-                    color: selectedFolder === folder.name ? theme.palette.primary.contrastText : theme.palette.text.secondary,
-                    fontWeight: 600,
-                  }}
-                >
-                  {folder.count}
-                </Typography>
+                {t('dashboardPage.actions.newFlow')}
               </Button>
-            ))}
-          </Box>
-        </Paper>
-
-        {/* Main content area */}
-        <Box
-          sx={{
-            flex: 1,
-            [theme.breakpoints.down('md')]: {
-              order: 1,
-            },
-            transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
-            transform: 'translateY(0)',
-            opacity: 1,
-            // Simple animation approximation
-            '&.entering': { transform: 'translateY(20px)', opacity: 0 },
-            '&.entered': { transform: 'translateY(0)', opacity: 1 },
-          }}
-        >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, color: 'text.primary' }}>
-              {selectedFolder ? selectedFolder : t('dashboardPage.allPaths')}
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={handleCreatePath}
-              sx={{ borderRadius: 2 }}
-            >
-              {t('dashboardPage.createPathButton')}
-            </Button>
-          </Box>
-
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: 2,
-              mb: 3,
-              alignItems: 'center',
-            }}
-          >
-            <TextField
-              fullWidth
-              placeholder={t('dashboardPage.searchPlaceholder')}
-              variant="outlined"
-              size="small"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                borderRadius: 2,
-                '& .MuiOutlinedInput-root': { borderRadius: 2 },
-                flex: 1,
-              }}
-            />
-            <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
-              <FormControl sx={{ minWidth: 120 }} size="small">
-                <InputLabel id="sort-by-label">{t('dashboardPage.sortByLabel')}</InputLabel>
-                <Select
-                  labelId="sort-by-label"
-                  id="sort-by-select"
-                  value={sortBy}
-                  label="Sort By"
-                  onChange={(e) =>
-                    setSortBy(e.target.value as 'title-asc' | 'title-desc' | 'date-newest' | 'date-oldest')
-                  }
-                >
-                  <MenuItem value="title-asc">{t('dashboardPage.sortByNameAsc')}</MenuItem>
-                  <MenuItem value="title-desc">{t('dashboardPage.sortByNameDesc')}</MenuItem>
-                  <MenuItem value="date-newest">{t('dashboardPage.sortByDateNewest')}</MenuItem>
-                  <MenuItem value="date-oldest">{t('dashboardPage.sortByDateOldest')}</MenuItem>
-
-                </Select>
-              </FormControl>
-
-              <FormControl sx={{ minWidth: 120 }} size="small">
-                <InputLabel id="filter-status-label">{t('dashboardPage.filterLabel')}</InputLabel>
-                <Select
-                  labelId="filter-status-label"
-                  id="filter-status-select"
-                  value={filterStatus}
-                  label="Filter"
-                  onChange={(e) =>
-                    setFilterStatus(e.target.value as 'all' | 'active' | 'draft' | 'archived')
-                  }
-                >
-                  <MenuItem value="all">{t('dashboardPage.filterStatusAll')}</MenuItem>
-                  <MenuItem value="active">{t('dashboardPage.filterStatusActive')}</MenuItem>
-                  <MenuItem value="draft">{t('dashboardPage.filterStatusDraft')}</MenuItem>
-                  <MenuItem value="archived">{t('dashboardPage.filterStatusArchived')}</MenuItem>
-
-                </Select>
-              </FormControl>
-
-              <Tabs
-                value={viewMode}
-                onChange={(_event, newValue) => setViewMode(newValue)}
-                aria-label={t('dashboardPage.viewModeAriaLabel')}
-                sx={{
-                  minHeight: 0,
-                  '& .MuiTab-root': { minHeight: 0, py: 1, px: 1.5, borderRadius: 1 },
-                  '& .MuiTabs-indicator': { display: 'none' },
-                  '& .Mui-selected': {
-                    backgroundColor: theme.palette.primary.main,
-                    color: theme.palette.primary.contrastText,
-                    '&:hover': {
-                      backgroundColor: theme.palette.primary.dark,
-                    },
-                  },
-                }}
+              <Button
+                variant="contained"
+                startIcon={<SmartToyIcon />}
+                onClick={handleOpenCreate}
               >
-                <Tab
-                  icon={<GridViewIcon fontSize="small" />}
-                  value="grid"
-                  aria-label={t('dashboardPage.viewGrid')}
-                  sx={{ minWidth: 'unset', px: 1.5 }}
-                />
-                <Tab
-                  icon={<ViewListIcon fontSize="small" />}
-                  value="list"
-                  aria-label={t('dashboardPage.viewList')}
-                  sx={{ minWidth: 'unset', px: 1.5 }}
-                />
-              </Tabs>
-            </Box>
-          </Box>
+                {t('dashboardPage.actions.newBot')}
+              </Button>
+            </Stack>
+          </Stack>
 
-          {viewMode === 'grid' && (
-            <Grid container spacing={3}>
-              {filteredAndSortedPaths.map((path) => (
-                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={path.id}>
-                  <Card
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: 'pointer',
-                      transition: 'box-shadow 0.3s ease, transform 0.2s ease',
-                      '&:hover': {
-                        boxShadow: theme.shadows[6],
-                        transform: 'translateY(-4px)',
-                      },
-                      borderRadius: 3,
-                    }}
-                    onClick={() => handlePathClick(path.id)}
-                  >
-                    <CardContent sx={{ pb: 0 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                        <Typography variant="h6" component="h3" sx={{ fontSize: '1.1rem', fontWeight: 600, flexGrow: 1 }}>
-                          {path.name}
-                        </Typography>
-                        <IconButton
-                          size="small"
-                          sx={{ ml: 1, mt: -1, mr: -1 }}
-                          onClick={(e) => handleMenuOpen(e, path)}
-                        >
-                          <MoreVertIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.4, minHeight: 40, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {path.description}
-                      </Typography>
-                    </CardContent>
-                    <CardContent sx={{ flexGrow: 1, pt: 0, pb: '16px !important' }}>
-                      <Box
-                        sx={{
-                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                          borderRadius: 2,
-                          p: 3,
-                          height: 120,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: theme.palette.primary.main,
-                        }}
-                      >
-                        <ChatBubbleOutlineIcon sx={{ fontSize: 40, mb: 1 }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {t('dashboardPage.pathCard.nodes', { count: path.flow_data.nodes?.length || 0 })}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                    <Divider />
-                    <CardContent sx={{ pt: 1.5, pb: '16px !important', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="caption" color="text.disabled">
-                        {t('dashboardPage.pathCard.created', { date: formatDate(path.created_at) })}
-                      </Typography>
-                      <Box
-                        sx={{
-                          backgroundColor: getStatusBadgeColor(path.status),
-                          color: theme.palette.getContrastText(getStatusBadgeColor(path.status)),
-                          px: 1.5,
-                          py: 0.5,
-                          borderRadius: 1,
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {path.status}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          )}
+          <Grid container spacing={2}>
+            {[
+              {
+                label: t('dashboardPage.metrics.bots'),
+                value: loadingBots ? <CircularProgress size={18} /> : nonTestBots.length,
+                caption: t('dashboardPage.metrics.botsCaption'),
+              },
+              {
+                label: t('dashboardPage.metrics.activeBots'),
+                value: loadingBots ? <CircularProgress size={18} /> : activeBotCount,
+                caption: t('dashboardPage.metrics.activeBotsCaption'),
+              },
+              {
+                label: t('dashboardPage.metrics.flows'),
+                value: loadingFlows ? <CircularProgress size={18} /> : flows.length,
+                caption: t('dashboardPage.metrics.flowsCaption'),
+              },
+              {
+                label: t('dashboardPage.metrics.nodes'),
+                value: loadingFlows ? <CircularProgress size={18} /> : nodeCount,
+                caption: t('dashboardPage.metrics.nodesCaption'),
+              },
+            ].map((metric) => (
+              <Grid item xs={12} sm={6} md={3} key={metric.label}>
+                <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    {metric.label}
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>
+                    {metric.value}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {metric.caption}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
 
-          {viewMode === 'list' && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {filteredAndSortedPaths.map((path) => (
-                <Card
-                  key={path.id}
-                  sx={{
-                    width: '100%',
-                    cursor: 'pointer',
-                    transition: 'box-shadow 0.3s ease, transform 0.2s ease',
-                    '&:hover': {
-                      boxShadow: theme.shadows[4],
-                      transform: 'translateX(4px)',
-                    },
-                    borderRadius: 2,
-                  }}
-                  onClick={() => handlePathClick(path.id)}
+          <Paper variant="outlined" sx={{ p: 3 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {t('dashboardPage.botsSection.title')}
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchBots}
+                  disabled={loadingBots}
                 >
-                  <CardContent sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
-                    <Box
-                      sx={{
-                        backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                        borderRadius: 1.5,
-                        p: 1.5,
-                        mr: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: theme.palette.primary.main,
-                      }}
-                    >
-                      <ChatBubbleOutlineIcon sx={{ fontSize: 28 }} />
-                    </Box>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                        {path.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4, minHeight: 20, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
-                        {path.description}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, ml: 3 }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-                        {formatDate(path.created_at)}
-                      </Typography>
-                      <Box
-                        sx={{
-                          backgroundColor: getStatusBadgeColor(path.status),
-                          color: theme.palette.getContrastText(getStatusBadgeColor(path.status)),
-                          px: 1.5,
-                          py: 0.5,
-                          borderRadius: 1,
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
-                          textTransform: 'capitalize',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {path.status}
-                      </Box>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, path)}
-                      >
-                        <MoreVertIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          )}
-        </Box>
+                  {t('dashboardPage.botsSection.refresh')}
+                </Button>
+                <Button variant="contained" size="small" onClick={handleOpenCreate}>
+                  {t('dashboardPage.botsSection.create')}
+                </Button>
+              </Stack>
+            </Stack>
+            {botError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {botError}
+              </Alert>
+            )}
+            {loadingBots ? (
+              <Grid container spacing={2}>
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <Grid item xs={12} md={4} key={index}>
+                    <Skeleton variant="rounded" height={180} />
+                  </Grid>
+                ))}
+              </Grid>
+            ) : nonTestBots.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <SmartToyIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                <Typography variant="h6" color="text.secondary">
+                  {t('dashboardPage.botsSection.emptyTitle')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t('dashboardPage.botsSection.emptySubtitle')}
+                </Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={2}>
+                {nonTestBots.map((bot) => (
+                  <Grid item xs={12} md={6} key={bot.id}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main }}>
+                              {renderPlatformIcon(bot.platform)}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                {bot.bot_name || `Bot #${bot.id}`}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                {getFlowName(bot.flow_id)}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                          <Stack direction="row" spacing={1}>
+                            <Chip
+                            label={bot.is_active === true || bot.is_active === 'active' ? t('dashboardPage.botsSection.statusActive') : t('dashboardPage.botsSection.statusInactive')}
+                              color={bot.is_active === true || bot.is_active === 'active' ? 'success' : 'default'}
+                              size="small"
+                              onClick={() => handleToggleActive(bot)}
+                              sx={{ cursor: 'pointer' }}
+                            />
+                            <Tooltip title="Edit bot">
+                              <IconButton size="small" onClick={() => handleOpenEdit(bot)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete bot">
+                              <IconButton size="small" color="error" onClick={() => handleOpenDelete(bot)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </Stack>
+                      </CardContent>
+                      <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+                        <Button
+                          size="small"
+                          onClick={() => navigate(`/bots/${bot.id}`)}
+                        >
+                      {t('dashboardPage.botsSection.viewDetails')}
+                        </Button>
+                        {bot.webhook_url && (
+                          <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+                        {bot.webhook_url}
+                          </Typography>
+                        )}
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Paper>
+
+          <Paper variant="outlined" sx={{ p: 3 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {t('dashboardPage.flowsSection.title')}
+              </Typography>
+              <Button size="small" variant="outlined" onClick={() => navigate('/dashboard')} disabled>
+                {t('dashboardPage.allPaths')}
+              </Button>
+            </Stack>
+            {loadingFlows ? (
+              <Stack spacing={1.5}>
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} variant="rounded" height={56} />
+                ))}
+              </Stack>
+            ) : flows.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {t('dashboardPage.flowsSection.empty')}
+                </Typography>
+              </Box>
+            ) : (
+              <List dense>
+                {flows.slice(0, 6).map((flow) => (
+                  <ListItem
+                    key={flow.id}
+                    secondaryAction={
+                      <Stack direction="row" spacing={1}>
+                        <Chip
+                          label={`${flow.flow_data?.nodes?.length || 0} nodes`}
+                          size="small"
+                          variant="outlined"
+                        />
+                        <Button size="small" onClick={() => navigate(`/canvas/${flow.id}`)}>
+                          Open
+                        </Button>
+                      </Stack>
+                    }
+                  >
+                    <ListItemAvatar>
+                      <Avatar>
+                        <SmartToyIcon />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={flow.name}
+                      secondary={flow.description || t('dashboardPage.flowsSection.noDescription')}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Paper>
+        </Stack>
       </Box>
 
-      {/* Options Menu */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-      >
-        <MenuItem onClick={handleRenameClick}>
-          <EditIcon sx={{ mr: 1, fontSize: 20 }} />
-          {t('dashboardPage.menu.rename')}
-        </MenuItem>
-        <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
-          <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
-          {t('dashboardPage.menu.delete')}
-        </MenuItem>
-      </Menu>
-
-      {/* Rename Dialog */}
-      <Dialog open={renameDialogOpen} onClose={handleRenameClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('dashboardPage.renameDialog.title')}</DialogTitle>
+      <Dialog open={createBotOpen} onClose={dialogLoading ? undefined : handleCloseDialogs} maxWidth="sm" fullWidth>
+        <DialogTitle>Create Bot</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            {t('dashboardPage.renameDialog.description')}
-          </DialogContentText>
-          <TextField
-            autoFocus
-            fullWidth
-            label={t('dashboardPage.renameDialog.label')}
-            value={newFlowName}
-            onChange={(e) => setNewFlowName(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && newFlowName.trim()) {
-                handleRenameConfirm();
+          {botError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {botError}
+            </Alert>
+          )}
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Platform</InputLabel>
+              <Select
+                label="Platform"
+                value={botFormData.platform}
+                onChange={(event) =>
+                  setBotFormData((prev) => ({ ...prev, platform: event.target.value }))
+                }
+                disabled={dialogLoading}
+              >
+                <MenuItem value="telegram">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <TelegramIcon fontSize="small" />
+                    <span>Telegram</span>
+                  </Stack>
+                </MenuItem>
+                <MenuItem value="whatsapp" disabled>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <WhatsAppIcon fontSize="small" />
+                    <span>WhatsApp (coming soon)</span>
+                  </Stack>
+                </MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Bot name"
+              value={botFormData.bot_name}
+              onChange={(event) =>
+                setBotFormData((prev) => ({ ...prev, bot_name: event.target.value }))
               }
-            }}
-          />
+              disabled={dialogLoading}
+              fullWidth
+            />
+            <TextField
+              label="Bot token"
+              value={botFormData.bot_token}
+              onChange={(event) =>
+                setBotFormData((prev) => ({ ...prev, bot_token: event.target.value }))
+              }
+              disabled={dialogLoading}
+              fullWidth
+              type="password"
+              helperText="Get this token from @BotFather on Telegram"
+            />
+            <FormControl fullWidth>
+              <InputLabel>Active flow</InputLabel>
+              <Select
+                label="Active flow"
+                value={botFormData.flow_id}
+                onChange={(event) =>
+                  setBotFormData((prev) => ({ ...prev, flow_id: event.target.value }))
+                }
+                disabled={dialogLoading}
+              >
+                {flows.map((flow) => (
+                  <MenuItem key={flow.id} value={flow.id.toString()}>
+                    {flow.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleRenameClose}>{t('dashboardPage.renameDialog.cancel')}</Button>
-          <Button onClick={handleRenameConfirm} variant="contained" disabled={!newFlowName.trim()}>
-            {t('dashboardPage.renameDialog.confirm')}
+          <Button onClick={handleCloseDialogs} disabled={dialogLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleCreateBot} variant="contained" disabled={dialogLoading}>
+            {dialogLoading ? 'Creating...' : 'Create Bot'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteClose} maxWidth="sm">
-        <DialogTitle>{t('dashboardPage.deleteDialog.title')}</DialogTitle>
+      <Dialog open={editBotOpen} onClose={dialogLoading ? undefined : handleCloseDialogs} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Bot</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            {t('dashboardPage.deleteDialog.description', { name: selectedFlow?.name })}
-          </DialogContentText>
+          {botError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {botError}
+            </Alert>
+          )}
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Bot name"
+              value={botFormData.bot_name}
+              onChange={(event) =>
+                setBotFormData((prev) => ({ ...prev, bot_name: event.target.value }))
+              }
+              disabled={dialogLoading}
+              fullWidth
+            />
+            <FormControl fullWidth>
+              <InputLabel>Active flow</InputLabel>
+              <Select
+                label="Active flow"
+                value={botFormData.flow_id}
+                onChange={(event) =>
+                  setBotFormData((prev) => ({ ...prev, flow_id: event.target.value }))
+                }
+                disabled={dialogLoading}
+              >
+                {flows.map((flow) => (
+                  <MenuItem key={flow.id} value={flow.id.toString()}>
+                    {flow.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteClose}>{t('dashboardPage.deleteDialog.cancel')}</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error">
-            {t('dashboardPage.deleteDialog.confirm')}
+          <Button onClick={handleCloseDialogs} disabled={dialogLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleUpdateBot} variant="contained" disabled={dialogLoading}>
+            {dialogLoading ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteBotOpen} onClose={dialogLoading ? undefined : handleCloseDialogs} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Bot</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Are you sure you want to delete "{selectedBot?.bot_name}"? This will remove the webhook and stop all message processing.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialogs} disabled={dialogLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteBot}
+            variant="contained"
+            color="error"
+            disabled={dialogLoading}
+          >
+            {dialogLoading ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -34,6 +34,8 @@ import { autoLayoutNodes } from '../utils/autoLayout';
 import TestModePanel from '../components/canvas/TestModePanel';
 import { useFlowWebSocket, type FlowEvent, type DecisionLog } from '../hooks/useFlowWebSocket';
 import { v6 as uuidv6 } from 'uuid';
+import { messagingGatewayFetch, postJson } from '../services/apiClient';
+import type { BotConfig } from '../types/bot';
 
 const initialGlobalConfig: GlobalCanvasConfig = {
   globalPrompt: 'Default global prompt: Be helpful and concise.',
@@ -171,35 +173,42 @@ const CanvasPage: React.FC = () => {
 
       try {
         // Try to fetch existing test bot for this flow
-        const response = await fetch(
-          `http://localhost:8082/api/bots?flow_id=${numericFlowId}&is_test_bot=true`
-        );
+        let existingBots: BotConfig[] = [];
+        try {
+          existingBots = await messagingGatewayFetch<BotConfig[]>(
+            `/api/bots?flow_id=${numericFlowId}&is_test_bot=true`
+          );
+        } catch (error) {
+          console.error('Failed to fetch existing test bots:', error);
+        }
 
-        if (response.ok) {
-          const bots = await response.json();
-          if (bots.length > 0) {
-            // Use existing test bot
-            setTestBot({ id: bots[0].id, bot_name: bots[0].bot_name });
-            console.log(`Using existing test bot: ${bots[0].id} (${bots[0].bot_name})`);
-            return;
-          }
+        if (existingBots.length > 0) {
+          const bot = existingBots[0];
+          setTestBot({ id: bot.id, bot_name: bot.bot_name });
+          console.log(`Using existing test bot: ${bot.id} (${bot.bot_name})`);
+          return;
         }
 
         // No test bot exists, create one
-        const createResponse = await fetch('http://localhost:8082/api/test-bots', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            persona_name: `${flowName} - Test Bot`,
-            flow_id: numericFlowId,
-            owner_id: 'user-123', // TODO: Get from auth context
-          }),
-        });
+        try {
+          const result = await messagingGatewayFetch<{
+            bot_config_id: number;
+            bot_name: string;
+          }>(
+            '/api/test-bots',
+            {
+              ...postJson({
+                persona_name: `${flowName} - Test Bot`,
+                flow_id: numericFlowId,
+                owner_id: 'user-123', // TODO: Get from auth context
+              }),
+            }
+          );
 
-        if (createResponse.ok) {
-          const result = await createResponse.json();
           setTestBot({ id: result.bot_config_id, bot_name: result.bot_name });
           console.log(`Created new test bot: ${result.bot_config_id} (${result.bot_name})`);
+        } catch (error) {
+          console.error('Failed to ensure test bot exists:', error);
         }
       } catch (error) {
         console.error('Failed to ensure test bot exists:', error);

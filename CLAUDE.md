@@ -121,6 +121,10 @@ The project consists of four main components:
 - ✅ Fixed streaming timeout (resets on activity)
 - ✅ Batch commits for better performance
 - ✅ Webhook always returns 200 OK (prevents Telegram retries)
+- ✅ Fixed duplicate user messages in Persona tab (removed double insertion)
+- ✅ Fixed engine flow format validation (flows now saved in correct engine format)
+- ✅ Added automatic flow format detection and conversion (backward compatible with old flows)
+- ✅ Added null safety checks in flowAnalyzer.ts for node.data
 
 **Session management:**
 - **Reset:** Generates new session ID, clears messages, clears engine Redis
@@ -306,6 +310,87 @@ Flows are defined as JSON files following the schema in `apps/engine/app/models/
 - `overrides_global_pathway`: Whether node-level pathway selection overrides global config
 
 See `apps/engine/tests/fixtures/sample_flow.json` and `apps/engine/tests/fixtures/math_quiz_flow.json` for reference.
+
+### Flow Format Conversion (Engine ↔ Canvas)
+
+The platform uses **two different flow formats**:
+
+1. **Engine Format** (stored in database, used by engine):
+   - Fields: `first_node_id`, `nodes` (with `node_type`), `connections`, `global_*`
+   - Used for execution by the engine
+   - Optimized for flow processing and validation
+
+2. **Canvas Format** (used by frontend):
+   - Fields: `nodes` (with `type`), `edges`, `globalConfig`
+   - Used for visual representation in React Flow
+   - Includes positioning and UI-specific data
+
+**Conversion happens automatically:**
+
+- **Save Flow**: Canvas format → `convertCanvasToEngine()` → Stored as engine format
+- **Load Flow**: Detects format → Converts if needed → Canvas format for editing
+- **Backward Compatible**: Old flows in canvas format still work
+
+**Key converter functions** ([flowConverter.ts](apps/platform/frontend/src/utils/flowConverter.ts)):
+- `convertEngineToCanvas(engineFlow)`: Converts engine format to canvas format (includes auto-layout)
+- `convertCanvasToEngine(canvasFlow)`: Converts canvas format to engine format
+- `isEngineFormat(data)`: Detects if flow is in engine format
+- `isCanvasFormat(data)`: Detects if flow is in canvas format
+
+**Field mappings:**
+
+| Canvas Format | Engine Format |
+|---------------|---------------|
+| `nodes[].type` | `nodes[].node_type` |
+| `edges` | `connections` |
+| `globalConfig.roleAndObjective` | `global_objective` |
+| `globalConfig.toneAndStyle` | `global_tone` |
+| `globalConfig.languageAndFormatRules` | `global_language` |
+| `globalConfig.behaviorAndFallbacks` | `global_behaviour` |
+| `globalConfig.placeholdersAndVariables` | `global_values` |
+| N/A | `first_node_id` (auto-detected from start node) |
+
+**Important notes:**
+- All flows saved after 2025-01-12 are stored in engine format
+- Frontend automatically converts old flows when loading
+- Import/export supports both formats
+- Null safety checks prevent errors when `node.data` is undefined
+
+## Test Personas Feature
+
+The platform includes a **Test Personas** system for simulating multiple users testing a flow simultaneously.
+
+**Key features:**
+- Create multiple test personas per bot (stored per-bot in localStorage)
+- Each persona has its own conversation history and session
+- Test personas send messages via the messaging-gateway's test bot API
+- Separate message history per persona (no cross-contamination)
+- Message count tracking per persona
+
+**How it works:**
+1. Frontend auto-creates a test bot for each flow (one test bot per flow)
+2. Users can create multiple personas for that test bot
+3. Each persona gets a unique `persona_user_id` (format: `test-user-{personaId}`)
+4. Messages sent via `POST /api/test/message` with `bot_id` and `persona_user_id`
+5. Messaging gateway creates separate conversations per persona
+6. Each persona's messages are isolated and tracked independently
+
+**Storage:**
+- Personas stored in localStorage with key: `test-personas-bot-{botId}`
+- Each bot gets its own set of personas (prevents persona leaking between flows)
+- Conversation history stored in messaging-gateway database (per persona)
+
+**Benefits:**
+- Test multiple user scenarios simultaneously
+- Debug different conversation paths in parallel
+- Simulate real user behavior with different personas (e.g., "Frustrated User", "Confused User", "Happy User")
+- Track variable extraction across different test cases
+
+**Related components:**
+- [TestPersonaManager.tsx](apps/platform/frontend/src/components/bot/TestPersonaManager.tsx): Persona creation/management UI
+- [TestModePanel.tsx](apps/platform/frontend/src/components/canvas/TestModePanel.tsx): Test mode with persona integration
+- [test_bots.py](apps/messaging-gateway/app/api/test_bots.py): Backend API for test bot messages
+- [CanvasPage.tsx](apps/platform/frontend/src/pages/CanvasPage.tsx): Auto-creates test bot per flow
 
 ## Environment Variables
 
@@ -625,7 +710,71 @@ git pull
 docker compose -f docker/docker-compose.dev.yml up --build
 ```
 
-### Duplicate Messages
+### Duplicate Messages in Persona Tab
+
+**Problem:** User messages appearing twice in Test Personas chat
+
+**Root Cause:** In `TestModePanel.tsx`, the `handlePersonaMessage` function was adding the user message twice:
+1. Once when sending (line 322)
+2. Again when receiving the response (line 351)
+
+**Solution:** Fixed on 2025-01-12. Update line 351 to only add `assistantMessage`, not both messages:
+
+```typescript
+// Before (incorrect)
+setPersonaMessages(prev => ({
+  ...prev,
+  [personaId]: [...(prev[personaId] || []), userMessage, assistantMessage],
+}));
+
+// After (correct)
+setPersonaMessages(prev => ({
+  ...prev,
+  [personaId]: [...(prev[personaId] || []), assistantMessage],
+}));
+```
+
+**File:** [TestModePanel.tsx:351](apps/platform/frontend/src/components/canvas/TestModePanel.tsx#L351)
+
+### Engine Flow Validation Errors
+
+**Problem:** Engine rejects imported flows with validation errors:
+- "Missing `first_node_id` field"
+- "Missing `node_type` field" (has `type` instead)
+- "Missing `connections` field" (has `edges` instead)
+
+**Root Cause:** Frontend was saving flows in canvas format but engine expects engine format.
+
+**Solution:** Fixed on 2025-01-12 with automatic format conversion:
+
+1. **Save Flow:** Canvas format auto-converted to engine format before saving
+2. **Load Flow:** Auto-detects format and converts if needed
+3. **Backward Compatible:** Old flows in canvas format still work
+
+**Files changed:**
+- [CanvasPage.tsx:763-794](apps/platform/frontend/src/pages/CanvasPage.tsx#L763-L794) - Added `convertCanvasToEngine()` on save
+- [CanvasPage.tsx:131-162](apps/platform/frontend/src/pages/CanvasPage.tsx#L131-L162) - Added format detection on load
+- [flowConverter.ts](apps/platform/frontend/src/utils/flowConverter.ts) - Conversion utilities
+
+### TypeError: can't access property "extractVars", node.data is undefined
+
+**Problem:** `flowAnalyzer.ts` crashes when accessing `node.data` after loading flows
+
+**Root Cause:** After converting from engine format to canvas format, some edge cases resulted in undefined `node.data`
+
+**Solution:** Fixed on 2025-01-12. Added null safety checks throughout flowAnalyzer.ts:
+
+```typescript
+// Before (crashes if node.data is undefined)
+if (node.data.extractVars && node.data.extractVars.length > 0) {
+
+// After (safe)
+if (node.data && node.data.extractVars && node.data.extractVars.length > 0) {
+```
+
+**File:** [flowAnalyzer.ts](apps/platform/frontend/src/utils/flowAnalyzer.ts) - Lines 11, 36, 57, 115, 175, 184
+
+### Telegram Duplicate Messages
 
 **Problem:** Same message sent multiple times by bot
 
@@ -704,3 +853,8 @@ docker compose -f docker/docker-compose.dev.yml up --build
 | "WebSocket timeout" | No activity for 40+ seconds | Normal - connection will retry or timeout gracefully |
 | "Failed to commit messages" | Database connection issue | Check PostgreSQL is running and accessible |
 | "Engine request timed out" | LLM taking too long | Check LLM API status, increase timeout if needed |
+| "Missing `first_node_id` field" | Flow in canvas format, engine expects engine format | Fixed 2025-01-12 - update code, flows auto-convert now |
+| "Missing `node_type` field" | Flow in canvas format (has `type` instead) | Fixed 2025-01-12 - flows saved in engine format now |
+| "can't access property 'extractVars', node.data is undefined" | Missing null checks in flowAnalyzer | Fixed 2025-01-12 - null safety added |
+| User messages appearing twice in Persona tab | Double insertion bug in TestModePanel | Fixed 2025-01-12 - removed duplicate userMessage |
+| "IntegrityError: duplicate key violates unique constraint" | Old UNIQUE constraint on conversations | Run migration 003 to remove constraint |

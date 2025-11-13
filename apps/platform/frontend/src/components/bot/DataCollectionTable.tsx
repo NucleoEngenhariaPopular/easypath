@@ -21,16 +21,10 @@ import DownloadIcon from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useTranslation } from 'react-i18next';
+import { messagingGatewayFetch } from '../../services/apiClient';
+import type { ConversationVariablesRow } from '../../types/bot';
 
-interface CollectedData {
-  conversation_id: number;
-  platform_user_id: string;
-  platform_user_name?: string;
-  variables: Record<string, any>;
-  last_extracted_at: string;
-  bot_id?: number; // Added for multi-bot support
-  bot_name?: string; // Added for multi-bot support
-}
+type CollectedData = ConversationVariablesRow;
 
 interface DataCollectionTableProps {
   botId?: number; // Single bot ID (backwards compatible)
@@ -59,15 +53,12 @@ const DataCollectionTable: React.FC<DataCollectionTableProps> = ({ botId, botIds
     setLoading(true);
     setError(null);
     try {
-      // Fetch data for all bot IDs in parallel
-      const fetchPromises = effectiveBotIds.map(id =>
-        fetch(`http://localhost:8082/api/variables/bots/${id}`)
-          .then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch bot ${id}`);
-            return res.json();
-          })
-          .then(result => result.map((item: CollectedData) => ({ ...item, bot_id: id })))
-      );
+      const fetchPromises = effectiveBotIds.map(async (id) => {
+        const result = await messagingGatewayFetch<CollectedData[]>(
+          `/api/variables/bots/${id}`
+        );
+        return result.map((item) => ({ ...item, bot_id: id }));
+      });
 
       const results = await Promise.all(fetchPromises);
       const combined = results.flat();

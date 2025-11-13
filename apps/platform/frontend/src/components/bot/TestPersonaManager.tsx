@@ -24,7 +24,7 @@ import {
 import PersonIcon from '@mui/icons-material/Person';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ChatIcon from '@mui/icons-material/Chat';
+import { messagingGatewayFetch, postJson } from '../../services/apiClient';
 
 // Emoji avatars for personas
 const PERSONA_AVATARS = ['👤', '👨', '👩', '🧑', '👴', '👵', '🏢', '🎯', '💼', '🎓'];
@@ -75,22 +75,19 @@ const TestPersonaManager: React.FC<TestPersonaManagerProps> = ({
 
     try {
       // Call backend to create test bot
-      const response = await fetch('http://localhost:8082/api/test-bots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          persona_name: newPersonaName,
-          flow_id: flowId,
-          owner_id: ownerId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create persona');
-      }
-
-      const result = await response.json();
+      const result = await messagingGatewayFetch<{
+        bot_config_id: number;
+        bot_name: string;
+      }>(
+        '/api/test-bots',
+        {
+          ...postJson({
+            persona_name: newPersonaName,
+            flow_id: flowId,
+            owner_id: ownerId,
+          }),
+        }
+      );
 
       // Create persona object for frontend
       const newPersona: TestPersona = {
@@ -123,14 +120,13 @@ const TestPersonaManager: React.FC<TestPersonaManagerProps> = ({
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:8082/api/test-bots/${persona.botConfigId}`,
-        { method: 'DELETE' }
+      await messagingGatewayFetch(
+        `/api/test-bots/${persona.botConfigId}`,
+        {
+          method: 'DELETE',
+          parseJson: false,
+        }
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to delete persona');
-      }
 
       onPersonaDelete(persona.id);
     } catch (err) {

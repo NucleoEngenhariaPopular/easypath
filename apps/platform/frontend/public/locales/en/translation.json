@@ -11,6 +11,38 @@
     "loadingButton": "Loading..."
   },
   "dashboardPage": {
+    "workspaceTitle": "Bot Workspace",
+    "workspaceSubtitle": "Manage messaging bots, assign flows, and monitor collected data.",
+    "actions": {
+      "newFlow": "New Flow",
+      "newBot": "New Bot"
+    },
+    "metrics": {
+      "bots": "Bots",
+      "botsCaption": "Messaging bots connected to EasyPath",
+      "activeBots": "Active Bots",
+      "activeBotsCaption": "Bots currently receiving messages",
+      "flows": "Flows",
+      "flowsCaption": "Conversation flows available",
+      "nodes": "Total Nodes",
+      "nodesCaption": "Steps across all flows"
+    },
+    "botsSection": {
+      "title": "Bots",
+      "refresh": "Refresh",
+      "create": "Create Bot",
+      "emptyTitle": "No bots configured yet",
+      "emptySubtitle": "Create a bot to connect messaging platforms to your flows.",
+      "viewDetails": "View details",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "webhookLabel": "Webhook URL"
+    },
+    "flowsSection": {
+      "title": "Flows",
+      "empty": "Create a flow to start designing conversations.",
+      "noDescription": "No description provided"
+    },
     "allPaths": "All Paths",
     "createPathButton": "Create Path",
     "searchPlaceholder": "Search paths...",
@@ -200,5 +232,50 @@
   "themeToggleButton": {
     "switchToLight": "Switch to Light Theme",
     "switchToDark": "Switch to Dark Theme"
+  },
+  "botDetail": {
+    "back": "Back to dashboard",
+    "workspaceLink": "Bot Workspace",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "editFlow": "Edit flow",
+    "newFlow": "New flow",
+    "activeFlowLabel": "Active flow",
+    "webhookLabel": "Webhook URL",
+    "webhookPlaceholder": "Not configured",
+    "createdLabel": "Created at",
+    "metrics": {
+      "conversations": "Conversations",
+      "conversationsCaption": "Conversations with collected data",
+      "variables": "Variables collected",
+      "variablesCaption": "Across all conversations",
+      "uniqueVariables": "Unique variables",
+      "uniqueVariablesCaption": "Distinct fields extracted"
+    },
+    "tabs": {
+      "data": "Collected Data",
+      "conversations": "Conversations"
+    },
+    "conversationList": {
+      "title": "Conversations",
+      "empty": "No conversations yet. Messages will appear here once users interact with this bot.",
+      "refresh": "Refresh"
+    },
+    "conversationViewer": {
+      "title": "Conversation History",
+      "empty": "Select a conversation to see the latest messages.",
+      "refresh": "Refresh messages"
+    },
+    "conversations": {
+      "with": "Conversation with {{name}}",
+      "session": "Session ID: {{id}}"
+    },
+    "dialogs": {
+      "deleteTitle": "Delete Bot",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel",
+      "deleteDescription": "Are you sure you want to delete \"{{name}}\"? This will remove the webhook and stop all message processing."
+    },
+    "invalidId": "Invalid bot identifier."
   }
 }
