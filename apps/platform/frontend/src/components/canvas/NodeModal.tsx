@@ -1,27 +1,35 @@
 // src/components/canvas/NodeModal.tsx
 import { Close as CloseIcon, Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import {
-  Box, Button, Checkbox, FormControl, FormControlLabel,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  Divider,
+  FormControl,
+  FormControlLabel,
   Grid,
   IconButton,
   InputLabel,
-  MenuItem, Modal,
-  Paper,
-  Select,
-  Switch,
-  TextField, Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   List,
   ListItem,
   ListItemText,
-  Chip,
+  MenuItem,
+  Modal,
+  Paper,
+  Select,
+  Stack,
+  Switch,
+  TextField,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import { ExpandMore as ExpandMoreIcon, ContentCopy as ContentCopyIcon } from "@mui/icons-material";
 import type { Node, Edge } from "@xyflow/react";
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CustomNodeData, ExtractVarItem, ModelOptions, PromptData } from "../../types/canvasTypes";
@@ -38,8 +46,6 @@ interface NodeModalProps {
   allEdges?: Edge[];
 }
 
-type InputMode = 'prompt' | 'staticText';
-
 const NODE_TYPES = [
   { value: 'start', label: 'Start' },
   { value: 'normal', label: 'Normal' },
@@ -55,6 +61,19 @@ const NODE_TYPES = [
 
 const VARIABLE_TYPES = ['string', 'int', 'float', 'boolean', 'datetime', 'array', 'object'];
 
+const SectionTitle = ({ title, helper }: { title: ReactNode; helper?: ReactNode }) => (
+  <Stack spacing={helper ? 0.5 : 0} mb={helper ? 2.5 : 2}>
+    <Box sx={{ typography: 'subtitle1', fontWeight: 600 }} component="div">
+      {title}
+    </Box>
+    {helper ? (
+      <Typography variant="body2" color="text.secondary" component="div">
+        {helper}
+      </Typography>
+    ) : null}
+  </Stack>
+);
+
 const NodeModal: FC<NodeModalProps> = ({
   isOpen,
   onClose,
@@ -65,7 +84,6 @@ const NodeModal: FC<NodeModalProps> = ({
   allEdges = [],
 }) => {
   const { t } = useTranslation();
-  const [inputMode, setInputMode] = useState<InputMode>('prompt');
   const [customPromptFields, setCustomPromptFields] = useState<Array<{ key: string; value: string }>>([]);
   const [copiedVar, setCopiedVar] = useState<string | null>(null);
 
@@ -82,22 +100,14 @@ const NodeModal: FC<NodeModalProps> = ({
   };
 
   useEffect(() => {
-    if (selectedNode?.data) {
-      if (selectedNode.data.prompt) {
-        setInputMode('prompt');
-        // Load custom fields from prompt data
-        if (selectedNode.data.prompt.custom_fields) {
-          const fields = Object.entries(selectedNode.data.prompt.custom_fields).map(([key, value]) => ({
-            key,
-            value: value as string,
-          }));
-          setCustomPromptFields(fields);
-        }
-      } else if (selectedNode.data.text) {
-        setInputMode('staticText');
-      } else {
-        setInputMode('prompt');
-      }
+    if (selectedNode?.data?.prompt?.custom_fields) {
+      const fields = Object.entries(selectedNode.data.prompt.custom_fields).map(([key, value]) => ({
+        key,
+        value: value as string,
+      }));
+      setCustomPromptFields(fields);
+    } else {
+      setCustomPromptFields([]);
     }
   }, [selectedNode]);
 
@@ -192,10 +202,6 @@ const NodeModal: FC<NodeModalProps> = ({
     onNodeDataChange(`modelOptions.${fieldName}` as `modelOptions.${keyof ModelOptions}`, fieldValue);
   };
 
-  const handleInputModeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setInputMode(event.target.checked ? 'staticText' : 'prompt');
-  };
-
   const isRequestNode = selectedNode.type === 'request';
 
   // Determine which fields to show based on node type
@@ -204,9 +210,6 @@ const NodeModal: FC<NodeModalProps> = ({
 
   const advancedNodeTypes = ['normal', 'message', 'request', 'extraction', 'validation', 'recommendation', 'summary'];
   const showAdvancedFields = advancedNodeTypes.includes(selectedNode.type || '');
-
-  const extractionNodeTypes = ['extraction', 'validation'];
-  const showExtractionFields = extractionNodeTypes.includes(selectedNode.type || '');
 
   return (
     <Modal
@@ -218,274 +221,254 @@ const NodeModal: FC<NodeModalProps> = ({
         justifyContent: 'center',
       }}
     >
-      <Box
+      <Paper
         sx={{
           position: 'relative',
-          width: { xs: '95%', sm: 650, md: 800 },
+          width: { xs: '96%', sm: 640, md: 780 },
           maxWidth: '95vw',
-          minWidth: { xs: '95%', sm: 500 },
+          minWidth: { xs: '96%', sm: 520 },
+          minHeight: 400,
           maxHeight: '90vh',
-          minHeight: '400px',
-          height: 'auto',
           display: 'flex',
           flexDirection: 'column',
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: '0 28px 60px rgba(15, 23, 42, 0.22)',
           bgcolor: 'background.paper',
-          borderRadius: 4,
-          boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
           resize: 'both',
-          overflow: 'hidden', // Changed from 'auto' to 'hidden' to prevent double scrollbars
+          overflow: 'hidden',
         }}>
 
         {/* Header */}
-        <Box sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          p: 3,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-        }}>
-          <Box>
-            <Typography variant="h5" component="h2" fontWeight="700" sx={{ mb: 0.5 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            px: { xs: 3, md: 4 },
+            py: 3,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: 'background.paper',
+          }}
+        >
+          <Stack spacing={0.5}>
+            <Typography variant="h6" component="h2" fontWeight={600}>
               Edit Node
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            <Typography variant="body2" color="text.secondary">
               {selectedNode.data.name || selectedNode.id}
             </Typography>
-          </Box>
+          </Stack>
           <IconButton
             onClick={onClose}
             size="small"
             sx={{
-              color: 'white',
+              color: 'text.secondary',
               '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.1)',
-              }
+                backgroundColor: 'action.hover',
+              },
             }}
           >
             <CloseIcon />
           </IconButton>
         </Box>
 
-        <Box sx={{
-          p: 4,
-          flex: 1,
-          overflowY: 'auto',
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: 'transparent',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: '#888',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            background: '#555',
-          },
-        }}>
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            px: { xs: 3, md: 4 },
+            py: { xs: 3, md: 4 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            '&::-webkit-scrollbar': {
+              width: 8,
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'transparent',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#b0b8c4',
+              borderRadius: 4,
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              background: '#8b96a6',
+            },
+          }}
+        >
           {/* Basic Information */}
-          <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Box sx={{
-                width: 4,
-                height: 24,
-                bgcolor: 'primary.main',
-                borderRadius: 1,
-                mr: 1.5
-              }} />
-              <Typography variant="h6" fontWeight="600" color="text.primary">
-                Basic Information
-              </Typography>
-            </Box>
-            <TextField
-              label="Node Name"
-              name="name"
-              fullWidth
-              value={selectedNode.data.name || ""}
-              onChange={handleSimpleChange}
-              sx={{
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                }
-              }}
-              helperText="This is the display name shown on the canvas"
+          <Box component="section">
+            <SectionTitle
+              title="Basic Information"
+              helper="Set the fundamentals for how this node appears on the canvas."
             />
-            <TextField
-              label="Node ID"
-              name="nodeId"
-              fullWidth
-              value={selectedNode.id || ""}
-              onChange={handleSimpleChange}
-              sx={{
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                }
-              }}
-              helperText="⚠️ Unique identifier for this node (changing this may break connections)"
-            />
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Node Type</InputLabel>
-              <Select
-                value={selectedNode.type || 'normal'}
-                label="Node Type"
-                onChange={(e) => onNodeDataChange('nodeType', e.target.value)}
-                sx={{ borderRadius: 2 }}
-              >
-                {NODE_TYPES.map((type) => (
-                  <MenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Stack spacing={2}>
+              <TextField
+                label="Node Name"
+                name="name"
+                fullWidth
+                size="small"
+                value={selectedNode.data.name || ""}
+                onChange={handleSimpleChange}
+                helperText="Display name shown on the canvas."
+              />
+              <TextField
+                label="Node ID"
+                name="nodeId"
+                fullWidth
+                size="small"
+                value={selectedNode.id || ""}
+                onChange={handleSimpleChange}
+                helperText="Unique identifier for this node (updating it will rewrite existing connections)."
+              />
+              <FormControl fullWidth size="small">
+                <InputLabel>Node Type</InputLabel>
+                <Select
+                  value={selectedNode.type || 'normal'}
+                  label="Node Type"
+                  onChange={(e) => onNodeDataChange('nodeType', e.target.value)}
+                >
+                  {NODE_TYPES.map((type) => (
+                    <MenuItem key={type.value} value={type.value}>
+                      {type.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
           </Box>
 
-          {/* Content Section */}
+          {/* Prompt Configuration */}
           {showContentFields && (
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box sx={{
-                  width: 4,
-                  height: 24,
-                  bgcolor: 'primary.main',
-                  borderRadius: 1,
-                  mr: 1.5
-                }} />
-                <Typography variant="h6" fontWeight="600" color="text.primary">
-                  Prompt Configuration
-                </Typography>
-              </Box>
-
-              <VariableAutocomplete
-                label="Context"
-                fullWidth
-                multiline
-                minRows={3}
-                maxRows={12}
-                value={selectedNode.data.prompt?.context || ''}
-                onChange={(value) => handlePromptFieldChange('context', value)}
-                availableVariables={availableVariables}
-                sx={{
-                  mb: 2,
-                }}
-                helperText="What's happening at this step in the conversation flow"
+            <Box component="section">
+              <SectionTitle
+                title="Prompt Configuration"
+                helper="Shape the instructions the model will receive at this step."
               />
+              <Stack spacing={2}>
+                <VariableAutocomplete
+                  label="Context"
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  maxRows={12}
+                  value={selectedNode.data.prompt?.context || ''}
+                  onChange={(value) => handlePromptFieldChange('context', value)}
+                  availableVariables={availableVariables}
+                  helperText="What's happening at this step in the conversation flow."
+                />
 
-              <VariableAutocomplete
-                label="Objective"
-                fullWidth
-                multiline
-                minRows={3}
-                maxRows={12}
-                value={selectedNode.data.prompt?.objective || ''}
-                onChange={(value) => handlePromptFieldChange('objective', value)}
-                availableVariables={availableVariables}
-                sx={{
-                  mb: 2,
-                }}
-                helperText="What should the LLM accomplish at this node"
-              />
+                <VariableAutocomplete
+                  label="Objective"
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  maxRows={12}
+                  value={selectedNode.data.prompt?.objective || ''}
+                  onChange={(value) => handlePromptFieldChange('objective', value)}
+                  availableVariables={availableVariables}
+                  helperText="What should the LLM accomplish at this node."
+                />
 
-              <VariableAutocomplete
-                label="Notes"
-                fullWidth
-                multiline
-                minRows={2}
-                maxRows={10}
-                value={selectedNode.data.prompt?.notes || ''}
-                onChange={(value) => handlePromptFieldChange('notes', value)}
-                availableVariables={availableVariables}
-                sx={{
-                  mb: 2,
-                }}
-                helperText="Important considerations, tone, style guidelines"
-              />
+                <VariableAutocomplete
+                  label="Notes"
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  maxRows={10}
+                  value={selectedNode.data.prompt?.notes || ''}
+                  onChange={(value) => handlePromptFieldChange('notes', value)}
+                  availableVariables={availableVariables}
+                  helperText="Important considerations, tone, or style guidelines."
+                />
 
-              <VariableAutocomplete
-                label="Examples"
-                fullWidth
-                multiline
-                minRows={3}
-                maxRows={12}
-                value={selectedNode.data.prompt?.examples || ''}
-                onChange={(value) => handlePromptFieldChange('examples', value)}
-                availableVariables={availableVariables}
-                sx={{
-                  mb: 2,
-                }}
-                helperText="Sample responses or example outputs"
-              />
+                <VariableAutocomplete
+                  label="Examples"
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  maxRows={12}
+                  value={selectedNode.data.prompt?.examples || ''}
+                  onChange={(value) => handlePromptFieldChange('examples', value)}
+                  availableVariables={availableVariables}
+                  helperText="Sample responses or example outputs."
+                />
 
-              {/* Custom Fields */}
-              {customPromptFields.length > 0 && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                    Custom Fields
-                  </Typography>
-                  {customPromptFields.map((field, index) => (
-                    <Box key={index} sx={{ mb: 2, display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                      <TextField
-                        label="Field Name"
-                        value={field.key}
-                        onChange={(e) => handleCustomFieldChange(index, 'key', e.target.value)}
-                        sx={{ flex: '0 0 200px' }}
-                      />
-                      <TextField
-                        label="Field Value"
-                        multiline
-                        minRows={2}
-                        maxRows={4}
-                        value={field.value}
-                        onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)}
-                        sx={{ flex: 1 }}
-                      />
-                      <IconButton
-                        onClick={() => handleRemoveCustomField(index)}
-                        color="error"
-                        sx={{ mt: 1 }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  ))}
-                </Box>
-              )}
+                {customPromptFields.length > 0 && (
+                  <Stack spacing={2}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Custom Fields
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      {customPromptFields.map((field, index) => (
+                        <Stack
+                          key={`${field.key}-${index}`}
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={1.5}
+                          alignItems="flex-start"
+                        >
+                          <TextField
+                            label="Field Name"
+                            value={field.key}
+                            onChange={(e) => handleCustomFieldChange(index, 'key', e.target.value)}
+                            size="small"
+                            sx={{ flex: { xs: '1 1 auto', sm: '0 0 200px' } }}
+                          />
+                          <TextField
+                            label="Field Value"
+                            multiline
+                            minRows={2}
+                            maxRows={4}
+                            value={field.value}
+                            onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)}
+                            size="small"
+                            sx={{ flex: 1 }}
+                          />
+                          <IconButton onClick={() => handleRemoveCustomField(index)} color="error" size="small">
+                            <DeleteIcon />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Stack>
+                )}
 
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={handleAddCustomField}
-                sx={{ borderRadius: 2 }}
-              >
-                Add Custom Field
-              </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddCustomField}
+                  size="small"
+                  sx={{ alignSelf: 'flex-start' }}
+                >
+                  Add Custom Field
+                </Button>
+              </Stack>
             </Box>
           )}
 
           {/* Request Configuration */}
           {isRequestNode && (
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" gutterBottom color="primary" fontWeight="500">
-                {t('nodeModal.requestConfigurationTitle')}
-              </Typography>
+            <Box component="section">
+              <SectionTitle
+                title={t('nodeModal.requestConfigurationTitle')}
+                helper="Define the request this node should perform."
+              />
               <Grid container spacing={2}>
-                <Grid sx={{ xs: 12, md: 8 }} >
+                <Grid item xs={12} md={8}>
                   <TextField
                     label={t('nodeModal.requestUrlLabel')}
                     name="url"
                     fullWidth
+                    size="small"
                     value={selectedNode.data.url || ''}
                     onChange={handleSimpleChange}
                   />
                 </Grid>
-                <Grid sx={{ xs: 12, md: 4 }} >
-                  <FormControl fullWidth>
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth size="small">
                     <InputLabel>{t('nodeModal.methodLabel')}</InputLabel>
                     <Select
                       name="method"
@@ -507,19 +490,11 @@ const NodeModal: FC<NodeModalProps> = ({
 
           {/* Loop Condition */}
           {showAdvancedFields && (
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box sx={{
-                  width: 4,
-                  height: 24,
-                  bgcolor: 'secondary.main',
-                  borderRadius: 1,
-                  mr: 1.5
-                }} />
-                <Typography variant="h6" fontWeight="600" color="text.primary">
-                  Loop Condition
-                </Typography>
-              </Box>
+            <Box component="section">
+              <SectionTitle
+                title="Loop Condition"
+                helper="Control whether this node repeats until a condition is met."
+              />
               <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
                 <FormControlLabel
                   control={
@@ -528,11 +503,11 @@ const NodeModal: FC<NodeModalProps> = ({
                       onChange={(e) => onNodeDataChange('loopEnabled', e.target.checked)}
                     />
                   }
-                  label="Enable Loop Condition"
+                  label="Enable loop condition"
                   sx={{ mb: 2 }}
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                  Define the condition in which the model should loop back or move to the next node
+                  Define the condition in which the model should loop back or move to the next node.
                 </Typography>
                 {selectedNode.data.loopEnabled && (
                   <VariableAutocomplete
@@ -545,7 +520,7 @@ const NodeModal: FC<NodeModalProps> = ({
                     value={selectedNode.data.condition || ''}
                     onChange={(value) => onNodeDataChange('condition', value)}
                     availableVariables={availableVariables}
-                    helperText="Describe when this node should loop or continue"
+                    helperText="Describe when this node should loop or continue."
                   />
                 )}
               </Paper>
@@ -554,21 +529,16 @@ const NodeModal: FC<NodeModalProps> = ({
 
           {/* Global Node Configuration */}
           {selectedNode.type === 'global' && (
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box sx={{
-                  width: 4,
-                  height: 24,
-                  bgcolor: 'warning.dark',
-                  borderRadius: 1,
-                  mr: 1.5
-                }} />
-                <Typography variant="h6" fontWeight="600" color="text.primary">
-                  Global Node Configuration
-                </Typography>
-              </Box>
-              <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, bgcolor: 'warning.lighter', border: '2px solid', borderColor: 'warning.main' }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            <Box component="section">
+              <SectionTitle
+                title="Global Node Configuration"
+                helper="Describe when this node should be triggered from anywhere in the flow."
+              />
+              <Paper
+                variant="outlined"
+                sx={{ p: 3, borderRadius: 2, display: 'flex', flexDirection: 'column', gap: 3 }}
+              >
+                <Typography variant="body2" color="text.secondary">
                   Global nodes can be triggered from any point in the conversation flow based on specific conditions.
                 </Typography>
 
@@ -581,117 +551,96 @@ const NodeModal: FC<NodeModalProps> = ({
                   maxRows={6}
                   value={selectedNode.data.nodeDescription || ''}
                   onChange={handleSimpleChange}
-                  sx={{ mb: 3 }}
-                  helperText="Describe when this global node should be triggered (e.g., 'When user asks for help' or 'When user wants to cancel')"
+                  helperText="Describe when this global node should be triggered."
                   placeholder="When should this node be activated?"
                 />
 
-                <Box sx={{
-                  p: 2,
-                  bgcolor: 'background.paper',
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider'
-                }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={selectedNode.data.autoReturnToPrevious || false}
-                        onChange={(e) => onNodeDataChange('autoReturnToPrevious', e.target.checked)}
-                      />
-                    }
-                    label={
-                      <Box>
-                        <Typography variant="body2" fontWeight="600">
-                          Automatically go back to previous node
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          When enabled, the flow returns to the previous node after responding. When disabled, you can define custom pathways from this node.
-                        </Typography>
-                      </Box>
-                    }
-                  />
-                </Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={selectedNode.data.autoReturnToPrevious || false}
+                      onChange={(e) => onNodeDataChange('autoReturnToPrevious', e.target.checked)}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>
+                        Automatically return to the previous node
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        When enabled, the flow returns to the previous node after responding. Disable it to define custom pathways.
+                      </Typography>
+                    </Box>
+                  }
+                />
               </Paper>
             </Box>
           )}
 
           {/* Variable Extraction */}
-          <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box sx={{
-                  width: 4,
-                  height: 24,
-                  bgcolor: 'warning.main',
-                  borderRadius: 1,
-                  mr: 1.5
-                }} />
-                <Typography variant="h6" fontWeight="600" color="text.primary">
-                  Variable Extraction
-                </Typography>
-              </Box>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleAddVariable}
-                size="small"
-                sx={{ borderRadius: 2 }}
+          <Box component="section">
+            <SectionTitle
+              title="Variable Extraction"
+              helper="Define the data points you want to capture while this node runs."
+            />
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                justifyContent="space-between"
+                sx={{ mb: (selectedNode.data.extractVars || []).length > 0 ? 3 : 2 }}
               >
-                Add Variable
-              </Button>
-            </Box>
-
-            <Paper variant="outlined" sx={{
-              p: 3,
-              bgcolor: showExtractionFields ? 'warning.lighter' : 'background.paper',
-              borderRadius: 2,
-              borderColor: showExtractionFields ? 'warning.main' : 'divider',
-              borderWidth: showExtractionFields ? 2 : 1,
-            }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Define variables to extract from user messages at this node.
-              </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Specify variables to extract from user messages at this node.
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddVariable}
+                  size="small"
+                >
+                  Add Variable
+                </Button>
+              </Stack>
 
               {(selectedNode.data.extractVars || []).length > 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Stack spacing={2.5}>
                   {(selectedNode.data.extractVars || []).map((variable, index) => (
                     <Paper
                       key={index}
-                      elevation={2}
+                      variant="outlined"
                       sx={{
                         p: 3,
-                        bgcolor: 'background.paper',
                         borderRadius: 2,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        position: 'relative'
+                        position: 'relative',
                       }}
                     >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="subtitle2" color="text.secondary" fontWeight="600">
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{ mb: 2 }}
+                      >
+                        <Typography variant="subtitle2" color="text.secondary" fontWeight={600}>
                           Variable {index + 1}
                         </Typography>
-                        <IconButton
-                          onClick={() => handleRemoveVariable(index)}
-                          color="error"
-                          size="small"
-                        >
+                        <IconButton onClick={() => handleRemoveVariable(index)} color="error" size="small">
                           <DeleteIcon />
                         </IconButton>
-                      </Box>
+                      </Stack>
 
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Stack spacing={2}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                           <TextField
                             label="Variable Name"
                             value={variable.name}
                             onChange={(e) => handleVariableChange(index, 'name', e.target.value)}
                             placeholder="e.g., user_email"
                             size="small"
-                            sx={{ flex: 1 }}
+                            fullWidth
                           />
-                          <FormControl size="small" sx={{ minWidth: 140 }}>
+                          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 160 } }}>
                             <InputLabel>Type</InputLabel>
                             <Select
                               value={variable.varType}
@@ -705,7 +654,7 @@ const NodeModal: FC<NodeModalProps> = ({
                               ))}
                             </Select>
                           </FormControl>
-                        </Box>
+                        </Stack>
 
                         <TextField
                           label="Description"
@@ -716,7 +665,7 @@ const NodeModal: FC<NodeModalProps> = ({
                           value={variable.description}
                           onChange={(e) => handleVariableChange(index, 'description', e.target.value)}
                           size="small"
-                          placeholder="Describe what this variable represents and how to extract it"
+                          placeholder="Describe what this variable represents and how to extract it."
                         />
 
                         <FormControlLabel
@@ -728,53 +677,45 @@ const NodeModal: FC<NodeModalProps> = ({
                           }
                           label="Required variable (must be extracted before moving forward)"
                         />
-                      </Box>
+                      </Stack>
                     </Paper>
                   ))}
-                </Box>
+                </Stack>
               ) : (
-                <Box sx={{
-                  py: 4,
-                  textAlign: 'center',
-                  borderRadius: 2,
-                  bgcolor: 'action.hover',
-                  border: '2px dashed',
-                  borderColor: 'divider'
-                }}>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    py: 4,
+                    px: 3,
+                    textAlign: 'center',
+                    borderRadius: 2,
+                    borderStyle: 'dashed',
+                    borderColor: 'divider',
+                    backgroundColor: 'background.default',
+                  }}
+                >
                   <Typography variant="body2" color="text.secondary">
-                    No variables defined yet. Click "Add Variable" to get started.
+                    No variables defined yet. Use “Add Variable” to capture structured data.
                   </Typography>
-                </Box>
+                </Paper>
               )}
             </Paper>
           </Box>
 
           {/* Available Variables Section */}
           {showContentFields && availableVariables.length > 0 && (
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box sx={{
-                  width: 4,
-                  height: 24,
-                  bgcolor: 'success.main',
-                  borderRadius: 1,
-                  mr: 1.5
-                }} />
-                <Typography variant="h6" fontWeight="600" color="text.primary">
-                  {t('nodeModal.availableVariablesTitle')}
-                  <Chip
-                    label={availableVariables.length}
-                    size="small"
-                    color="success"
-                    sx={{ ml: 1, height: 22 }}
-                  />
-                </Typography>
-              </Box>
-              <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, borderColor: 'divider' }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {t('nodeModal.availableVariablesDesc')}
-                </Typography>
-                <Accordion>
+            <Box component="section">
+              <SectionTitle
+                title={
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <span>{t('nodeModal.availableVariablesTitle')}</span>
+                    <Chip label={availableVariables.length} size="small" color="success" />
+                  </Stack>
+                }
+                helper={t('nodeModal.availableVariablesDesc')}
+              />
+              <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+                <Accordion disableGutters>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Typography variant="subtitle2">
                       {t('nodeModal.viewAllVariables', { count: availableVariables.length })}
@@ -786,14 +727,19 @@ const NodeModal: FC<NodeModalProps> = ({
                         <ListItem
                           key={variable.name}
                           sx={{
-                            bgcolor: 'background.default',
-                            mb: 1,
-                            borderRadius: 1,
-                            border: 1,
+                            border: '1px solid',
                             borderColor: 'divider',
+                            borderRadius: 1,
+                            mb: 1,
                           }}
                           secondaryAction={
-                            <Tooltip title={copiedVar === variable.name ? t('nodeModal.variableCopied') : t('nodeModal.copyVariable')}>
+                            <Tooltip
+                              title={
+                                copiedVar === variable.name
+                                  ? t('nodeModal.variableCopied')
+                                  : t('nodeModal.copyVariable')
+                              }
+                            >
                               <IconButton
                                 size="small"
                                 onClick={() => handleCopyVariable(variable.name)}
@@ -806,37 +752,31 @@ const NodeModal: FC<NodeModalProps> = ({
                         >
                           <ListItemText
                             primary={
-                              <Box display="flex" alignItems="center" gap={0.5} flexWrap="wrap">
+                              <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
                                 <Typography variant="body2" fontWeight="bold" component="span">
                                   {`{{${variable.name}}}`}
                                 </Typography>
-                                <Chip
-                                  label={variable.type}
-                                  size="small"
-                                  sx={{ height: 18, fontSize: '0.65rem' }}
-                                />
+                                <Chip label={variable.type} size="small" sx={{ height: 20 }} />
                                 {variable.required && (
                                   <Chip
                                     label={t('variableInspector.requiredChip')}
                                     size="small"
                                     color="warning"
-                                    sx={{ height: 18, fontSize: '0.65rem' }}
+                                    sx={{ height: 20 }}
                                   />
                                 )}
-                              </Box>
+                              </Stack>
                             }
                             secondary={
-                              <Box component="div">
-                                <Typography variant="caption" display="block" component="div">
+                              <Stack spacing={0.5}>
+                                <Typography variant="caption" component="div">
                                   {variable.description}
                                 </Typography>
-                                <Typography variant="caption" color="text.disabled" display="block" component="div">
+                                <Typography variant="caption" color="text.disabled" component="div">
                                   {t('variableInspector.sourceLabel')} {variable.sourceNodeName}
                                 </Typography>
-                              </Box>
+                              </Stack>
                             }
-                            primaryTypographyProps={{ component: 'div' }}
-                            secondaryTypographyProps={{ component: 'div', sx: { mt: 0.75 } }}
                           />
                         </ListItem>
                       ))}
@@ -849,30 +789,23 @@ const NodeModal: FC<NodeModalProps> = ({
 
           {/* Advanced Options */}
           {showAdvancedFields && (
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box sx={{
-                  width: 4,
-                  height: 24,
-                  bgcolor: 'info.main',
-                  borderRadius: 1,
-                  mr: 1.5
-                }} />
-                <Typography variant="h6" fontWeight="600" color="text.primary">
-                  Advanced Options
-                </Typography>
-              </Box>
-              <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, borderColor: 'divider' }}>
+            <Box component="section">
+              <SectionTitle
+                title="Advanced Options"
+                helper="Fine-tune how the model behaves at this node."
+              />
+              <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
                 <TextField
                   label="Temperature"
                   name="temperature"
                   type="number"
                   fullWidth
-                  inputProps={{ step: "0.1", min: "0", max: "2" }}
+                  size="small"
+                  inputProps={{ step: 0.1, min: 0, max: 2 }}
                   value={selectedNode.data.modelOptions?.temperature ?? 0.2}
                   onChange={handleModelOptionsChange}
-                  helperText="Controls randomness in LLM responses (0 = deterministic, 2 = very creative)"
-                  sx={{ maxWidth: 300, mb: 3 }}
+                  helperText="Controls randomness in responses (0 = deterministic, 2 = very creative)."
+                  sx={{ maxWidth: 280, mb: 3 }}
                 />
 
                 <FormControlLabel
@@ -885,11 +818,11 @@ const NodeModal: FC<NodeModalProps> = ({
                   }
                   label={
                     <Box>
-                      <Typography variant="body2" fontWeight="600">
-                        Skip User Response
+                      <Typography variant="body2" fontWeight={600}>
+                        Skip user response
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        When enabled, the flow will automatically advance to the next node without waiting for user input
+                        When enabled, the flow automatically advances without waiting for the user.
                       </Typography>
                     </Box>
                   }
@@ -898,55 +831,46 @@ const NodeModal: FC<NodeModalProps> = ({
             </Box>
           )}
 
-          {/* Footer Actions */}
-          <Box sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 2,
-            pt: 3,
-            mt: 3,
-            borderTop: '2px solid',
-            borderColor: 'divider'
-          }}>
-            <Button
-              onClick={handleDelete}
-              color="error"
-              variant="outlined"
-              startIcon={<DeleteIcon />}
-              sx={{
-                borderRadius: 2,
-                '&:hover': {
-                  bgcolor: 'error.lighter',
-                }
-              }}
-            >
-              Delete
-            </Button>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={onClose}
-                sx={{ borderRadius: 2 }}
-              >
-                Close
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={onClose}
-                sx={{
-                  borderRadius: 2,
-                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-                }}
-              >
-                Done
-              </Button>
-            </Box>
-          </Box>
         </Box>
-      </Box>
-    </Modal >
+
+        <Divider />
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            justifyContent: 'space-between',
+            gap: 2,
+            px: { xs: 3, md: 4 },
+            py: 3,
+            backgroundColor: 'background.paper',
+          }}
+        >
+          <Button
+            onClick={handleDelete}
+            color="error"
+            variant="outlined"
+            startIcon={<DeleteIcon />}
+            sx={{ borderRadius: 2 }}
+          >
+            Delete
+          </Button>
+          <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+            <Button variant="outlined" onClick={onClose} sx={{ borderRadius: 2 }}>
+              Close
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={onClose}
+              sx={{ borderRadius: 2, boxShadow: 'none' }}
+            >
+              Done
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
+    </Modal>
   );
 };
 
